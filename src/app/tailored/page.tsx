@@ -1,0 +1,632 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAppContext } from "@/context/AppContext";
+import Navbar from "@/components/Navbar";
+import CodeBlock from "@/components/CodeBlock";
+
+export default function TailoredPage() {
+  const router = useRouter();
+  const {
+    tailoredResume,
+    tailoredCoverLetter,
+    resumeLatex,
+    coverLetterLatex,
+    jobDescription,
+    companyName,
+    positionTitle,
+    personalDetails,
+    companyInfo,
+    setTailoredResume,
+    setTailoredCoverLetter,
+  } = useAppContext();
+
+  const [copiedResume, setCopiedResume] = useState(false);
+  const [copiedCoverLetter, setCopiedCoverLetter] = useState(false);
+
+  // Regeneration state
+  const [isRegeneratingResume, setIsRegeneratingResume] = useState(false);
+  const [isRegeneratingCoverLetter, setIsRegeneratingCoverLetter] =
+    useState(false);
+
+  // Sheet logging state
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [applicationLink, setApplicationLink] = useState("");
+  const [notes, setNotes] = useState("");
+  const [isLogging, setIsLogging] = useState(false);
+  const [logSuccess, setLogSuccess] = useState(false);
+  const [logError, setLogError] = useState("");
+
+  // General Q&A state
+  const [generalQuestion, setGeneralQuestion] = useState("");
+  const [generalAnswer, setGeneralAnswer] = useState("");
+  const [isAskingQuestion, setIsAskingQuestion] = useState(false);
+
+  // Generate formatted filenames
+  const formatName = (str: string) =>
+    str
+      .replace(/[^a-zA-Z0-9\s]/g, "")
+      .replace(/\s+/g, "_")
+      .trim();
+
+  const resumeFileName = `Kirtankumar_Thummar_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_Resume`;
+  const coverLetterFileName = `Kirtankumar_Thummar_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_CoverLetter`;
+
+  const copyToClipboard = async (
+    text: string,
+    type: "resume" | "coverLetter",
+  ) => {
+    await navigator.clipboard.writeText(text);
+    if (type === "resume") {
+      setCopiedResume(true);
+      setTimeout(() => setCopiedResume(false), 2000);
+    } else {
+      setCopiedCoverLetter(true);
+      setTimeout(() => setCopiedCoverLetter(false), 2000);
+    }
+  };
+
+  const handleLogToSheet = async () => {
+    if (!applicationLink.trim()) {
+      setLogError("Application link is required");
+      return;
+    }
+
+    setLogError("");
+    setIsLogging(true);
+
+    try {
+      const response = await fetch("/api/sheets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName,
+          positionTitle,
+          applicationLink,
+          notes,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to log application");
+      }
+
+      setLogSuccess(true);
+      setTimeout(() => {
+        setShowLogModal(false);
+        setLogSuccess(false);
+        setApplicationLink("");
+        setNotes("");
+      }, 2000);
+    } catch (err) {
+      setLogError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setIsLogging(false);
+    }
+  };
+
+  // Regeneration handlers
+  const handleRegenerateResume = async (comment: string) => {
+    setIsRegeneratingResume(true);
+    try {
+      const response = await fetch("/api/regenerate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "resume",
+          currentContent: tailoredResume,
+          comment,
+          resumeLatex,
+          jobDescription,
+          personalDetails,
+          companyInfo,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setTailoredResume(data.regeneratedContent);
+    } catch (err) {
+      console.error("Error regenerating resume:", err);
+    } finally {
+      setIsRegeneratingResume(false);
+    }
+  };
+
+  const handleRegenerateCoverLetter = async (comment: string) => {
+    setIsRegeneratingCoverLetter(true);
+    try {
+      const response = await fetch("/api/regenerate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "coverLetter",
+          currentContent: tailoredCoverLetter,
+          comment,
+          coverLetterLatex,
+          jobDescription,
+          personalDetails,
+          companyInfo,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setTailoredCoverLetter(data.regeneratedContent);
+    } catch (err) {
+      console.error("Error regenerating cover letter:", err);
+    } finally {
+      setIsRegeneratingCoverLetter(false);
+    }
+  };
+
+  // Redirect if no data
+  useEffect(() => {
+    if (!tailoredResume && !tailoredCoverLetter) {
+      if (!resumeLatex || !coverLetterLatex || !jobDescription) {
+        router.push("/");
+      }
+    }
+  }, [
+    tailoredResume,
+    tailoredCoverLetter,
+    resumeLatex,
+    coverLetterLatex,
+    jobDescription,
+    router,
+  ]);
+
+  return (
+    <main className="min-h-screen p-4 sm:p-6">
+      <Navbar currentStep={2} />
+
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-10 fade-in">
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            Tailored Documents
+          </h1>
+          <p className="text-muted text-base">
+            Your resume and cover letter customized for this role
+          </p>
+        </div>
+
+        {/* Filename Copy Buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 mb-5">
+          <div
+            className="glass-card p-4 fade-in"
+            style={{ animationDelay: "0.02s" }}
+          >
+            <label className="section-label text-sm">Resume Filename</label>
+            <div className="flex items-center gap-2 mt-2">
+              <code className="flex-1 bg-surface-hover px-3 py-2 rounded-lg text-sm font-mono text-foreground truncate">
+                {resumeFileName}
+              </code>
+              <button
+                onClick={() => copyToClipboard(resumeFileName, "resume")}
+                className="btn-secondary px-0 py-2 text-xs shrink-0"
+              >
+                {copiedResume ? (
+                  <>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                    >
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    Copy
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div
+            className="glass-card p-4 fade-in"
+            style={{ animationDelay: "0.04s" }}
+          >
+            <label className="section-label text-sm">
+              Cover Letter Filename
+            </label>
+            <div className="flex items-center gap-2 mt-2">
+              <code className="flex-1 bg-surface-hover px-3 py-2 rounded-lg text-sm font-mono text-foreground truncate">
+                {coverLetterFileName}
+              </code>
+              <button
+                onClick={() =>
+                  copyToClipboard(coverLetterFileName, "coverLetter")
+                }
+                className="btn-secondary px-3 py-2 text-xs shrink-0"
+              >
+                {copiedCoverLetter ? (
+                  <>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                    >
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    Copy
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Documents */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+          <div className="fade-in" style={{ animationDelay: "0.05s" }}>
+            <CodeBlock
+              title="Tailored Resume"
+              code={tailoredResume}
+              onRegenerate={handleRegenerateResume}
+              isRegenerating={isRegeneratingResume}
+            />
+          </div>
+
+          <div className="fade-in" style={{ animationDelay: "0.1s" }}>
+            <CodeBlock
+              title="Tailored Cover Letter"
+              code={tailoredCoverLetter}
+              onRegenerate={handleRegenerateCoverLetter}
+              isRegenerating={isRegeneratingCoverLetter}
+            />
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <div
+          className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center gap-3 fade-in"
+          style={{ animationDelay: "0.15s" }}
+        >
+          <button
+            onClick={() => router.push("/")}
+            className="btn-secondary text-sm py-2.5"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+            Back to Inputs
+          </button>
+
+          <button
+            onClick={() => setShowLogModal(true)}
+            className="btn-secondary text-sm py-2.5"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <line x1="3" y1="9" x2="21" y2="9" />
+              <line x1="3" y1="15" x2="21" y2="15" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+            </svg>
+            Log to Sheet
+          </button>
+
+          <button
+            onClick={() => router.push("/questions")}
+            className="btn-primary text-sm py-2.5"
+          >
+            Continue to Q&A
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </button>
+        </div>
+
+        {/* General Q&A Section */}
+        <div
+          className="mt-8 glass-card p-4 sm:p-5 fade-in"
+          style={{ animationDelay: "0.2s" }}
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-primary"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <h3 className="text-base font-semibold text-foreground">
+              Ask About Your Application
+            </h3>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 mb-3">
+            <textarea
+              value={generalQuestion}
+              onChange={(e) => setGeneralQuestion(e.target.value)}
+              placeholder="Ask any question about your tailored documents..."
+              className="input-field flex-1 min-h-[60px] text-sm"
+              rows={2}
+            />
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 mb-4">
+            <button
+              onClick={() =>
+                setGeneralQuestion(
+                  "Give me a list of skills from my current tailored resume, separated by commas. no extra text or formatting.",
+                )
+              }
+              className="btn-secondary text-xs py-2 px-3 flex-shrink-0"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M12 3v18" />
+                <path d="M5 10l7 7 7-7" />
+              </svg>
+              Quick: List Skills
+            </button>
+            <button
+              onClick={async () => {
+                if (!generalQuestion.trim()) return;
+                setIsAskingQuestion(true);
+                setGeneralAnswer("");
+                try {
+                  const response = await fetch("/api/ask", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      question: generalQuestion,
+                      tailoredResume,
+                      tailoredCoverLetter,
+                      jobDescription,
+                      companyInfo,
+                      companyName,
+                      positionTitle,
+                    }),
+                  });
+                  const data = await response.json();
+                  if (!response.ok) throw new Error(data.error);
+                  setGeneralAnswer(data.answer);
+                } catch (err) {
+                  setGeneralAnswer(
+                    "Error: " +
+                      (err instanceof Error
+                        ? err.message
+                        : "Failed to get answer"),
+                  );
+                } finally {
+                  setIsAskingQuestion(false);
+                }
+              }}
+              disabled={!generalQuestion.trim() || isAskingQuestion}
+              className="btn-primary text-sm py-2 px-4"
+            >
+              {isAskingQuestion ? (
+                <>
+                  <span className="spinner" />
+                  Thinking...
+                </>
+              ) : (
+                <>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                  Generate Answer
+                </>
+              )}
+            </button>
+          </div>
+
+          {generalAnswer && (
+            <div className="bg-surface-hover rounded-lg p-4 border border-card-border">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted">Answer</span>
+                <button
+                  onClick={() => navigator.clipboard.writeText(generalAnswer)}
+                  className="copy-btn text-xs py-1 px-2"
+                >
+                  Copy
+                </button>
+              </div>
+              <div className="prose max-w-none text-sm whitespace-pre-wrap">
+                {generalAnswer}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Log to Sheet Modal */}
+      {showLogModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="glass-card p-6 max-w-md w-full fade-in">
+            <h3 className="text-xl font-bold text-foreground mb-4">
+              📊 Log Application to Sheet
+            </h3>
+
+            {logSuccess ? (
+              <div className="text-center py-8">
+                <svg
+                  className="w-16 h-16 mx-auto text-green-500 mb-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                <p className="text-lg font-medium text-foreground">
+                  Logged successfully!
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Auto-filled fields (read-only) */}
+                <div className="mb-4">
+                  <label className="text-sm text-muted mb-1 block">
+                    Company Name{" "}
+                    <span className="text-xs text-green-600">
+                      (auto-filled)
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={companyName}
+                    readOnly
+                    className="input-field bg-gray-50 cursor-not-allowed"
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label className="text-sm text-muted mb-1 block">
+                    Position{" "}
+                    <span className="text-xs text-green-600">
+                      (auto-filled)
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={positionTitle}
+                    readOnly
+                    className="input-field bg-gray-50 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Required field */}
+                <div className="mb-4">
+                  <label className="text-sm text-muted mb-1 block">
+                    Application Link{" "}
+                    <span className="text-xs text-red-500">*required</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={applicationLink}
+                    onChange={(e) => setApplicationLink(e.target.value)}
+                    placeholder="https://..."
+                    className="input-field"
+                  />
+                </div>
+
+                {/* Optional field */}
+                <div className="mb-4">
+                  <label className="text-sm text-muted mb-1 block">
+                    Notes{" "}
+                    <span className="text-xs text-gray-400">(optional)</span>
+                  </label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Any notes about this application..."
+                    className="input-field h-20"
+                  />
+                </div>
+
+                {logError && (
+                  <p className="text-red-500 text-sm mb-4">{logError}</p>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowLogModal(false)}
+                    className="btn-secondary flex-1"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleLogToSheet}
+                    disabled={isLogging}
+                    className="btn-primary flex-1"
+                  >
+                    {isLogging ? (
+                      <>
+                        <span className="spinner" />
+                        Logging...
+                      </>
+                    ) : (
+                      "Log Application"
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
