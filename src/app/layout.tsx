@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Resume Tailor | AI-Powered Resume & Cover Letter Customization",
+  title: "Final Destination | Secure Your Dream Job",
   description:
-    "Tailor your resume and cover letter to any job description using AI. Get personalized application answers aligned with company values.",
+    "The last tool you'll ever need. Tailor your resume and cover letter with AI precision.",
 };
 
 export default function RootLayout({

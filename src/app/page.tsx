@@ -111,14 +111,16 @@ export default function Home() {
     <main className="min-h-screen p-4 sm:p-6">
       <Navbar currentStep={1} />
 
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10 fade-in">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Tailor Your Application
+          <h1 className="text-3xl md:text-4xl font-extrabold text-foreground mb-3 tracking-tight">
+            Welcome to Your{" "}
+            <span className="text-primary">Final Destination</span>
           </h1>
-          <p className="text-muted text-base">
-            Customize your resume and cover letter for any job with AI
+          <p className="text-muted text-lg max-w-2xl mx-auto">
+            The last tool you'll ever need. Secure that dream job with
+            precision-tailored documents.
           </p>
         </div>
 

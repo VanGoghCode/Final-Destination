@@ -9,7 +9,7 @@ interface NavbarProps {
 
 export default function Navbar({ currentStep }: NavbarProps) {
   return (
-    <nav className="glass-card px-4 sm:px-6 py-3 sm:py-4 mb-6 sm:mb-8">
+    <nav className="sticky top-4 z-50 glass-card px-4 sm:px-6 py-3 sm:py-4 mb-8 mx-auto max-w-6xl mt-4">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 sm:gap-3">
           <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
@@ -28,8 +28,8 @@ export default function Navbar({ currentStep }: NavbarProps) {
               <polyline points="10 9 9 9 8 9" />
             </svg>
           </div>
-          <span className="text-base sm:text-lg font-semibold text-foreground hidden sm:block">
-            Resume Tailor
+          <span className="text-base sm:text-lg font-bold text-foreground hidden sm:block tracking-tight">
+            Final Destination
           </span>
         </Link>
         <StepIndicator currentStep={currentStep} />

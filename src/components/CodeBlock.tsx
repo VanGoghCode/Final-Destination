@@ -29,11 +29,19 @@ export default function CodeBlock({
   };
 
   return (
-    <div className="glass-card p-4 sm:p-5 fade-in">
-      <div className="flex items-center justify-between mb-4 gap-2">
-        <h3 className="text-sm sm:text-base font-semibold text-foreground truncate">
-          {title}
-        </h3>
+    <div className="glass-card fade-in">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-card-border">
+        <div className="flex items-center gap-4">
+          {/* Mac-style window controls */}
+          <div className="flex gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-red-400/80" />
+            <div className="w-3 h-3 rounded-full bg-amber-400/80" />
+            <div className="w-3 h-3 rounded-full bg-green-400/80" />
+          </div>
+          <h3 className="text-sm font-medium text-foreground/80 truncate ml-2">
+            {title}
+          </h3>
+        </div>
         <div className="flex items-center gap-2 shrink-0">
           {showCopy && code && <CopyButton text={code} label="Copy" />}
           {onRegenerate && code && (
@@ -61,7 +69,7 @@ export default function CodeBlock({
         </div>
       </div>
 
-      <div className="code-block max-h-72 sm:max-h-96 overflow-y-auto">
+      <div className="code-block max-h-72 sm:max-h-96 overflow-y-auto border-t-0 rounded-t-none">
         {code || (
           <span className="text-muted-light">No content generated yet...</span>
         )}

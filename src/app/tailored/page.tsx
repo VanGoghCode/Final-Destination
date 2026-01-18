@@ -161,27 +161,27 @@ export default function TailoredPage() {
     }
   };
 
-  // Redirect if no data
-  useEffect(() => {
-    if (!tailoredResume && !tailoredCoverLetter) {
-      if (!resumeLatex || !coverLetterLatex || !jobDescription) {
-        router.push("/");
-      }
-    }
-  }, [
-    tailoredResume,
-    tailoredCoverLetter,
-    resumeLatex,
-    coverLetterLatex,
-    jobDescription,
-    router,
-  ]);
+  // Redirect removed - allow free navigation between pages
+  // useEffect(() => {
+  //   if (!tailoredResume && !tailoredCoverLetter) {
+  //     if (!resumeLatex || !coverLetterLatex || !jobDescription) {
+  //       router.push("/");
+  //     }
+  //   }
+  // }, [
+  //   tailoredResume,
+  //   tailoredCoverLetter,
+  //   resumeLatex,
+  //   coverLetterLatex,
+  //   jobDescription,
+  //   router,
+  // ]);
 
   return (
     <main className="min-h-screen p-4 sm:p-6">
       <Navbar currentStep={2} />
 
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10 fade-in">
           <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -205,7 +205,7 @@ export default function TailoredPage() {
               </code>
               <button
                 onClick={() => copyToClipboard(resumeFileName, "resume")}
-                className="btn-secondary px-0 py-2 text-xs shrink-0"
+                className="copy-btn shrink-0"
               >
                 {copiedResume ? (
                   <>
@@ -256,7 +256,7 @@ export default function TailoredPage() {
                 onClick={() =>
                   copyToClipboard(coverLetterFileName, "coverLetter")
                 }
-                className="btn-secondary px-3 py-2 text-xs shrink-0"
+                className="copy-btn shrink-0"
               >
                 {copiedCoverLetter ? (
                   <>

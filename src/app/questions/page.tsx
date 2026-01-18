@@ -47,12 +47,12 @@ export default function QuestionsPage() {
   const [showReferenceEmailFeedback, setShowReferenceEmailFeedback] =
     useState(false);
 
-  // Redirect if no tailored documents
-  useEffect(() => {
-    if (!tailoredResume || !tailoredCoverLetter) {
-      router.push("/");
-    }
-  }, [tailoredResume, tailoredCoverLetter, router]);
+  // Redirect removed - allow free navigation between pages
+  // useEffect(() => {
+  //   if (!tailoredResume || !tailoredCoverLetter) {
+  //     router.push("/");
+  //   }
+  // }, [tailoredResume, tailoredCoverLetter, router]);
 
   const handleGenerateAnswers = async () => {
     if (!applicationQuestions.trim()) {
@@ -210,7 +210,7 @@ export default function QuestionsPage() {
     <main className="min-h-screen p-4 sm:p-6">
       <Navbar currentStep={3} />
 
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10 fade-in">
           <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -286,7 +286,7 @@ export default function QuestionsPage() {
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
-                        strokeWidth="2"
+                        strokeWidth="1"
                       >
                         <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                         <path d="M3 3v5h5" />
@@ -298,15 +298,15 @@ export default function QuestionsPage() {
               </div>
             </div>
 
-            <div className="flex-1 bg-surface-hover rounded-lg p-4 sm:p-5 overflow-y-auto whitespace-pre-wrap border border-card-border min-h-[250px] sm:min-h-[300px]">
+            <div className="flex-1 output-panel p-4 sm:p-5 overflow-y-auto whitespace-pre-wrap min-h-[250px] sm:min-h-[300px]">
               {generatedAnswers ? (
                 <div className="prose max-w-none text-sm font-sans">
                   {generatedAnswers}
                 </div>
               ) : (
-                <span className="text-muted-light text-sm italic">
+                <p className="text-muted-light italic">
                   Your answers will appear here...
-                </span>
+                </p>
               )}
             </div>
 
@@ -399,7 +399,7 @@ export default function QuestionsPage() {
                   )}
                 </button>
               </div>
-              <div className="flex-1 rounded-lg bg-surface-hover p-3 sm:p-4 text-sm text-muted min-h-[160px] sm:min-h-[180px] border border-card-border">
+              <div className="flex-1 output-panel p-3 sm:p-4 text-sm text-muted min-h-[160px] sm:min-h-[180px]">
                 {coldEmail ? (
                   <>
                     <div className="whitespace-pre-wrap">{coldEmail}</div>
@@ -491,7 +491,7 @@ export default function QuestionsPage() {
                   )}
                 </button>
               </div>
-              <div className="flex-1 rounded-lg bg-surface-hover p-3 sm:p-4 text-sm text-muted min-h-[160px] sm:min-h-[180px] border border-card-border">
+              <div className="flex-1 output-panel p-3 sm:p-4 text-sm text-muted min-h-[160px] sm:min-h-[180px]">
                 {referenceEmail ? (
                   <>
                     <div className="whitespace-pre-wrap">{referenceEmail}</div>
@@ -610,9 +610,32 @@ export default function QuestionsPage() {
               Start New
             </button>
           </div>
-          <div className="text-xs font-medium text-muted-light flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            Profile Context Loaded
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
+            <span className="text-xs font-medium text-muted-light">
+              Context Loaded:
+            </span>
+            <div className="flex flex-wrap justify-end gap-2">
+              {tailoredResume && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 font-medium">
+                  Resume
+                </span>
+              )}
+              {tailoredCoverLetter && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 font-medium">
+                  Cover Letter
+                </span>
+              )}
+              {jobDescription && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 font-medium">
+                  Job Desc
+                </span>
+              )}
+              {(companyInfo || questionsCompanyInfo) && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 font-medium">
+                  Company Info
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
