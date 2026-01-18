@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 
-const SPREADSHEET_ID = "1CRdVmBRwzkpzlM32jQk60uqdkVd3l9v1GN5qXC9Z7ow";
+const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID || "";
 const SHEET_NAME = "tracker";
 
 export async function POST(request: Request) {

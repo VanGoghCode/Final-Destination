@@ -43,13 +43,15 @@ Create `.env.local` in the project root:
 GOOGLE_APPLICATION_CREDENTIALS=./your-service-account-key.json
 GOOGLE_CLOUD_PROJECT=your-project-id
 GOOGLE_CLOUD_LOCATION=global
+GOOGLE_SPREADSHEET_ID=your-spreadsheet-id
 ```
 
-| Variable                         | Description                          |
-| -------------------------------- | ------------------------------------ |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account JSON file    |
-| `GOOGLE_CLOUD_PROJECT`           | Your Google Cloud Project ID         |
-| `GOOGLE_CLOUD_LOCATION`          | Vertex AI region (default: `global`) |
+| Variable                         | Description                                          |
+| -------------------------------- | ---------------------------------------------------- |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account JSON file                    |
+| `GOOGLE_CLOUD_PROJECT`           | Your Google Cloud Project ID                         |
+| `GOOGLE_CLOUD_LOCATION`          | Vertex AI region (default: `global`)                 |
+| `GOOGLE_SPREADSHEET_ID`          | Google Sheets ID for application tracking (optional) |
 
 ### 4. Run
 
