@@ -74,10 +74,16 @@ export default function Home() {
 
   const handleLoadTemplate = async () => {
     try {
-      const [resumeRes, coverLetterRes] = await Promise.all([
-        fetch("/templates/resume.tex"),
-        fetch("/templates/cover-letter.tex"),
-      ]);
+      // Try custom templates first, then fall back to example templates
+      let resumeRes = await fetch("/templates/resume.tex");
+      if (!resumeRes.ok) {
+        resumeRes = await fetch("/templates/resume.example.tex");
+      }
+
+      let coverLetterRes = await fetch("/templates/cover-letter.tex");
+      if (!coverLetterRes.ok) {
+        coverLetterRes = await fetch("/templates/cover-letter.example.tex");
+      }
 
       if (!resumeRes.ok || !coverLetterRes.ok) {
         throw new Error("Failed to load templates");
@@ -90,9 +96,7 @@ export default function Home() {
       setCoverLetterLatex(coverLetterTemplate);
     } catch (err) {
       console.error("Error loading templates:", err);
-      alert(
-        "Failed to load templates. Make sure template files exist in /templates folder.",
-      );
+      alert("Failed to load templates. Make sure template files exist.");
     }
   };
 
