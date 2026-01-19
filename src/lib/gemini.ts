@@ -1,38 +1,66 @@
-import { VertexAI } from "@google-cloud/vertexai";
-import { getCredentialsObject } from "./auth";
+import {
+  GoogleGenAI,
+  HarmCategory,
+  HarmBlockThreshold,
+  ThinkingLevel,
+  type GenerateContentConfig,
+} from "@google/genai";
 
-// Initialize Vertex AI client with credentials from env var or file
-function getVertexAI(): VertexAI {
-  const project = process.env.GOOGLE_CLOUD_PROJECT;
-  const location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
+const MODEL_NAME = "gemini-3-pro-preview";
 
-  if (!project) {
-    throw new Error("GOOGLE_CLOUD_PROJECT environment variable is required");
+// Initialize Google GenAI client using API key mode
+function getGenAI(): GoogleGenAI {
+  const apiKey = process.env.GOOGLE_GENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("GOOGLE_GENAI_API_KEY environment variable is required");
   }
 
-  // Get credentials from environment variable if available
-  const credentials = getCredentialsObject();
-
-  return new VertexAI({
-    project,
-    location,
-    googleAuthOptions: credentials ? { credentials } : undefined,
-  });
+  return new GoogleGenAI({ apiKey });
 }
 
-// Helper to generate content using Vertex AI
+// Generation config with thinking enabled
+const generationConfig: GenerateContentConfig = {
+  maxOutputTokens: 65535,
+  temperature: 1,
+  topP: 0.95,
+  thinkingConfig: {
+    thinkingLevel: ThinkingLevel.HIGH,
+  },
+  safetySettings: [
+    {
+      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+      threshold: HarmBlockThreshold.OFF,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+      threshold: HarmBlockThreshold.OFF,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+      threshold: HarmBlockThreshold.OFF,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+      threshold: HarmBlockThreshold.OFF,
+    },
+  ],
+};
+
+// Helper to generate content using Google GenAI
 async function generateContent(prompt: string): Promise<string> {
   try {
-    const vertexAI = getVertexAI();
-    console.log("[Gemini] Initializing model gemini-2.0-flash");
-    const model = vertexAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+    const ai = getGenAI();
+    console.log(`[Gemini] Initializing model ${MODEL_NAME}`);
+
+    console.log("[Gemini] Sending request to Google GenAI...");
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: generationConfig,
     });
 
-    console.log("[Gemini] Sending request to Vertex AI...");
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const text = response.text || "";
 
     console.log(
       "[Gemini] Successfully received response, length:",
