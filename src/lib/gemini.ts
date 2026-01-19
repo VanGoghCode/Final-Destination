@@ -1,12 +1,35 @@
-import { GoogleGenAI } from "@google/genai";
+import { VertexAI } from "@google-cloud/vertexai";
+import { getCredentialsObject } from "./auth";
 
-// Initialize AI client for Vertex AI with API key
-function getAIClient(): GoogleGenAI {
-  return new GoogleGenAI({
-    vertexai: true,
-    project: process.env.GOOGLE_CLOUD_PROJECT,
-    location: process.env.GOOGLE_CLOUD_LOCATION || "global",
+// Initialize Vertex AI client with credentials from env var or file
+function getVertexAI(): VertexAI {
+  const project = process.env.GOOGLE_CLOUD_PROJECT;
+  const location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
+
+  if (!project) {
+    throw new Error("GOOGLE_CLOUD_PROJECT environment variable is required");
+  }
+
+  // Get credentials from environment variable if available
+  const credentials = getCredentialsObject();
+
+  return new VertexAI({
+    project,
+    location,
+    googleAuthOptions: credentials ? { credentials } : undefined,
   });
+}
+
+// Helper to generate content using Vertex AI
+async function generateContent(prompt: string): Promise<string> {
+  const vertexAI = getVertexAI();
+  const model = vertexAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+
+  const result = await model.generateContent(prompt);
+  const response = result.response;
+  const text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+  return text;
 }
 
 export async function tailorResume(
@@ -15,8 +38,6 @@ export async function tailorResume(
   personalDetails: string,
   companyInfo: string,
 ): Promise<string> {
-  const ai = getAIClient();
-
   const prompt = `You are an expert resume writer and career consultant. Your task is to tailor the given LaTeX resume to match the job description while maintaining the EXACT same LaTeX format and structure.
 
 ## CRITICAL INSTRUCTIONS:
@@ -41,13 +62,7 @@ ${companyInfo}
 ## OUTPUT:
 The complete, compilable LaTeX code with tailored content.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
-    contents: prompt,
-  });
-
-  let result = response.text || "";
-  // Clean up markdown if AI ignores instruction
+  let result = await generateContent(prompt);
   result = result.replace(/^```latex\n?|^```\n?/i, "").replace(/\n?```$/i, "");
 
   return result.trim();
@@ -59,8 +74,6 @@ export async function tailorCoverLetter(
   personalDetails: string,
   companyInfo: string,
 ): Promise<string> {
-  const ai = getAIClient();
-
   const prompt = `You are an expert cover letter writer crafting a letter for a visionary technologist. Your task is to tailor the given LaTeX cover letter for the specified job.
 
 ## CANDIDATE PERSONALITY & VALUES (MUST be reflected in the letter):
@@ -95,12 +108,7 @@ ${companyInfo}
 ## OUTPUT:
 The complete, compilable LaTeX code with tailored content that sounds like a visionary technologist who genuinely wants to help this company succeed.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
-    contents: prompt,
-  });
-
-  let result = response.text || "";
+  let result = await generateContent(prompt);
   result = result.replace(/^```latex\n?|^```\n?/i, "").replace(/\n?```$/i, "");
 
   return result.trim();
@@ -113,16 +121,14 @@ export async function generateAnswers(
   jobDescription: string,
   companyInfo: string,
 ): Promise<string> {
-  const ai = getAIClient();
-
   const prompt = `You are an expert career coach helping a visionary technologist answer application questions. Your answers should sound authentic, human, and passionate.
 
 ## CANDIDATE PERSONALITY & VALUES (MUST be reflected in answers):
-- 🚀 **Passionate innovator:** Loves playing with technology, building inventions, and exploring what's possible.
-- 🌍 **Mission-driven:** Cares deeply about making life easier for humans and contributing to a better future.
-- 💡 **Values innovation:** Drawn to companies and people who drive real change and do something different.
-- 👁️ **Visionary mindset:** Wants to help the company achieve its vision, not just get a job.
-- ❤️ **Authentic enthusiasm:** Genuine excitement about technology's potential to help humanity.
+- **Passionate innovator:** Loves playing with technology, building inventions, and exploring what's possible.
+- **Mission-driven:** Cares deeply about making life easier for humans and contributing to a better future.
+- **Values innovation:** Drawn to companies and people who drive real change and do something different.
+- **Visionary mindset:** Wants to help the company achieve its vision, not just get a job.
+- **Authentic enthusiasm:** Genuine excitement about technology's potential to help humanity.
 
 ## CONTEXT:
 - **Job:** ${jobDescription}
@@ -147,12 +153,7 @@ For each question, provide:
 **Answer:** [A thoughtful, human-sounding answer that reflects the visionary personality]
 ...`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
-    contents: prompt,
-  });
-
-  return response.text || "";
+  return await generateContent(prompt);
 }
 
 export async function generateColdEmail(
@@ -163,16 +164,14 @@ export async function generateColdEmail(
   positionTitle: string,
   companyName: string,
 ): Promise<string> {
-  const ai = getAIClient();
-
   const prompt = `You are helping a visionary technologist write a compelling cold email to a hiring authority (e.g., Director, VP, or Hiring Manager) at a company they want to work for.
 
 ## CANDIDATE PERSONALITY:
-- 🚀 Passionate innovator who loves building with technology
-- 🌍 Mission-driven, wants to make life easier for humanity
-- 💡 Drawn to companies that drive real change
-- 👁️ Visionary mindset - wants to help the company succeed
-- ❤️ Authentic enthusiasm about tech's potential
+- Passionate innovator who loves building with technology
+- Mission-driven, wants to make life easier for humanity
+- Drawn to companies that drive real change
+- Visionary mindset - wants to help the company succeed
+- Authentic enthusiasm about tech's potential
 
 ## CONTEXT:
 - **Position:** ${positionTitle}
@@ -193,12 +192,7 @@ export async function generateColdEmail(
 ## OUTPUT:
 Write the cold email body only (no subject line needed). Make it compelling, human, and confident but not arrogant.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
-    contents: prompt,
-  });
-
-  return response.text || "";
+  return await generateContent(prompt);
 }
 
 export async function generateReferenceEmail(
@@ -209,16 +203,14 @@ export async function generateReferenceEmail(
   positionTitle: string,
   companyName: string,
 ): Promise<string> {
-  const ai = getAIClient();
-
   const prompt = `You are helping a visionary technologist write a warm, genuine email to an employee at a company, asking for a referral for an open position.
 
 ## CANDIDATE PERSONALITY:
-- 🚀 Passionate innovator who loves building with technology
-- 🌍 Mission-driven, wants to make life easier for humanity
-- 💡 Drawn to companies that drive real change
-- 👁️ Visionary mindset - wants to help the company succeed
-- ❤️ Authentic enthusiasm about tech's potential
+- Passionate innovator who loves building with technology
+- Mission-driven, wants to make life easier for humanity
+- Drawn to companies that drive real change
+- Visionary mindset - wants to help the company succeed
+- Authentic enthusiasm about tech's potential
 
 ## CONTEXT:
 - **Position:** ${positionTitle}
@@ -239,12 +231,7 @@ export async function generateReferenceEmail(
 ## OUTPUT:
 Write the referral request email body only (no subject line needed). Make it human, humble, and genuine.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
-    contents: prompt,
-  });
-
-  return response.text || "";
+  return await generateContent(prompt);
 }
 
 // ========================================
@@ -259,8 +246,6 @@ export async function regenerateResume(
   personalDetails: string,
   companyInfo: string,
 ): Promise<string> {
-  const ai = getAIClient();
-
   const prompt = `You are an expert resume writer. The user has previously generated a tailored resume, but wants changes based on their feedback.
 
 ## USER'S FEEDBACK:
@@ -290,12 +275,7 @@ ${companyInfo}
 ## OUTPUT:
 The regenerated LaTeX resume with the user's requested changes applied.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
-    contents: prompt,
-  });
-
-  let result = response.text || "";
+  let result = await generateContent(prompt);
   result = result.replace(/^```latex\n?|^```\n?/i, "").replace(/\n?```$/i, "");
 
   return result.trim();
@@ -309,8 +289,6 @@ export async function regenerateCoverLetter(
   personalDetails: string,
   companyInfo: string,
 ): Promise<string> {
-  const ai = getAIClient();
-
   const prompt = `You are an expert cover letter writer. The user has previously generated a tailored cover letter, but wants changes based on their feedback.
 
 ## USER'S FEEDBACK:
@@ -340,12 +318,7 @@ ${companyInfo}
 ## OUTPUT:
 The regenerated LaTeX cover letter with the user's requested changes applied.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
-    contents: prompt,
-  });
-
-  let result = response.text || "";
+  let result = await generateContent(prompt);
   result = result.replace(/^```latex\n?|^```\n?/i, "").replace(/\n?```$/i, "");
 
   return result.trim();
@@ -360,8 +333,6 @@ export async function regenerateAnswers(
   jobDescription: string,
   companyInfo: string,
 ): Promise<string> {
-  const ai = getAIClient();
-
   const prompt = `You are an expert career coach. The user has previously generated answers to application questions, but wants changes based on their feedback.
 
 ## USER'S FEEDBACK:
@@ -388,12 +359,7 @@ ${questions}
 ## OUTPUT:
 The regenerated answers with the user's requested changes applied.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
-    contents: prompt,
-  });
-
-  return response.text || "";
+  return await generateContent(prompt);
 }
 
 export async function regenerateEmail(
@@ -407,8 +373,6 @@ export async function regenerateEmail(
   positionTitle: string,
   companyName: string,
 ): Promise<string> {
-  const ai = getAIClient();
-
   const emailTypeDescription =
     emailType === "coldEmail"
       ? "cold outreach email to a hiring authority"
@@ -438,12 +402,7 @@ ${currentContent}
 ## OUTPUT:
 The regenerated email with the user's requested changes applied.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
-    contents: prompt,
-  });
-
-  return response.text || "";
+  return await generateContent(prompt);
 }
 
 // ========================================
@@ -459,8 +418,6 @@ export async function answerGeneralQuestion(
   companyName: string,
   positionTitle: string,
 ): Promise<string> {
-  const ai = getAIClient();
-
   const prompt = `You are a helpful assistant that answers questions about a job applicant's materials. Use ONLY the provided context to answer the question. If the answer cannot be found in the context, say so clearly.
 
 ## QUESTION:
@@ -491,10 +448,5 @@ ${companyInfo || "Not provided"}
 
 ## ANSWER:`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
-    contents: prompt,
-  });
-
-  return response.text || "";
+  return await generateContent(prompt);
 }

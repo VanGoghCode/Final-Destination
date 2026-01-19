@@ -40,18 +40,32 @@ npm install
 Create `.env.local` in the project root:
 
 ```bash
+# For local development (file path)
 GOOGLE_APPLICATION_CREDENTIALS=./your-service-account-key.json
+
+# For Vercel/serverless (raw JSON content)
+# GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
+
 GOOGLE_CLOUD_PROJECT=your-project-id
-GOOGLE_CLOUD_LOCATION=global
+GOOGLE_CLOUD_LOCATION=us-central1
 GOOGLE_SPREADSHEET_ID=your-spreadsheet-id
 ```
 
-| Variable                         | Description                                          |
-| -------------------------------- | ---------------------------------------------------- |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account JSON file                    |
-| `GOOGLE_CLOUD_PROJECT`           | Your Google Cloud Project ID                         |
-| `GOOGLE_CLOUD_LOCATION`          | Vertex AI region (default: `global`)                 |
-| `GOOGLE_SPREADSHEET_ID`          | Google Sheets ID for application tracking (optional) |
+| Variable                         | Description                                                 |
+| -------------------------------- | ----------------------------------------------------------- |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account JSON file (local development)       |
+| `GOOGLE_SERVICE_ACCOUNT_KEY`     | Raw JSON content of service account key (Vercel deployment) |
+| `GOOGLE_CLOUD_PROJECT`           | Your Google Cloud Project ID                                |
+| `GOOGLE_CLOUD_LOCATION`          | Vertex AI region (default: `us-central1`)                   |
+| `GOOGLE_SPREADSHEET_ID`          | Google Sheets ID for application tracking (optional)        |
+
+### Vercel Deployment
+
+For Vercel, use `GOOGLE_SERVICE_ACCOUNT_KEY` instead of `GOOGLE_APPLICATION_CREDENTIALS`:
+
+1. Copy the **entire contents** of your service account JSON file
+2. In Vercel dashboard, add environment variable `GOOGLE_SERVICE_ACCOUNT_KEY`
+3. Paste the JSON as the value (single line or multi-line works)
 
 ### 4. Run
 
