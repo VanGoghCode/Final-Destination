@@ -83,7 +83,7 @@ export async function tailorResume(
 
 ## CRITICAL INSTRUCTIONS:
 1. **PRESERVE STRUCTURE:** Keep the EXACT same LaTeX document structure, \\documentclass, \\usepackage, and custom commands. Do NOT change the layout.
-2. **TAILOR CONTENT:** Only modify the **text content** (summary, bullet points, skills) to better align with the job requirements.
+2. **TAILOR CONTENT:** Only modify the **text content** (summary, bullet points, skills) to better and most align with the job requirements.
 3. **PRESERVE BASE DETAILS - DO NOT CHANGE:**
    - Project names (keep them exactly as they are)
    - Project ideas/concepts (don't change what the project is about)
@@ -114,7 +114,7 @@ ${personalDetails}
 ${companyInfo}
 
 ## OUTPUT:
-The complete, compilable LaTeX code with tailored content (remember: tailor descriptions, NOT the base facts).`;
+The complete, compilable LaTeX code with tailored content.`;
 
   let result = await generateContent(prompt);
   result = result.replace(/^```latex\n?|^```\n?/i, "").replace(/\n?```$/i, "");
@@ -173,7 +173,7 @@ ${personalDetails}
 ${companyInfo}
 
 ## OUTPUT:
-The complete, compilable LaTeX code with tailored content (remember: tailor how things are described, NOT the base facts/names).`;
+The complete, compilable LaTeX code with tailored content that sounds like a visionary technologist who genuinely wants to help this company succeed.`;
 
   let result = await generateContent(prompt);
   result = result.replace(/^```latex\n?|^```\n?/i, "").replace(/\n?```$/i, "");
