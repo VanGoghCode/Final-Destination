@@ -84,9 +84,22 @@ export async function tailorResume(
 ## CRITICAL INSTRUCTIONS:
 1. **PRESERVE STRUCTURE:** Keep the EXACT same LaTeX document structure, \\documentclass, \\usepackage, and custom commands. Do NOT change the layout.
 2. **TAILOR CONTENT:** Only modify the **text content** (summary, bullet points, skills) to better align with the job requirements.
-3. **KEYWORDS:** naturally incorporate keywords from the job description.
-4. **IMPACT:** Quantify achievements (e.g., "Increased sales by 20%") where possible.
-5. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown \`\`\`latex blocks. Do NOT include explanations.
+3. **PRESERVE BASE DETAILS - DO NOT CHANGE:**
+   - Project names (keep them exactly as they are)
+   - Project ideas/concepts (don't change what the project is about)
+   - Company names from work experience
+   - Job titles held
+   - Dates and timelines
+   - Educational institutions and degrees
+   - Personal information (name, contact, links)
+4. **WHAT TO TAILOR:**
+   - Bullet point descriptions (rephrase to emphasize relevant skills/keywords)
+   - Professional summary/objective
+   - Skills section (reorder/emphasize relevant skills)
+   - How achievements are described (not the achievements themselves)
+5. **KEYWORDS:** Naturally incorporate keywords from the job description INTO existing descriptions.
+6. **IMPACT:** Quantify achievements (e.g., "Increased sales by 20%") where possible, but keep the core facts.
+7. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown \`\`\`latex blocks. Do NOT include explanations.
 
 ## ORIGINAL RESUME (LaTeX):
 ${resumeLatex}
@@ -101,7 +114,7 @@ ${personalDetails}
 ${companyInfo}
 
 ## OUTPUT:
-The complete, compilable LaTeX code with tailored content.`;
+The complete, compilable LaTeX code with tailored content (remember: tailor descriptions, NOT the base facts).`;
 
   let result = await generateContent(prompt);
   result = result.replace(/^```latex\n?|^```\n?/i, "").replace(/\n?```$/i, "");
@@ -126,13 +139,26 @@ export async function tailorCoverLetter(
 
 ## CRITICAL INSTRUCTIONS:
 1. **PRESERVE STRUCTURE:** Keep the EXACT same LaTeX format and commands.
-2. **TONE:** 80% formal + 20% informal. Professional but human. Include occasional conversational phrases like "honestly," "what really excites me is," "I genuinely believe," etc.
-3. **VISIONARY TONE:** Write as if from someone who truly believes technology can change the world. Express genuine passion for innovation and building things that matter.
-4. **COMPANY ALIGNMENT:** Show how the candidate's vision aligns with the company's mission. Explain how they can help the company meet its goals and fulfill its vision.
-5. **PERSONAL TOUCH:** Include phrases like "I am drawn to companies that...", "What excites me about [Company] is...", "I believe technology should...".
-6. **HUMBLE CONFIDENCE:** Confident about skills but humble about learning. Eager to contribute, not just take.
-7. **AVOID GENERIC:** No clichés. Make it feel written by a real person who genuinely cares.
-8. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown.
+2. **PRESERVE BASE DETAILS - DO NOT CHANGE:**
+   - Project names mentioned (keep them exactly as they are)
+   - Project ideas/concepts (don't change what projects are about)
+   - Company names from past experience
+   - Job titles held
+   - Educational institutions and degrees
+   - Personal information (name, contact details)
+   - Specific achievements and their facts
+3. **WHAT TO TAILOR:**
+   - How experiences are framed and described
+   - Which aspects of projects/experience to emphasize
+   - Connecting past work to the job requirements
+   - The narrative around why this role/company is exciting
+4. **TONE:** 80% formal + 20% informal. Professional but human. Include occasional conversational phrases like "honestly," "what really excites me is," "I genuinely believe," etc.
+5. **VISIONARY TONE:** Write as if from someone who truly believes technology can change the world. Express genuine passion for innovation and building things that matter.
+6. **COMPANY ALIGNMENT:** Show how the candidate's vision aligns with the company's mission. Explain how they can help the company meet its goals and fulfill its vision.
+7. **PERSONAL TOUCH:** Include phrases like "I am drawn to companies that...", "What excites me about [Company] is...", "I believe technology should...".
+8. **HUMBLE CONFIDENCE:** Confident about skills but humble about learning. Eager to contribute, not just take.
+9. **AVOID GENERIC:** No clichés. Make it feel written by a real person who genuinely cares.
+10. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown.
 
 ## ORIGINAL COVER LETTER (LaTeX):
 ${coverLetterLatex}
@@ -147,7 +173,7 @@ ${personalDetails}
 ${companyInfo}
 
 ## OUTPUT:
-The complete, compilable LaTeX code with tailored content that sounds like a visionary technologist who genuinely wants to help this company succeed.`;
+The complete, compilable LaTeX code with tailored content (remember: tailor how things are described, NOT the base facts/names).`;
 
   let result = await generateContent(prompt);
   result = result.replace(/^```latex\n?|^```\n?/i, "").replace(/\n?```$/i, "");
