@@ -17,6 +17,10 @@ export function getGoogleAuthCredentials(): GoogleAuth {
       });
     } catch (e) {
       console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY:", e);
+      console.error(
+        "Raw value starts with:",
+        process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.substring(0, 50),
+      );
       throw new Error("Invalid GOOGLE_SERVICE_ACCOUNT_KEY format");
     }
   }
@@ -40,10 +44,23 @@ export function getGoogleAuthCredentials(): GoogleAuth {
 export function getCredentialsObject(): Record<string, unknown> | undefined {
   if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
     try {
-      return JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
-    } catch {
+      const rawValue = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+      // Log first chars for debugging (no sensitive data)
+      console.log(
+        "[Auth] Parsing GOOGLE_SERVICE_ACCOUNT_KEY, starts with:",
+        rawValue?.substring(0, 20),
+      );
+      const parsed = JSON.parse(rawValue);
+      console.log(
+        "[Auth] Successfully parsed credentials for project:",
+        parsed.project_id,
+      );
+      return parsed;
+    } catch (e) {
+      console.error("[Auth] Failed to parse credentials:", e);
       return undefined;
     }
   }
+  console.log("[Auth] No GOOGLE_SERVICE_ACCOUNT_KEY found, using default auth");
   return undefined;
 }

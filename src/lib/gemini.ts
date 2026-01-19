@@ -22,14 +22,27 @@ function getVertexAI(): VertexAI {
 
 // Helper to generate content using Vertex AI
 async function generateContent(prompt: string): Promise<string> {
-  const vertexAI = getVertexAI();
-  const model = vertexAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+  try {
+    const vertexAI = getVertexAI();
+    console.log("[Gemini] Initializing model gemini-3-pro-preview");
+    const model = vertexAI.getGenerativeModel({
+      model: "gemini-3-pro-preview",
+    });
 
-  const result = await model.generateContent(prompt);
-  const response = result.response;
-  const text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    console.log("[Gemini] Sending request to Vertex AI...");
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const text = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-  return text;
+    console.log(
+      "[Gemini] Successfully received response, length:",
+      text.length,
+    );
+    return text;
+  } catch (error) {
+    console.error("[Gemini] Error generating content:", error);
+    throw error;
+  }
 }
 
 export async function tailorResume(
