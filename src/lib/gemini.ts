@@ -24,9 +24,9 @@ function getVertexAI(): VertexAI {
 async function generateContent(prompt: string): Promise<string> {
   try {
     const vertexAI = getVertexAI();
-    console.log("[Gemini] Initializing model gemini-3-pro-preview");
+    console.log("[Gemini] Initializing model gemini-2.0-flash");
     const model = vertexAI.getGenerativeModel({
-      model: "gemini-3-pro-preview",
+      model: "gemini-2.0-flash",
     });
 
     console.log("[Gemini] Sending request to Vertex AI...");
