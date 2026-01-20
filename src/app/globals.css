@@ -350,13 +350,65 @@ body {
 /* Regenerate Section */
 .regenerate-section {
   border-top: 1px solid var(--card-border);
-  padding-top: 1.5rem;
-  margin-top: 1.5rem;
+  padding: 1rem;
+  margin-top: 1rem;
+  background: var(--surface-hover);
+  border-radius: 12px;
 }
 
 .regenerate-input {
+  width: 100%;
   background: white;
   border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.regenerate-input:focus {
+  outline: none;
+  border-color: var(--foreground);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Regenerate Button */
+.btn-regenerate {
+  background: var(--primary);
+  color: var(--primary-text);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-regenerate:hover {
+  background: var(--primary-hover);
+}
+
+.btn-regenerate:disabled {
+  background: #e5e5e5;
+  color: #a3a3a3;
+  cursor: not-allowed;
+}
+
+/* Small Spinner */
+.spinner-small {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 /* Responsive */

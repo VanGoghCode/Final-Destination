@@ -97,9 +97,10 @@ export async function tailorResume(
    - Professional summary/objective
    - Skills section (reorder/emphasize relevant skills)
    - How achievements are described (not the achievements themselves)
-5. **KEYWORDS:** Naturally incorporate keywords from the job description INTO existing descriptions.
-6. **IMPACT:** Quantify achievements (e.g., "Increased sales by 20%") where possible, but keep the core facts.
-7. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown \`\`\`latex blocks. Do NOT include explanations.
+5. **SKILLS FROM JOB DESCRIPTION:** Extract ALL required and preferred skills mentioned in the job description and ADD them to the Skills section. Include technical skills, tools, frameworks, methodologies, and soft skills that are relevant to the role. The Skills section should comprehensively reflect the job requirements.
+6. **KEYWORDS:** Naturally incorporate keywords from the job description INTO existing descriptions.
+7. **IMPACT:** Quantify achievements (e.g., "Increased sales by 20%") where possible, but keep the core facts.
+8. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown \`\`\`latex blocks. Do NOT include explanations.
 
 ## ORIGINAL RESUME (LaTeX):
 ${resumeLatex}
