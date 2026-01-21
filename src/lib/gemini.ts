@@ -79,7 +79,28 @@ export async function tailorResume(
   personalDetails: string,
   companyInfo: string,
 ): Promise<string> {
-  const prompt = `You are an expert resume writer and career consultant. Your task is to tailor the given LaTeX resume to match the job description while maintaining the EXACT same LaTeX format and structure.
+  const prompt = `You are an expert resume writer and career consultant specializing in **Semantic Mapping** for modern ATS systems. Your task is to tailor the given LaTeX resume to match the job description while maintaining the EXACT same LaTeX format and structure.
+
+## SEMANTIC ALIGNMENT STRATEGY:
+Modern ATS filters and recruiters look for **Technical Adjacencies**, not just keywords. You must optimize for:
+
+### 1. Contextual Clustering
+Don't just list skills in isolation. Add semantic "Context Nouns" that signal expertise depth:
+- If listing "AWS" → include adjacencies like "Infrastructure-as-Code," "Cost Optimization," "Auto-scaling"
+- If listing "React" → include "Component Architecture," "State Management," "Performance Optimization"
+- This signals you're an architect, not just a user
+
+### 2. Velocity Signals
+Use **Growth Nouns** that carry 10x more weight than passive language:
+- PREFER: "Migrated," "Refactored," "Scaled," "Architected," "Optimized," "Accelerated," "Transformed"
+- AVOID: "Responsible for," "Worked on," "Helped with," "Assisted in"
+- Show momentum and ownership, not just participation
+
+### 3. Complexity Gap Matching
+Match the semantic tone to the company's stage and culture:
+- Startup JD → Use agile, fast-paced language: "shipped," "iterated," "pivoted," "owned end-to-end"
+- Enterprise JD → Use structured language: "governed," "standardized," "compliance," "cross-functional alignment"
+- Bridge the "Semantic Distance" between your experience and their context
 
 ## CRITICAL INSTRUCTIONS:
 1. **PRESERVE STRUCTURE:** Keep the EXACT same LaTeX document structure, \\documentclass, \\usepackage, and custom commands. Do NOT change the layout.
@@ -93,13 +114,13 @@ export async function tailorResume(
    - Educational institutions and degrees
    - Personal information (name, contact, links)
 4. **WHAT TO TAILOR:**
-   - Bullet point descriptions (rephrase to emphasize relevant skills/keywords)
-   - Professional summary/objective
-   - Skills section (reorder/emphasize relevant skills)
+   - Bullet point descriptions (rephrase with velocity signals and contextual clustering)
+   - Professional summary/objective (align with company culture and role focus)
+   - Skills section (group with technical adjacencies, reorder for relevance)
    - How achievements are described (not the achievements themselves)
-5. **SKILLS FROM JOB DESCRIPTION:** Extract ALL required and preferred skills mentioned in the job description and ADD them to the Skills section. Include technical skills, tools, frameworks, methodologies, and soft skills that are relevant to the role. The Skills section should comprehensively reflect the job requirements.
-6. **KEYWORDS:** Naturally incorporate keywords from the job description INTO existing descriptions.
-7. **IMPACT:** Quantify achievements (e.g., "Increased sales by 20%") where possible, but keep the core facts.
+5. **SKILLS FROM JOB DESCRIPTION:** Extract ALL required and preferred skills mentioned in the job description and ADD them to the Skills section. Include technical skills, tools, frameworks, methodologies, and soft skills. Group related skills together to show contextual clustering.
+6. **SEMANTIC KEYWORDS:** Naturally weave keywords and their technical adjacencies from the job description INTO existing bullet points.
+7. **IMPACT:** Quantify achievements (e.g., "Scaled system to handle 10x traffic") where possible, using velocity-signaling verbs.
 8. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown \`\`\`latex blocks. Do NOT include explanations.
 
 ## ORIGINAL RESUME (LaTeX):
@@ -115,7 +136,7 @@ ${personalDetails}
 ${companyInfo}
 
 ## OUTPUT:
-The complete, compilable LaTeX code with tailored content.`;
+The complete, compilable LaTeX code with semantically aligned content that maximizes ATS compatibility and recruiter engagement.`;
 
   let result = await generateContent(prompt);
   result = result.replace(/^```latex\n?|^```\n?/i, "").replace(/\n?```$/i, "");
@@ -159,7 +180,8 @@ export async function tailorCoverLetter(
 7. **PERSONAL TOUCH:** Include phrases like "I am drawn to companies that...", "What excites me about [Company] is...", "I believe technology should...".
 8. **HUMBLE CONFIDENCE:** Confident about skills but humble about learning. Eager to contribute, not just take.
 9. **AVOID GENERIC:** No clichés. Make it feel written by a real person who genuinely cares.
-10. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown.
+10. **WORD COUNT:** Keep the main body content between **250-350 words**. Be concise and impactful - every sentence should add value.
+11. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown.
 
 ## ORIGINAL COVER LETTER (LaTeX):
 ${coverLetterLatex}

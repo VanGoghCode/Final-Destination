@@ -1,21 +1,21 @@
-% ===== One-Page ATS-Optimized Cloud Solutions Architect Resume =====
+% ===== One-Page ATS-Optimized Versatile Engineer Resume =====
 \documentclass[11pt]{article}
 
 % --- Layout & spacing ---
 \usepackage[margin=0.3in]{geometry}
-\usepackage{parskip} % space between paragraphs, no indents
+\usepackage{parskip} 
 \setlength{\parskip}{0.35em}
 
-% --- Encoding & links (better URL breaking with xurl) ---
+% --- Encoding & links ---
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{xurl}
 \usepackage[unicode]{hyperref}
 \hypersetup{hidelinks}
-\setlength{\emergencystretch}{2em} % help avoid overfull lines
-\usepackage[final]{microtype}      % gentler justification/hyphenation
+\setlength{\emergencystretch}{2em} 
+\usepackage[final]{microtype}      
 
-% --- Font selection (ATS-safe): Times New Roman if Xe/LuaLaTeX, else TeX Gyre Termes ---
+% --- Font selection (ATS-safe) ---
 \usepackage{ifxetex,ifluatex}
 \newif\ifxetexorluatex
 \ifxetex\xetexorluatextrue\else\ifluatex\xetexorluatextrue\else\xetexorluatexfalse\fi\fi
@@ -26,11 +26,11 @@
   \usepackage{tgtermes}
 \fi
 
-% --- Lists (compact, simple bullets) ---
+% --- Lists ---
 \usepackage{enumitem}
 \setlist[itemize]{itemsep=0pt, topsep=2pt, parsep=0pt, leftmargin=*, label=\textbullet}
 
-% --- Tables that wrap nicely ---
+% --- Tables ---
 \usepackage{tabularx}
 \setlength{\tabcolsep}{4pt}
 
@@ -45,14 +45,11 @@
   \textbf{#1} --- #2\ [#4] \hfill \textit{#3}\par
 }
 
-\setlist[itemize]{itemsep=0pt, topsep=2pt, parsep=0pt,
-  label=\textbullet, labelsep=0.6em, leftmargin=1.6em}
-
 \begin{document}
 \pagestyle{empty}
 
 % =======================
-% Name & Contact (no header/footer)
+% Name & Contact
 % =======================
 {\Large \textbf{KIRTANKUMAR THUMMAR}}\par
 Tempe, AZ \,|\, +1 (602) 804-1264 \,|\, \href{mailto:kthumma5@asu.edu}{kthumma5@asu.edu} \,|\,
@@ -60,10 +57,10 @@ Tempe, AZ \,|\, +1 (602) 804-1264 \,|\, \href{mailto:kthumma5@asu.edu}{kthumma5@
 \href{https://vctrx.cloud}{vctrx.cloud}
 
 % =======================
-% Summary
+% Summary (Broadened for SWE/SDE/AI/Cloud)
 % =======================
 \sect{Summary}
-Cloud Solutions Architect (3 years) delivering secure, cost-efficient, and resilient AWS architectures. Proven results in serverless and containers with Well-Architected practices and IaC that drive lower cost, higher reliability, and faster delivery.
+Versatile Software Engineer and Cloud Architect (3 years) specializing in building secure, scalable, and AI-integrated distributed systems. Expert in Go, Python, and TypeScript with a deep focus on serverless architectures, GenAI infrastructure, and Well-Architected AWS practices to drive high performance and cost efficiency.
 
 % =======================
 % Education
@@ -76,43 +73,46 @@ Cloud Solutions Architect (3 years) delivering secure, cost-efficient, and resil
 % Skills
 % =======================
 \sect{Skills}
-\textbf{AWS:} Lambda, API Gateway, ECS Fargate, EC2, S3 (Lifecycle/Replication), DynamoDB, RDS/Aurora, VPC, CloudFront, Route~53, WAF, KMS, IAM, Organizations/Control Tower \\
-\textbf{DevOps/IaC:} Terraform, AWS CDK, CloudFormation, CodeBuild/CodePipeline, GitHub Actions, Docker \\
-\textbf{Data/Integration:} EventBridge, Step Functions, SQS/SNS, Glue, Athena \\
-\textbf{Languages:} Go, Python, TypeScript/Node.js, SQL
+\textbf{Languages:} Go, Python, TypeScript/Node.js, SQL, Java, C++ \\
+\textbf{Cloud/Backend:} AWS (Lambda, ECS, S3, DynamoDB, RDS), API Design, Microservices, Bedrock (GenAI) \\
+\textbf{DevOps/IaC:} Terraform, AWS CDK, GitHub Actions, Docker, Kubernetes, CI/CD \\
+\textbf{Data/AI:} EventBridge, Step Functions, Glue, Athena, Prompt Engineering, Vector Databases
 
 % =======================
 % Experience
 % =======================
 \sect{Work Experience}
 
-\roleentry{Founder \& Principal Cloud Architect}{Vctrx}{11/2024 -- Present}{Tempe, AZ}
+\roleentry{Software \& Cloud Solutions Architect}{Vctrx}{11/2024 -- Present}{Tempe, AZ}
 \begin{itemize}
-    \item \textbf{No-expert AWS platform}: Organizations/Control Tower, Identity Center, SCPs, VPC, centralized CloudTrail/Config; \textit{target time-to-env $<$ 1h}.
-    \item \textbf{GenAI infra copilot (in progress)}: Bedrock turns natural language into reviewed Terraform/CDK change sets with guardrails, plan/approve/rollback.
-    \item \textbf{Self-service catalog}: serverless API, event pipeline, static edge; observability (CloudWatch\slash{} X-Ray), FinOps (CUR\ \textrightarrow{}\ Athena\ \textrightarrow{}\ QuickSight), secure-by-default (KMS, WAF, Secrets).
+    \item \textbf{No-expert AWS platform}: Engineered automated landing zones using Terraform and SCPs; reduced time-to-environment to \textit{$<$ 1 hour}.
+    \item \textbf{GenAI Infra Copilot}: Developing a tool using AWS Bedrock to transform natural language into validated Terraform/CDK change sets with automated plan/rollback guardrails.
+    \item \textbf{Full-Stack Edge Architecture}: Built serverless APIs and event-driven pipelines with observability (X-Ray) and security (WAF, Secrets Manager) integrated by design.
 \end{itemize}
 
-\roleentry{Cloud Solutions Team Lead}{Braincuber Technologies Pvt. Ltd.}{02/2024 -- 08/2024}{Greater Surat Area}
+\roleentry{Senior Software Engineer (Cloud \& Systems)}{Braincuber}{02/2024 -- 08/2024}{Surat, India}
 \begin{itemize}
-  \item Modernized services to \textbf{ECS on Fargate} with ALB and blue/green deploys (CodeDeploy/CodePipeline); p95 latency improved \textbf{45\%}, error rate down \textbf{70\%}.
-  \item Delivered serverless APIs (API Gateway + Lambda + DynamoDB with GSIs, Step Functions, DLQs); handled \textbf{6M+ events/month} with idempotency.
-  \item Ran Well-Architected Reviews across 4 workloads; closed \textbf{35+} high-risk issues in 45 days (IAM least privilege, KMS-by-default, private subnets).
-  \item Reduced monthly AWS spend by \textbf{28\%} via S3 Lifecycle/Intelligent-Tiering, EBS gp3, Savings Plans.
+  \item Led the modernization of legacy services to \textbf{ECS on Fargate}, improving p95 latency by \textbf{45\%} and reducing error rates by \textbf{70\%}.
+  \item Architected serverless backends handling \textbf{6M+ monthly events} using API Gateway, Lambda, and DynamoDB with complex Step Function workflows.
+  \item Conducted technical audits for 4 high-scale workloads, remediating 35+ critical risks related to IAM, encryption, and network isolation.
+  \item Optimized system overhead, reducing monthly operating costs by \textbf{28\%} through strategic use of S3 Lifecycle policies and Savings Plans.
 \end{itemize}
 
-\roleentry{Cloud Solutions Engineer}{Braincuber Technologies Pvt. Ltd.}{01/2023 -- 01/2024}{Greater Surat Area}
+\roleentry{Software Engineer (DevOps \& Backend)}{Braincuber}{01/2023 -- 01/2024}{Surat, India}
 \begin{itemize}
-  \item Implemented CI/CD (GitHub Actions $\rightarrow$ CodeBuild/CodePipeline) and IaC (Terraform/CDK); environment provisioning time cut to \textbf{under 2 hours}.
-  \item Deployed CloudFront + S3 static sites and API edge patterns; APAC TTFB reduced \textbf{25\%}.
-  \item Automated observability (CloudWatch dashboards/alarms, X-Ray tracing); MTTR reduced by \textbf{~40\%}.
+  \item Developed robust CI/CD pipelines using GitHub Actions and AWS CodeSuite, cutting environment provisioning time to \textbf{under 2 hours}.
+  \item Optimized content delivery for APAC markets using CloudFront and S3, reducing TTFB by \textbf{25\%}.
+  \item Integrated automated monitoring and distributed tracing (X-Ray), resulting in a \textbf{40\% reduction} in MTTR for production incidents.
 \end{itemize}
 
-\roleentry{Early Experience (Internships)}{Webito Infotech Pvt. Ltd.}{06/2021 -- 08/2022}{Remote / Greater Surat Area}
+\roleentry{Software \& Machine Learning Engineer Intern}{Webito}{06/2021 -- 08/2022}{Surat, India}
 \begin{itemize}
-  \item AI \& Cloud Engineering Intern; Software Engineer Intern. Containerized Python/Node services; contributed to a serverless POC (API Gateway + Lambda + DynamoDB).
+  \item Contributed to the development of containerized Python/Node.js microservices and built a serverless Proof-of-Concept for an AI-driven data processing pipeline.
 \end{itemize}
 
+% =======================
+% Certifications
+% =======================
 \sect{Certifications}
 \begin{tabularx}{\textwidth}{@{}X r@{}}
 AWS Certified Cloud Practitioner & \textit{10/2025} \\
