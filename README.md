@@ -12,14 +12,14 @@ AI-powered resume and cover letter tailoring + H-1B job alert system.
 - Cold email & referral request generation
 - Google Sheets application tracking
 
-### Job Alert System (In Progress)
+### Job Alert System
 
-- 33,682 H-1B sponsoring companies database
-- 5-tier company classification (top/middle/lower/lowest/below50)
-- Quarterly LCA tracking (Q1-Q4 FY2025)
+- **32,619 H-1B sponsoring companies** from FY2025 LCA data
+- 5-tier classification (top/middle/lower/lowest/below50)
+- Quarterly LCA tracking (Q1-Q4)
 - POC contact info for direct outreach
+- Responsive job dashboard with filters
 - Career page scraping (coming soon)
-- Real-time job dashboard (coming soon)
 
 ---
 
@@ -29,7 +29,7 @@ AI-powered resume and cover letter tailoring + H-1B job alert system.
 
 - Node.js 18+
 - Google Cloud account with billing enabled
-- AWS account (for job scraping)
+- AWS account (for job scraping - optional)
 
 ### 1. Install
 
@@ -51,20 +51,10 @@ GOOGLE_GENAI_API_KEY=your-api-key
 GOOGLE_SPREADSHEET_ID=your-spreadsheet-id
 GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 
-# AWS (for job scraping)
+# AWS (optional - for job scraping)
 AWS_ACCESS_KEY_ID=your-access-key
 AWS_SECRET_ACCESS_KEY=your-secret-key
 AWS_REGION=us-west-2
-
-# Job Matching
-TARGET_ROLES=software engineer,data scientist,ml engineer
-EXCLUDED_KEYWORDS=senior director,vp,vice president
-
-# Scraping Config
-CHUNK_SIZE=200
-TOP_CHUNK_SIZE=20
-REGULAR_CHUNK_SIZE=180
-SCRAPE_INTERVAL_MINUTES=30
 ```
 
 ### 3. Run
@@ -77,6 +67,16 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ---
 
+## Pages
+
+| Route       | Description                         |
+| ----------- | ----------------------------------- |
+| `/`         | Resume tailoring homepage           |
+| `/tailored` | Tailored resume/cover letter output |
+| `/jobs`     | H-1B company dashboard              |
+
+---
+
 ## Project Structure
 
 ```
@@ -84,8 +84,9 @@ src/
 ├── app/
 │   ├── page.tsx          # Resume tailoring homepage
 │   ├── tailored/         # Tailored output page
-│   ├── jobs/             # Job dashboard (coming soon)
-│   └── api/              # API routes
+│   ├── jobs/             # H-1B company dashboard
+│   └── api/
+│       └── companies/    # Companies API
 ├── components/           # React components
 ├── lib/
 │   ├── config.ts         # Config + Company/Job interfaces
@@ -94,27 +95,29 @@ src/
     └── parse-dol.ts      # DOL LCA parser
 
 data/
-├── companies.json        # 33,682 H-1B sponsoring companies
-└── lca_filtered_2025.csv # Raw filtered LCA data (gitignored)
+└── companies.json        # 32,619 H-1B sponsoring companies
+
+docs/
+├── module-1-dol-parser.md  # DOL preprocessing guide
+└── module-2-dashboard.md   # Dashboard documentation
 ```
 
 ---
 
 ## Branches
 
-| Branch                        | Description          |
-| ----------------------------- | -------------------- |
-| `main`                        | Stable production    |
-| `feature/module-1-dol-parser` | DOL data pipeline    |
-| `feature/module-2-dashboard`  | Job dashboard (next) |
+| Branch                        | Status   | Description       |
+| ----------------------------- | -------- | ----------------- |
+| `main`                        | Stable   | Production        |
+| `feature/module-1-dol-parser` | Complete | DOL data pipeline |
+| `feature/module-2-dashboard`  | Complete | Job dashboard     |
 
 ---
 
 ## Data Sources
 
 - **DOL LCA Data**: https://www.dol.gov/agencies/eta/foreign-labor/performance
-- FY2025 Q1-Q4 combined data
-- Filtered for H-1B/E-3 tech roles (SOC 15-xxxx)
+- FY2025 Q1-Q4 combined (H-1B/E-3 tech roles only)
 
 ---
 
