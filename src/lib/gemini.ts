@@ -73,30 +73,110 @@ async function generateContent(prompt: string): Promise<string> {
   }
 }
 
+/**
+ * Research a company to understand their business, culture, and what makes a candidate stand out
+ */
+export async function researchCompany(
+  companyName: string,
+  positionTitle: string,
+  jobDescription: string,
+): Promise<string> {
+  const prompt = `You are an expert career researcher and strategist. Your task is to provide deep, actionable research about a company and role that will help a candidate stand out by showing MULTIDISCIPLINARY FIT.
+
+## THE MULTIDISCIPLINARY ADVANTAGE:
+In 2026, candidates get rejected not because of bad resumes, but because other candidates have backgrounds MORE SIMILAR to the work the company is already doing. The key to standing out is showing MULTIDISCIPLINARY expertise that combines two or more fields relevant to this role.
+
+## RESEARCH TASK:
+Provide comprehensive research on **${companyName}** for the **${positionTitle}** position.
+
+## JOB DESCRIPTION:
+${jobDescription}
+
+## REQUIRED RESEARCH OUTPUT:
+
+### 1. COMPANY DEEP DIVE
+- **What they actually do:** Core business, products/services, how they make money
+- **Industry & Market:** What industry/vertical are they in? Who are their competitors?
+- **Tech Stack & Tools:** What technologies, frameworks, tools do they use? (Research from job postings, engineering blogs, tech radar)
+- **Company Stage:** Startup, growth, enterprise? What does this mean for the role?
+- **Recent News:** Any recent funding, product launches, acquisitions, or strategic shifts?
+
+### 2. DEPARTMENT & ROLE CONTEXT
+- **Where this role sits:** Which department/team? How does it fit in the org structure?
+- **What problems they're solving:** Based on the JD, what challenges is this team facing?
+- **Cross-functional work:** What other teams/departments does this role interact with?
+- **Success metrics:** How would success be measured in this role?
+
+### 3. MULTIDISCIPLINARY FIT ANALYSIS (CRITICAL)
+Based on the job description and company context, identify:
+- **Primary Domain:** The main field/expertise required (e.g., Software Engineering, Data Science)
+- **Secondary Domains:** Adjacent fields that would make a candidate stand out:
+  - If it's a fintech company → Finance + Tech combination is powerful
+  - If they deal with healthcare → Healthcare domain knowledge + Tech
+  - If it's B2B SaaS → Sales/Business understanding + Engineering
+  - If it's consumer products → UX/Design thinking + Engineering
+- **Industry-Specific Knowledge:** What domain expertise would be valuable?
+- **Recommended Skill Combinations:** Specific 2-3 field combinations that would make someone IRRESISTIBLE for this role
+
+### 4. CULTURAL & VALUES ALIGNMENT
+- **Company values:** What do they emphasize in their culture?
+- **Work style:** Remote/hybrid/onsite? Fast-paced startup vs. structured enterprise?
+- **What they look for:** Beyond technical skills, what traits do they value?
+
+### 5. STRATEGIC TALKING POINTS
+- **Why this company matters:** What's their vision/mission? What problem are they solving for the world?
+- **Why this role matters:** How does this position contribute to the company's success?
+- **Connection points:** How can a candidate show their background DIRECTLY RELATES to what the company does?
+
+### 6. KEYWORDS & LANGUAGE
+- **Industry jargon:** Terms and phrases used in this industry
+- **Company-specific language:** Words and concepts from their website, blog, JD
+- **Technical keywords:** Specific technologies, methodologies, frameworks to mention
+
+## OUTPUT FORMAT:
+Provide the research in a clear, structured format using markdown. Be specific and actionable - every piece of information should help the candidate tailor their application to show multidisciplinary fit.`;
+
+  return await generateContent(prompt);
+}
+
 export async function tailorResume(
   resumeLatex: string,
   jobDescription: string,
   personalDetails: string,
   companyInfo: string,
 ): Promise<string> {
-  const prompt = `You are an expert resume writer and career consultant specializing in **Semantic Mapping** for modern ATS systems. Your task is to tailor the given LaTeX resume to match the job description while maintaining the EXACT same LaTeX format and structure.
+  const prompt = `You are an expert resume writer and career consultant specializing in **Semantic Mapping** and **Multidisciplinary Positioning** for modern ATS systems. Your task is to tailor the given LaTeX resume to match the job description while maintaining the EXACT same LaTeX format and structure.
+
+## THE MULTIDISCIPLINARY ADVANTAGE (CRITICAL):
+In 2026, candidates don't get rejected for bad resumes—they get rejected because another candidate's background is MORE SIMILAR to the work the company is already doing. The secret to standing out is showing MULTIDISCIPLINARY expertise.
+
+**Key Insight:** When two big fields combine (e.g., Finance + Engineering, Healthcare + ML, Business + Development), candidates become IRRESISTIBLE because their background matches what the company actually does.
+
+Your job is to position the candidate's experience to show how their COMBINATION of skills directly relates to the company's work.
 
 ## SEMANTIC ALIGNMENT STRATEGY:
 Modern ATS filters and recruiters look for **Technical Adjacencies**, not just keywords. You must optimize for:
 
-### 1. Contextual Clustering
+### 1. Multidisciplinary Positioning
+- Identify the company's DOMAIN (fintech, healthcare, e-commerce, etc.)
+- Highlight experiences that show BOTH technical AND domain expertise
+- Frame projects to show cross-functional understanding
+- Example: For a fintech role, emphasize any finance/accounting + tech combination
+- Example: For an Android role at a finance company, emphasize finance + Android experience
+
+### 2. Contextual Clustering
 Don't just list skills in isolation. Add semantic "Context Nouns" that signal expertise depth:
 - If listing "AWS" → include adjacencies like "Infrastructure-as-Code," "Cost Optimization," "Auto-scaling"
 - If listing "React" → include "Component Architecture," "State Management," "Performance Optimization"
 - This signals you're an architect, not just a user
 
-### 2. Velocity Signals
+### 3. Velocity Signals
 Use **Growth Nouns** that carry 10x more weight than passive language:
 - PREFER: "Migrated," "Refactored," "Scaled," "Architected," "Optimized," "Accelerated," "Transformed"
 - AVOID: "Responsible for," "Worked on," "Helped with," "Assisted in"
 - Show momentum and ownership, not just participation
 
-### 3. Complexity Gap Matching
+### 4. Complexity Gap Matching
 Match the semantic tone to the company's stage and culture:
 - Startup JD → Use agile, fast-paced language: "shipped," "iterated," "pivoted," "owned end-to-end"
 - Enterprise JD → Use structured language: "governed," "standardized," "compliance," "cross-functional alignment"
@@ -115,13 +195,14 @@ Match the semantic tone to the company's stage and culture:
    - Personal information (name, contact, links)
 4. **WHAT TO TAILOR:**
    - Bullet point descriptions (rephrase with velocity signals and contextual clustering)
-   - Professional summary/objective (align with company culture and role focus)
-   - Skills section (group with technical adjacencies, reorder for relevance)
+   - Professional summary/objective (align with company culture and role focus, emphasize multidisciplinary fit)
+   - Skills section (group with technical adjacencies, reorder for relevance, show domain expertise)
    - How achievements are described (not the achievements themselves)
-5. **SKILLS FROM JOB DESCRIPTION:** Extract ALL required and preferred skills mentioned in the job description and ADD them to the Skills section. Include technical skills, tools, frameworks, methodologies, and soft skills. Group related skills together to show contextual clustering.
-6. **SEMANTIC KEYWORDS:** Naturally weave keywords and their technical adjacencies from the job description INTO existing bullet points.
-7. **IMPACT:** Quantify achievements (e.g., "Scaled system to handle 10x traffic") where possible, using velocity-signaling verbs.
-8. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown \`\`\`latex blocks. Do NOT include explanations.
+5. **MULTIDISCIPLINARY SKILLS EMPHASIS:** In the summary and throughout, emphasize how the candidate's combination of skills (technical + domain) makes them uniquely qualified. Show how their background DIRECTLY RELATES to what the company does.
+6. **SKILLS FROM JOB DESCRIPTION:** Extract ALL required and preferred skills mentioned in the job description and ADD them to the Skills section. Include technical skills, tools, frameworks, methodologies, and soft skills. Group related skills together to show contextual clustering.
+7. **SEMANTIC KEYWORDS:** Naturally weave keywords and their technical adjacencies from the job description INTO existing bullet points.
+8. **IMPACT:** Quantify achievements (e.g., "Scaled system to handle 10x traffic") where possible, using velocity-signaling verbs.
+9. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown \`\`\`latex blocks. Do NOT include explanations.
 
 ## ORIGINAL RESUME (LaTeX):
 ${resumeLatex}
@@ -132,11 +213,17 @@ ${jobDescription}
 ## PERSONAL DETAILS:
 ${personalDetails}
 
-## COMPANY INFO:
+## COMPANY INFO & RESEARCH (USE THIS TO POSITION MULTIDISCIPLINARY FIT):
 ${companyInfo}
 
+Use this company information to:
+- Understand the company's domain and what they actually do
+- Identify the multidisciplinary skill combinations that would make the candidate stand out
+- Use industry-specific language and keywords
+- Frame the candidate's experience to show direct relevance to the company's work
+
 ## OUTPUT:
-The complete, compilable LaTeX code with semantically aligned content that maximizes ATS compatibility and recruiter engagement.`;
+The complete, compilable LaTeX code with semantically aligned content that maximizes ATS compatibility, recruiter engagement, and shows MULTIDISCIPLINARY FIT with the company's actual work.`;
 
   let result = await generateContent(prompt);
   result = result.replace(/^```latex\n?|^```\n?/i, "").replace(/\n?```$/i, "");
@@ -152,12 +239,18 @@ export async function tailorCoverLetter(
 ): Promise<string> {
   const prompt = `You are an expert cover letter writer crafting a letter for a visionary technologist. Your task is to tailor the given LaTeX cover letter for the specified job.
 
+## THE MULTIDISCIPLINARY ADVANTAGE (CRITICAL):
+In 2026, candidates don't get rejected for bad cover letters—they get rejected because another candidate's background is MORE SIMILAR to the work the company is already doing. The secret to standing out is showing MULTIDISCIPLINARY expertise.
+
+**Key Insight:** Emphasize how the candidate's COMBINATION of skills (e.g., Finance + Engineering, Healthcare + ML, Business + Development) makes them uniquely qualified for THIS specific role at THIS specific company.
+
 ## CANDIDATE PERSONALITY & VALUES (MUST be reflected in the letter):
 - **Passionate innovator:** Loves playing with technology, building inventions, and exploring what's possible.
 - **Mission-driven:** Cares deeply about making life easier for humans and contributing to a better future.
 - **Values innovation:** Drawn to companies and people who drive real change and do something different.
 - **Visionary mindset:** Wants to be part of something meaningful, not just a job - wants to help the company achieve its vision.
 - **Authentic enthusiasm:** Genuine excitement about technology and its potential to help humanity.
+- **Multidisciplinary thinker:** Brings unique value through combination of different expertise areas.
 
 ## CRITICAL INSTRUCTIONS:
 1. **PRESERVE STRUCTURE:** Keep the EXACT same LaTeX format and commands.
@@ -174,14 +267,16 @@ export async function tailorCoverLetter(
    - Which aspects of projects/experience to emphasize
    - Connecting past work to the job requirements
    - The narrative around why this role/company is exciting
+   - **MULTIDISCIPLINARY FIT:** Explain how the combination of skills makes them perfect for this role
 4. **TONE:** 80% formal + 20% informal. Professional but human. Include occasional conversational phrases like "honestly," "what really excites me is," "I genuinely believe," etc.
 5. **VISIONARY TONE:** Write as if from someone who truly believes technology can change the world. Express genuine passion for innovation and building things that matter.
 6. **COMPANY ALIGNMENT:** Show how the candidate's vision aligns with the company's mission. Explain how they can help the company meet its goals and fulfill its vision.
-7. **PERSONAL TOUCH:** Include phrases like "I am drawn to companies that...", "What excites me about [Company] is...", "I believe technology should...".
-8. **HUMBLE CONFIDENCE:** Confident about skills but humble about learning. Eager to contribute, not just take.
-9. **AVOID GENERIC:** No clichés. Make it feel written by a real person who genuinely cares.
-10. **WORD COUNT:** Keep the main body content between **250-350 words**. Be concise and impactful - every sentence should add value.
-11. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown.
+7. **MULTIDISCIPLINARY NARRATIVE:** Weave in how the candidate's unique combination of expertise (technical + domain knowledge) directly relates to what the company does. This is the KEY differentiator.
+8. **PERSONAL TOUCH:** Include phrases like "I am drawn to companies that...", "What excites me about [Company] is...", "I believe technology should...", "My background in [X] combined with [Y] uniquely positions me to...".
+9. **HUMBLE CONFIDENCE:** Confident about skills but humble about learning. Eager to contribute, not just take.
+10. **AVOID GENERIC:** No clichés. Make it feel written by a real person who genuinely cares.
+11. **WORD COUNT:** Keep the main body content between **250-350 words**. Be concise and impactful - every sentence should add value.
+12. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown.
 
 ## ORIGINAL COVER LETTER (LaTeX):
 ${coverLetterLatex}
@@ -192,11 +287,18 @@ ${jobDescription}
 ## PERSONAL DETAILS:
 ${personalDetails}
 
-## COMPANY INFO:
+## COMPANY INFO & RESEARCH (USE THIS TO POSITION MULTIDISCIPLINARY FIT):
 ${companyInfo}
 
+Use this company information to:
+- Understand exactly what the company does and their domain
+- Identify the multidisciplinary skill combinations that would make the candidate stand out
+- Use industry-specific language and concepts
+- Show deep understanding of the company's challenges and how the candidate can help
+- Frame the candidate's background as DIRECTLY RELEVANT to the company's actual work
+
 ## OUTPUT:
-The complete, compilable LaTeX code with tailored content that sounds like a visionary technologist who genuinely wants to help this company succeed.`;
+The complete, compilable LaTeX code with tailored content that sounds like a visionary technologist who genuinely wants to help this company succeed and whose MULTIDISCIPLINARY background makes them uniquely qualified.`;
 
   let result = await generateContent(prompt);
   result = result.replace(/^```latex\n?|^```\n?/i, "").replace(/\n?```$/i, "");

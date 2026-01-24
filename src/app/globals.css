@@ -157,6 +157,15 @@ body {
   transform: translateY(-0.5px);
 }
 
+.btn-secondary:disabled {
+  background: #e5e5e5;
+  color: #a3a3a3;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  border-color: #e5e5e5;
+}
+
 /* Inputs - Ultra Clean */
 .input-field {
   width: 100%;

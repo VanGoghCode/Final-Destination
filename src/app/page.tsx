@@ -22,6 +22,8 @@ export default function Home() {
     setCompanyName,
     positionTitle,
     setPositionTitle,
+    isResearching,
+    setIsResearching,
     setTailoredResume,
     setTailoredCoverLetter,
     tailoredResume,
@@ -32,7 +34,47 @@ export default function Home() {
 
   const [error, setError] = useState<string | null>(null);
 
-  const handleGenerate = async () => {
+  const handleResearch = async () => {
+    if (!companyName || !positionTitle || !jobDescription) {
+      setError("Please fill in company name, position title, and job description to research.");
+      return;
+    }
+
+    setError(null);
+    setIsResearching(true);
+
+    try {
+      const response = await fetch("/api/research", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName,
+          positionTitle,
+          jobDescription,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to research company");
+      }
+
+      // Save research to Company Information field
+      setCompanyInfo(data.research);
+      
+      // Auto-trigger generation after research is complete, passing research directly
+      if (resumeLatex && coverLetterLatex) {
+        await triggerGenerate(data.research);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred during research");
+    } finally {
+      setIsResearching(false);
+    }
+  };
+
+  const triggerGenerate = async (research?: string) => {
     if (!resumeLatex || !coverLetterLatex || !jobDescription) {
       setError(
         "Please fill in your resume, cover letter, and job description.",
@@ -52,7 +94,7 @@ export default function Home() {
           coverLetterLatex,
           jobDescription,
           personalDetails,
-          companyInfo,
+          companyInfo: research ?? companyInfo,
         }),
       });
 
@@ -71,6 +113,8 @@ export default function Home() {
       setIsGeneratingTailored(false);
     }
   };
+
+  const handleGenerate = () => triggerGenerate();
 
   const handleLoadTemplate = async () => {
     try {
@@ -290,8 +334,37 @@ export default function Home() {
           )}
 
           <button
+            onClick={handleResearch}
+            disabled={!companyName || !positionTitle || !jobDescription || isResearching || isGeneratingTailored}
+            className="btn-secondary text-base px-6 py-3"
+            title="Research the company and auto-generate tailored documents"
+          >
+            {isResearching ? (
+              <>
+                <span className="spinner" />
+                Researching...
+              </>
+            ) : (
+              <>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="M21 21l-4.35-4.35" />
+                </svg>
+                Research Company
+              </>
+            )}
+          </button>
+
+          <button
             onClick={handleGenerate}
-            disabled={!isValid || isGeneratingTailored}
+            disabled={!isValid || isGeneratingTailored || isResearching}
             className="btn-primary text-base px-8 py-3"
           >
             {isGeneratingTailored ? (
