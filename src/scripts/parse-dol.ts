@@ -137,7 +137,7 @@ function rankCompanies(companyData: Map<string, CompanyData>): Company[] {
       lcaQ4: data.lcaQ4,
       approvalRate: Math.round(approvalRate * 100) / 100,
       priorityScore: Math.round(priorityScore * 100) / 100,
-      isTop,
+      tier: data.lcaCount >= TOP_COMPANY_THRESHOLD ? "top" : "below50",
       pocFirstName: data.pocFirstName,
       pocLastName: data.pocLastName,
       pocEmail: data.pocEmail,
@@ -147,7 +147,7 @@ function rankCompanies(companyData: Map<string, CompanyData>): Company[] {
 
   companies.sort((a, b) => b.priorityScore - a.priorityScore);
 
-  const topCount = companies.filter((c) => c.isTop).length;
+  const topCount = companies.filter((c) => c.tier === "top").length;
   console.log(
     `⭐ Top companies (>= ${TOP_COMPANY_THRESHOLD} LCAs): ${topCount}`,
   );
@@ -185,8 +185,8 @@ function main(): void {
     const output = {
       generatedAt: new Date().toISOString(),
       totalCompanies: companies.length,
-      topCompanies: companies.filter((c) => c.isTop).length,
-      regularCompanies: companies.filter((c) => !c.isTop).length,
+      topCompanies: companies.filter((c) => c.tier === "top").length,
+      regularCompanies: companies.filter((c) => c.tier !== "top").length,
       companies,
     };
 
