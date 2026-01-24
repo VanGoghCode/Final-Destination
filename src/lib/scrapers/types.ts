@@ -11,7 +11,7 @@ export interface Job {
   url: string;
   postedAt?: string;
   scrapedAt: string;
-  platform: "greenhouse" | "lever" | "workday" | "custom";
+  platform: "greenhouse" | "lever" | "workday" | "ashby" | "custom";
 }
 
 /**
@@ -21,9 +21,10 @@ export interface CareerConfig {
   id: string;
   name: string;
   careerUrl: string;
-  platform: "greenhouse" | "lever" | "workday" | "custom";
+  platform: "greenhouse" | "lever" | "workday" | "ashby" | "custom";
   greenhouseId: string | null;
   leverId: string | null;
+  ashbyId: string | null;
 }
 
 /**
@@ -62,6 +63,7 @@ export function filterJobs(
 
 /**
  * Get target roles from env or defaults
+ * Broadened for: Software Engineer, Cloud, DevOps, Platform, AI/ML roles
  */
 export function getTargetRoles(): string[] {
   const envRoles = process.env.TARGET_ROLES;
@@ -69,23 +71,59 @@ export function getTargetRoles(): string[] {
     return envRoles.split(",").map((r) => r.trim());
   }
   return [
+    // Core Software Engineering
     "software engineer",
     "software developer",
-    "data scientist",
-    "data engineer",
-    "ml engineer",
-    "machine learning",
-    "backend engineer",
-    "frontend engineer",
-    "full stack",
+    "engineer",
+    "developer",
+    "sde",
+    "swe",
+
+    // Backend & Systems
+    "backend",
+    "systems engineer",
+    "infrastructure",
+    "platform engineer",
+
+    // Cloud & DevOps
+    "cloud engineer",
+    "cloud architect",
+    "solutions architect",
     "devops",
     "sre",
-    "platform engineer",
+    "site reliability",
+    "devsecops",
+
+    // AI/ML
+    "machine learning",
+    "ml engineer",
+    "ai engineer",
+    "data scientist",
+    "data engineer",
+    "genai",
+
+    // Full Stack & Frontend
+    "full stack",
+    "fullstack",
+    "frontend",
+    "front end",
+
+    // Specialized
+    "golang",
+    "python",
+    "typescript",
+    "node.js",
+    "aws",
+    "gcp",
+    "azure",
+    "terraform",
+    "kubernetes",
   ];
 }
 
 /**
  * Get excluded keywords from env or defaults
+ * Excluding: Leadership/Exec roles, Interns (too junior)
  */
 export function getExcludedKeywords(): string[] {
   const envExcluded = process.env.EXCLUDED_KEYWORDS;
@@ -93,14 +131,21 @@ export function getExcludedKeywords(): string[] {
     return envExcluded.split(",").map((k) => k.trim());
   }
   return [
+    // Executive/Leadership (too senior)
     "senior director",
+    "director",
     "vp",
     "vice president",
     "chief",
     "head of",
-    "principal",
-    "staff",
-    "intern",
-    "internship",
+    "cto",
+    "cio",
+
+    // Non-technical
+    "recruiter",
+    "hr ",
+    "sales",
+    "marketing",
+    "customer success",
   ];
 }

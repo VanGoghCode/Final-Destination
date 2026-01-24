@@ -1,174 +1,137 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import type { Company } from "@/lib/config";
 
-interface CompaniesData {
+interface Company {
+  id: string;
+  name: string;
+  city: string;
+  state: string;
+  lcaCount: number;
+  lcaQ1: number;
+  lcaQ2: number;
+  lcaQ3: number;
+  lcaQ4: number;
+  approvalRate: number;
+  tier: string;
+  pocFirstName?: string;
+  pocLastName?: string;
+  pocEmail?: string;
+  pocPhone?: string;
+  careerUrls: string[];
+  platform: string;
+}
+
+interface TierData {
   generatedAt: string;
-  totalCompanies: number;
-  tierCounts: {
-    top: number;
-    middle: number;
-    lower: number;
-    lowest: number;
-    below50: number;
-  };
+  count: number;
+  tier: string;
   companies: Company[];
 }
 
-const TIER_COLORS = {
-  top: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  middle: "bg-blue-100 text-blue-800 border-blue-300",
-  lower: "bg-amber-100 text-amber-800 border-amber-300",
-  lowest: "bg-gray-100 text-gray-700 border-gray-300",
-  below50: "bg-gray-50 text-gray-500 border-gray-200",
-};
-
-const TIER_LABELS = {
-  top: "Top (≥1000)",
-  middle: "Middle (501-999)",
-  lower: "Lower (101-500)",
-  lowest: "Lowest (51-100)",
-  below50: "Below 50",
-};
-
-const SORT_OPTIONS = [
-  { value: "score-desc", label: "Score (High to Low)" },
-  { value: "score-asc", label: "Score (Low to High)" },
-  { value: "lca-desc", label: "LCAs (High to Low)" },
-  { value: "lca-asc", label: "LCAs (Low to High)" },
-  { value: "name-asc", label: "Name (A-Z)" },
-  { value: "name-desc", label: "Name (Z-A)" },
-];
-
-const PER_PAGE_OPTIONS = [12, 24, 48, 96];
-
 export default function JobsPage() {
-  const [data, setData] = useState<CompaniesData | null>(null);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedTier, setSelectedTier] = useState<string>("all");
-  const [selectedState, setSelectedState] = useState<string>("all");
-  const [sortBy, setSortBy] = useState("score-desc");
-  const [itemsPerPage, setItemsPerPage] = useState(24);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/companies")
-      .then((res) => res.json())
-      .then((json) => {
-        setData(json);
-        setLoading(false);
-      })
+    Promise.all([
+      fetch("/api/top-tier").then((res) => res.json()),
+      fetch("/api/middle-tier").then((res) => res.json()),
+      fetch("/api/lower-tier").then((res) => res.json()),
+      fetch("/api/lowest-tier").then((res) => res.json()),
+    ])
+      .then(
+        ([topTier, middleTier, lowerTier, lowestTier]: [
+          TierData,
+          TierData,
+          TierData,
+          TierData,
+        ]) => {
+          // Combine all companies, with higher tiers first (priority order)
+          const allCompanies = [
+            ...topTier.companies,
+            ...middleTier.companies,
+            ...lowerTier.companies,
+            ...lowestTier.companies,
+          ];
+
+          // Deduplicate by company ID (keep first occurrence = higher tier)
+          const seen = new Set<string>();
+          const uniqueCompanies = allCompanies.filter((company) => {
+            if (seen.has(company.id)) {
+              return false;
+            }
+            seen.add(company.id);
+            return true;
+          });
+
+          setCompanies(uniqueCompanies);
+          setLoading(false);
+        },
+      )
       .catch((err) => {
         console.error("Failed to load companies:", err);
         setLoading(false);
       });
   }, []);
-
-  // Get unique states
-  const states = useMemo(() => {
-    if (!data) return [];
-    const stateSet = new Set(
-      data.companies.map((c) => c.state).filter(Boolean),
-    );
-    return Array.from(stateSet).sort();
-  }, [data]);
-
-  // Filter and sort companies
+  // Filter companies by search and tier
   const filteredCompanies = useMemo(() => {
-    if (!data) return [];
+    if (!companies.length) return [];
 
-    let result = data.companies.filter((company) => {
-      // Search filter
-      if (search) {
-        const searchLower = search.toLowerCase();
-        const nameMatch = String(company.name || "")
-          .toLowerCase()
-          .includes(searchLower);
-        const cityMatch = String(company.city || "")
-          .toLowerCase()
-          .includes(searchLower);
-        const stateMatch = String(company.state || "")
-          .toLowerCase()
-          .includes(searchLower);
-        if (!nameMatch && !cityMatch && !stateMatch) {
-          return false;
-        }
-      }
+    let result = companies;
 
-      // Tier filter
-      if (selectedTier !== "all" && company.tier !== selectedTier) {
-        return false;
-      }
+    // Filter by tier
+    if (selectedTier !== "all") {
+      result = result.filter((company) => company.tier === selectedTier);
+    }
 
-      // State filter
-      if (selectedState !== "all" && company.state !== selectedState) {
-        return false;
-      }
-
-      return true;
-    });
-
-    // Sort
-    result.sort((a, b) => {
-      switch (sortBy) {
-        case "score-desc":
-          return b.priorityScore - a.priorityScore;
-        case "score-asc":
-          return a.priorityScore - b.priorityScore;
-        case "lca-desc":
-          return b.lcaCount - a.lcaCount;
-        case "lca-asc":
-          return a.lcaCount - b.lcaCount;
-        case "name-asc":
-          return String(a.name).localeCompare(String(b.name));
-        case "name-desc":
-          return String(b.name).localeCompare(String(a.name));
-        default:
-          return 0;
-      }
-    });
+    // Filter by search
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result = result.filter((company) => {
+        return (
+          company.name.toLowerCase().includes(searchLower) ||
+          company.city.toLowerCase().includes(searchLower) ||
+          company.state.toLowerCase().includes(searchLower)
+        );
+      });
+    }
 
     return result;
-  }, [data, search, selectedTier, selectedState, sortBy]);
+  }, [companies, search, selectedTier]);
 
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, selectedTier, selectedState, sortBy, itemsPerPage]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredCompanies.length / itemsPerPage);
-  const paginatedCompanies = filteredCompanies.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
-  );
-
-  const clearFilters = () => {
-    setSearch("");
-    setSelectedTier("all");
-    setSelectedState("all");
-    setSortBy("score-desc");
-    setCurrentPage(1);
+  const openAllCareerPages = (company: Company) => {
+    if (company.careerUrls && company.careerUrls.length > 0) {
+      company.careerUrls.forEach((url) => {
+        window.open(url, "_blank");
+      });
+    }
   };
 
-  const hasActiveFilters =
-    search || selectedTier !== "all" || selectedState !== "all";
+  const openAllCompanyPages = () => {
+    filteredCompanies.forEach((company) => {
+      if (company.careerUrls && company.careerUrls.length > 0) {
+        company.careerUrls.forEach((url) => {
+          window.open(url, "_blank");
+        });
+      }
+    });
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="spinner-large mx-auto mb-4"></div>
-          <p className="text-muted">Loading companies...</p>
+          <p className="text-muted">Loading H-1B companies...</p>
         </div>
       </div>
     );
   }
 
-  if (!data) {
+  if (!companies.length && !loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-red-500">Failed to load companies data</p>
@@ -176,171 +139,33 @@ export default function JobsPage() {
     );
   }
 
+  const topCount = companies.filter((c) => c.tier === "top").length;
+  const middleCount = companies.filter((c) => c.tier === "middle").length;
+  const lowerCount = companies.filter((c) => c.tier === "lower").length;
+  const lowestCount = companies.filter((c) => c.tier === "lowest").length;
+
   return (
     <div className="min-h-screen py-6 lg:py-8">
       <div className="responsive-container">
         {/* Header */}
-        <div className="mb-6 lg:mb-8">
-          <h1 className="text-2xl lg:text-3xl font-bold gradient-text mb-2">
-            H-1B Sponsoring Companies
-          </h1>
-          <p className="text-muted text-sm lg:text-base">
-            {data.totalCompanies.toLocaleString()} companies from FY2025 LCA
-            data
-          </p>
-        </div>
-
-        {/* Tier Stats - Clickable Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4 mb-6">
-          {Object.entries(data.tierCounts).map(([tier, count]) => (
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold gradient-text mb-2">
+              H-1B Sponsoring Companies
+            </h1>
+            <p className="text-muted text-sm">
+              {companies.length} companies ({topCount} top, {middleCount}{" "}
+              middle, {lowerCount} lower, {lowestCount} lowest)
+            </p>
+          </div>
+          <div className="flex gap-3">
             <button
-              key={tier}
-              onClick={() =>
-                setSelectedTier(selectedTier === tier ? "all" : tier)
-              }
-              className={`glass-card p-3 lg:p-4 text-left transition-all hover:scale-[1.02] ${
-                selectedTier === tier
-                  ? "ring-2 ring-primary shadow-lg"
-                  : "hover:shadow-md"
-              }`}
+              onClick={openAllCompanyPages}
+              className="btn-secondary flex items-center gap-2 text-sm"
+              title="Open all career pages for all companies"
             >
-              <div className="text-xl lg:text-2xl font-bold">
-                {count.toLocaleString()}
-              </div>
-              <div className="text-xs lg:text-sm text-muted">
-                {TIER_LABELS[tier as keyof typeof TIER_LABELS]}
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* Filters Section */}
-        <div className="glass-card p-4 lg:p-5 mb-6">
-          {/* Search Bar */}
-          <div className="relative mb-4">
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search by company name, city, or state..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-            />
-          </div>
-
-          {/* Filter Row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-            {/* Tier Filter */}
-            <select
-              value={selectedTier}
-              onChange={(e) => setSelectedTier(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-gray-200 bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-            >
-              <option value="all">All Tiers</option>
-              {Object.entries(TIER_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-
-            {/* State Filter */}
-            <select
-              value={selectedState}
-              onChange={(e) => setSelectedState(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-gray-200 bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-            >
-              <option value="all">All States</option>
-              {states.map((state) => (
-                <option key={state} value={state}>
-                  {state}
-                </option>
-              ))}
-            </select>
-
-            {/* Items Per Page */}
-            <select
-              value={itemsPerPage}
-              onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
-              className="px-3 py-2 rounded-lg border border-gray-200 bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-            >
-              {PER_PAGE_OPTIONS.map((num) => (
-                <option key={num} value={num}>
-                  {num} per page
-                </option>
-              ))}
-            </select>
-
-            {/* Sort */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-gray-200 bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
-            >
-              {SORT_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-
-            {/* Clear Filters */}
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-medium transition-colors"
-              >
-                Clear All
-              </button>
-            )}
-          </div>
-
-          {/* Results Count */}
-          <div className="mt-4 flex items-center justify-between text-sm">
-            <span className="text-muted">
-              Showing{" "}
-              <strong>{filteredCompanies.length.toLocaleString()}</strong>{" "}
-              companies
-            </span>
-            {totalPages > 1 && (
-              <span className="text-muted">
-                Page {currentPage} of {totalPages}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Company Grid */}
-        {paginatedCompanies.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
-            {paginatedCompanies.map((company, index) => (
-              <CompanyCard
-                key={`${company.id}-${index}`}
-                company={company}
-                isExpanded={expandedId === company.id}
-                onToggle={() =>
-                  setExpandedId(expandedId === company.id ? null : company.id)
-                }
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">
               <svg
-                className="w-16 h-16 mx-auto text-gray-300"
+                className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -348,262 +173,279 @@ export default function JobsPage() {
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={1.5}
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+              Open All (
+              {filteredCompanies.reduce(
+                (acc, c) => acc + (c.careerUrls?.length || 0),
+                0,
+              )}{" "}
+              tabs)
+            </button>
+            <a
+              href="/job-listings"
+              className="btn-primary inline-flex items-center gap-2 text-sm"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
+              </svg>
+              Scraped Jobs
+            </a>
+          </div>
+        </div>
+
+        {/* Search and Tier Filter */}
+        <div className="glass-card p-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
+              <input
+                type="text"
+                placeholder="Search companies..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+              />
             </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelectedTier("all")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedTier === "all"
+                    ? "bg-primary text-white"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                }`}
+              >
+                All ({companies.length})
+              </button>
+              <button
+                onClick={() => setSelectedTier("top")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedTier === "top"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800"
+                }`}
+              >
+                Top ({topCount})
+              </button>
+              <button
+                onClick={() => setSelectedTier("middle")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedTier === "middle"
+                    ? "bg-blue-600 text-white"
+                    : "bg-blue-50 hover:bg-blue-100 text-blue-800"
+                }`}
+              >
+                Middle ({middleCount})
+              </button>
+              <button
+                onClick={() => setSelectedTier("lower")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedTier === "lower"
+                    ? "bg-amber-600 text-white"
+                    : "bg-amber-50 hover:bg-amber-100 text-amber-800"
+                }`}
+              >
+                Lower ({lowerCount})
+              </button>
+              <button
+                onClick={() => setSelectedTier("lowest")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedTier === "lowest"
+                    ? "bg-purple-600 text-white"
+                    : "bg-purple-50 hover:bg-purple-100 text-purple-800"
+                }`}
+              >
+                Lowest ({lowestCount})
+              </button>
+            </div>
+          </div>
+          <div className="mt-3 text-sm text-muted">
+            Showing {filteredCompanies.length} of {companies.length} companies
+          </div>
+        </div>
+
+        {/* Company List */}
+        <div className="space-y-4">
+          {filteredCompanies.map((company) => (
+            <div
+              key={company.id}
+              className="glass-card p-5 hover:shadow-lg transition-all"
+            >
+              <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                {/* Company Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h2 className="font-bold text-lg truncate">
+                      {company.name}
+                    </h2>
+                    <span className="shrink-0 text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium">
+                      {company.lcaCount.toLocaleString()} LCAs
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted mb-2">
+                    {company.city}, {company.state}
+                  </p>
+
+                  {/* POC Info - Inline */}
+                  {company.pocEmail && (
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                      <span className="font-medium text-gray-700">
+                        {company.pocFirstName} {company.pocLastName}
+                      </span>
+                      <a
+                        href={`mailto:${company.pocEmail}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {company.pocEmail}
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quarterly Stats - Compact */}
+                <div className="flex items-center gap-2">
+                  {["Q1", "Q2", "Q3", "Q4"].map((q) => (
+                    <div
+                      key={q}
+                      className="text-center px-3 py-2 bg-gray-50 rounded-lg"
+                    >
+                      <div className="text-xs text-muted">{q}</div>
+                      <div className="font-semibold text-sm">
+                        {(company[`lca${q}` as keyof Company] as number) || 0}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => openAllCareerPages(company)}
+                    disabled={
+                      !company.careerUrls || company.careerUrls.length === 0
+                    }
+                    className="btn-primary text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={
+                      company.careerUrls?.length > 0
+                        ? `Open ${company.careerUrls.length} career page(s)`
+                        : "No career URLs configured"
+                    }
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
+                    </svg>
+                    Open Jobs ({company.careerUrls?.length || 0})
+                  </button>
+                  <a
+                    href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(company.name + " recruiter")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary text-sm flex items-center gap-2"
+                    title="Find recruiters on LinkedIn"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                    </svg>
+                  </a>
+                  <a
+                    href={`https://www.google.com/search?q=${encodeURIComponent(company.name + " careers jobs")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-secondary text-sm flex items-center gap-2"
+                    title="Search Google for career page"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        fill="#4285F4"
+                      />
+                      <path
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        fill="#34A853"
+                      />
+                      <path
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                        fill="#FBBC05"
+                      />
+                      <path
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                        fill="#EA4335"
+                      />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Empty State */}
+        {filteredCompanies.length === 0 && (
+          <div className="text-center py-16">
+            <svg
+              className="w-16 h-16 mx-auto text-gray-300 mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
             <h3 className="text-lg font-medium mb-2">No companies found</h3>
-            <p className="text-muted mb-4">
-              Try adjusting your filters or search term
-            </p>
-            <button onClick={clearFilters} className="btn-primary">
-              Clear Filters
+            <p className="text-muted mb-4">Try adjusting your search term</p>
+            <button onClick={() => setSearch("")} className="btn-primary">
+              Clear Search
             </button>
           </div>
         )}
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1}
-                className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title="First page"
-              >
-                First
-              </button>
-              <button
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Prev
-              </button>
-
-              {/* Page Numbers */}
-              <div className="hidden sm:flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let page;
-                  if (totalPages <= 5) {
-                    page = i + 1;
-                  } else if (currentPage <= 3) {
-                    page = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    page = totalPages - 4 + i;
-                  } else {
-                    page = currentPage - 2 + i;
-                  }
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-10 h-10 rounded-lg font-medium transition-colors ${
-                        currentPage === page
-                          ? "bg-primary text-white"
-                          : "bg-gray-100 hover:bg-gray-200"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <button
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(totalPages, p + 1))
-                }
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Next
-              </button>
-              <button
-                onClick={() => setCurrentPage(totalPages)}
-                disabled={currentPage === totalPages}
-                className="px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title="Last page"
-              >
-                Last
-              </button>
-            </div>
-
-            {/* Jump to page */}
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted">Go to:</span>
-              <input
-                type="number"
-                min={1}
-                max={totalPages}
-                value={currentPage}
-                onChange={(e) => {
-                  const page = parseInt(e.target.value);
-                  if (page >= 1 && page <= totalPages) {
-                    setCurrentPage(page);
-                  }
-                }}
-                className="w-16 px-2 py-1 rounded border border-gray-200 text-center"
-              />
-            </div>
-          </div>
-        )}
       </div>
-    </div>
-  );
-}
-
-interface CompanyCardProps {
-  company: Company;
-  isExpanded: boolean;
-  onToggle: () => void;
-}
-
-function CompanyCard({ company, isExpanded, onToggle }: CompanyCardProps) {
-  const tierClass = TIER_COLORS[company.tier] || TIER_COLORS.below50;
-
-  return (
-    <div
-      className={`glass-card p-4 lg:p-5 transition-all hover:shadow-lg ${
-        isExpanded ? "ring-2 ring-primary/30" : ""
-      }`}
-    >
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-base lg:text-lg truncate mb-1">
-            {company.name}
-          </h3>
-          <p className="text-sm text-muted">
-            {company.city}, {company.state}
-          </p>
-        </div>
-        <span
-          className={`shrink-0 text-xs px-2 py-1 rounded-full border font-medium ${tierClass}`}
-        >
-          {company.tier}
-        </span>
-      </div>
-
-      {/* Stats */}
-      <div className="flex items-center gap-4 mb-4">
-        <div className="flex-1 bg-gray-50 rounded-lg p-3 text-center">
-          <div className="text-lg lg:text-xl font-bold text-gray-800">
-            {company.lcaCount.toLocaleString()}
-          </div>
-          <div className="text-xs text-muted">Total LCAs</div>
-        </div>
-        <div className="flex-1 bg-gray-50 rounded-lg p-3 text-center">
-          <div className="text-lg lg:text-xl font-bold text-primary">
-            {company.priorityScore.toFixed(0)}
-          </div>
-          <div className="text-xs text-muted">Priority Score</div>
-        </div>
-      </div>
-
-      {/* Toggle Button */}
-      <button
-        onClick={onToggle}
-        className="w-full py-2 px-4 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-medium transition-colors flex items-center justify-center gap-2"
-      >
-        {isExpanded ? (
-          <>
-            <span>Hide Details</span>
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 15l7-7 7 7"
-              />
-            </svg>
-          </>
-        ) : (
-          <>
-            <span>View Details</span>
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </>
-        )}
-      </button>
-
-      {/* Expanded Details */}
-      {isExpanded && (
-        <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
-          {/* Quarterly Breakdown */}
-          <div>
-            <h4 className="text-xs font-medium text-muted mb-2 uppercase tracking-wide">
-              Quarterly LCAs (FY2025)
-            </h4>
-            <div className="grid grid-cols-4 gap-2">
-              {["Q1", "Q2", "Q3", "Q4"].map((q) => (
-                <div key={q} className="bg-gray-50 rounded p-2 text-center">
-                  <div className="text-xs text-muted">{q}</div>
-                  <div className="font-semibold">
-                    {company[`lca${q}` as keyof Company] || 0}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* POC Contact */}
-          {company.pocEmail && (
-            <div className="bg-blue-50 rounded-lg p-3">
-              <h4 className="text-xs font-medium text-blue-800 mb-2 uppercase tracking-wide">
-                Point of Contact
-              </h4>
-              <p className="font-medium text-sm">
-                {company.pocFirstName} {company.pocLastName}
-              </p>
-              <a
-                href={`mailto:${company.pocEmail}`}
-                className="text-sm text-blue-600 hover:underline break-all"
-              >
-                {company.pocEmail}
-              </a>
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-2">
-            <a
-              href={`https://www.google.com/search?q=${encodeURIComponent(company.name + " careers")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 btn-primary text-sm text-center"
-            >
-              Search Careers
-            </a>
-            <a
-              href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(company.name + " recruiter")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 btn-secondary text-sm text-center"
-            >
-              Find Recruiters
-            </a>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

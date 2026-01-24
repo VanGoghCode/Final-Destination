@@ -15,6 +15,7 @@ interface JobsData {
   lastScraped: string;
   totalJobs: number;
   jobs: Job[];
+  summary?: any;
 }
 
 /**
@@ -76,13 +77,35 @@ export async function POST() {
   try {
     console.log("Starting job scrape...");
 
-    const { jobs, summary } = await scrapeAllCompanies();
+    const { jobs: scrapedJobs, summary } = await scrapeAllCompanies();
+
+    // Filter for last 10 days
+    const tenDaysAgo = new Date();
+    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+
+    const recentJobs = scrapedJobs.filter((job) => {
+      if (!job.postedAt) return true; // Keep unknown dates? Or strict false? Let's keep for now to be safe, or strict if user insists.
+      // User said "remove jobs older then 10 days", so implied strictly older. If unknown, we don't know it's older.
+      // However, usually safest to keep.
+      const jobDate = new Date(job.postedAt);
+      return jobDate >= tenDaysAgo;
+    });
+
+    // Update summary with filtered count
+    const removedCount = scrapedJobs.length - recentJobs.length;
+    console.log(`Removed ${removedCount} jobs older than 10 days`);
 
     // Save to file
     const jobsData: JobsData = {
       lastScraped: summary.scrapedAt,
-      totalJobs: jobs.length,
-      jobs,
+      totalJobs: recentJobs.length,
+      jobs: recentJobs,
+      summary: {
+        ...summary,
+        totalJobs: scrapedJobs.length, // total derived from scrape
+        retainedJobs: recentJobs.length,
+        filteredOldJobs: removedCount,
+      },
     };
 
     fs.writeFileSync(JOBS_FILE, JSON.stringify(jobsData, null, 2));

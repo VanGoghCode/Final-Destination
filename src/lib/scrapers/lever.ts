@@ -74,21 +74,25 @@ export async function scrapeLever(
 
 /**
  * Get list of known Lever companies
+ * Organized by job count (descending) from lower-tier probing
  */
 export const LEVER_COMPANIES: Record<string, { id: string; name: string }> = {
-  openai: { id: "OPENAI", name: "OpenAI" },
-  anthropic: { id: "ANTHROPIC", name: "Anthropic" },
-  scale: { id: "SCALE_AI", name: "Scale AI" },
-  anduril: { id: "ANDURIL", name: "Anduril" },
-  flexport: { id: "FLEXPORT", name: "Flexport" },
-  verkada: { id: "VERKADA", name: "Verkada" },
-  lacework: { id: "LACEWORK", name: "Lacework" },
-  airtable: { id: "AIRTABLE", name: "Airtable" },
-  asana: { id: "ASANA", name: "Asana" },
-  gusto: { id: "GUSTO", name: "Gusto" },
-  carta: { id: "CARTA", name: "Carta" },
-  brex: { id: "BREX", name: "Brex" },
-  nerdwallet: { id: "NERDWALLET", name: "NerdWallet" },
-  samsara: { id: "SAMSARA", name: "Samsara" },
-  rippling: { id: "RIPPLING", name: "Rippling" },
+  // High volume (200+ jobs)
+  palantir: { id: "PALANTIR_TECHNOLOGIES_INC", name: "Palantir" },
+
+  // Medium-high volume (100-200 jobs)
+  spotify: { id: "SPOTIFY_USA_INC", name: "Spotify" },
+
+  // Medium volume (50-100 jobs)
+  capital: { id: "CAPITAL_ONE_NATIONAL_ASSOCIATION", name: "Capital One" },
+
+  // Medium-low volume (20-50 jobs)
+  metlife: { id: "METLIFE_GROUP_INC", name: "MetLife" },
+
+  // Low volume (<20 jobs)
+  genesis: { id: "GENESIS_CORP", name: "Genesis Corp" },
+  linkedin: { id: "LINKEDIN_CORPORATION", name: "LinkedIn" },
+
+  // Legacy/other companies (from previous config)
+  atlassian: { id: "ATLASSIAN_US_INC", name: "Atlassian" },
 };

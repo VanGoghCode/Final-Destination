@@ -17,7 +17,7 @@ export async function GET() {
 
     // Deduplicate companies by ID (keep highest priority score)
     const seenIds = new Map();
-    const uniqueCompanies = [];
+    let uniqueCompanies = [];
 
     for (const company of data.companies) {
       const existing = seenIds.get(company.id);
@@ -30,6 +30,25 @@ export async function GET() {
         uniqueCompanies.push(company);
       }
     }
+
+    // Second pass: deduplicate by normalized company name
+    const seenNames = new Map();
+    const nameDeduped = [];
+
+    for (const company of uniqueCompanies) {
+      const normalizedName = (company.name || "").toLowerCase().trim();
+      const existing = seenNames.get(normalizedName);
+      if (!existing || company.priorityScore > existing.priorityScore) {
+        if (existing) {
+          const idx = nameDeduped.indexOf(existing);
+          if (idx > -1) nameDeduped.splice(idx, 1);
+        }
+        seenNames.set(normalizedName, company);
+        nameDeduped.push(company);
+      }
+    }
+
+    uniqueCompanies = nameDeduped;
 
     // Re-sort by priority
     uniqueCompanies.sort((a, b) => b.priorityScore - a.priorityScore);
