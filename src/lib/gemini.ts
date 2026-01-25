@@ -191,8 +191,6 @@ Match the semantic tone to the company's stage and culture:
 1. **PRESERVE STRUCTURE:** Keep the EXACT same LaTeX document structure, \\documentclass, \\usepackage, and custom commands. Do NOT change the layout.
 2. **TAILOR CONTENT:** Only modify the **text content** (summary, bullet points, skills) to better and most align with the job requirements.
 3. **PRESERVE BASE DETAILS - DO NOT CHANGE:**
-   - Project names (keep them exactly as they are)
-   - Project ideas/concepts (don't change what the project is about)
    - Company names from work experience
    - Job titles held
    - Dates and timelines
@@ -203,6 +201,12 @@ Match the semantic tone to the company's stage and culture:
    - Professional summary/objective (align with company culture and role focus, emphasize multidisciplinary fit)
    - Skills section (group with technical adjacencies, reorder for relevance, show domain expertise)
    - How achievements are described (not the achievements themselves)
+   - **Project/Work Descriptions (PARTIAL FLEXIBILITY):** You MAY slightly adjust how projects and work experiences are framed to better align with the job requirements. For example:
+     - Emphasize different aspects of the same project that are more relevant to this role
+     - Reframe the project's purpose or impact to highlight relevance to the target company's domain
+     - Adjust technical details to emphasize technologies/skills mentioned in the job description
+     - Add context about how the work relates to the target industry
+   - **BUT DO NOT:** Fabricate entirely new projects, invent achievements that didn't happen, or fundamentally misrepresent what was done. The core truth must remain intact.
 5. **SUMMARY WORD LIMIT:** The professional summary/objective section MUST NOT exceed 60 words. Keep it concise, impactful, and focused on multidisciplinary fit.
 6. **MULTIDISCIPLINARY SKILLS EMPHASIS:** In the summary and throughout, emphasize how the candidate's combination of skills (technical + domain) makes them uniquely qualified. Show how their background DIRECTLY RELATES to what the company does.
 7. **SKILLS FROM JOB DESCRIPTION:** Extract ALL required and preferred skills mentioned in the job description and ADD them to the Skills section. Include technical skills, tools, frameworks, methodologies, and soft skills. Group related skills together to show contextual clustering.

@@ -120,7 +120,7 @@ export default function Home() {
       }
 
       setTailoredResume(data.tailoredResume);
-      setTailoredCoverLetter(data.tailoredCoverLetter);
+      setTailoredCoverLetter(""); // Clear any previous cover letter - will be generated on-demand
       router.push("/tailored");
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
