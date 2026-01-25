@@ -20,6 +20,8 @@ export default function Home() {
     setCompanyInfo,
     companyName,
     setCompanyName,
+    companyUrl,
+    setCompanyUrl,
     positionTitle,
     setPositionTitle,
     isResearching,
@@ -41,6 +43,15 @@ export default function Home() {
     }
 
     setError(null);
+
+    // If company info is already filled, skip research and go directly to generation
+    if (companyInfo.trim()) {
+      if (resumeLatex && coverLetterLatex && jobDescription) {
+        await triggerGenerate(companyInfo);
+      }
+      return;
+    }
+
     setIsResearching(true);
 
     try {
@@ -49,6 +60,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           companyName,
+          companyUrl,
           positionTitle,
           jobDescription,
         }),
@@ -63,13 +75,16 @@ export default function Home() {
       // Save research to Company Information field
       setCompanyInfo(data.research);
       
+      // Stop researching state before starting generation
+      setIsResearching(false);
+      
       // Auto-trigger generation after research is complete, passing research directly
-      if (resumeLatex && coverLetterLatex) {
+      // All fields should be valid since we already validated companyName, positionTitle, jobDescription above
+      if (resumeLatex && coverLetterLatex && jobDescription) {
         await triggerGenerate(data.research);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred during research");
-    } finally {
       setIsResearching(false);
     }
   };
@@ -212,33 +227,48 @@ export default function Home() {
             />
           </div>
 
-          {/* Company Name and Position Title */}
+          {/* Company Name, URL, and Position Title - Single Row */}
           <div
-            className="glass-card p-5 fade-in"
+            className="glass-card p-5 fade-in lg:col-span-2"
             style={{ animationDelay: "0.18s" }}
           >
-            <label className="section-label">Company Name</label>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="e.g., Google, Microsoft, Amazon..."
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-            />
-          </div>
-
-          <div
-            className="glass-card p-5 fade-in"
-            style={{ animationDelay: "0.18s" }}
-          >
-            <label className="section-label">Position Title</label>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="e.g., Software Engineer, Product Manager..."
-              value={positionTitle}
-              onChange={(e) => setPositionTitle(e.target.value)}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="section-label">Company Name</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="e.g., Google, Microsoft, Amazon..."
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="section-label">
+                  Company URL{" "}
+                  <span className="text-muted-light font-normal normal-case">
+                    (for accurate research)
+                  </span>
+                </label>
+                <input
+                  type="url"
+                  className="input-field"
+                  placeholder="e.g., https://www.google.com"
+                  value={companyUrl}
+                  onChange={(e) => setCompanyUrl(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="section-label">Position Title</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  placeholder="e.g., Software Engineer, Product Manager..."
+                  value={positionTitle}
+                  onChange={(e) => setPositionTitle(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Personal Details */}
@@ -268,7 +298,7 @@ export default function Home() {
             <label className="section-label">
               Company Information{" "}
               <span className="text-muted-light font-normal normal-case">
-                (optional)
+                (Research will auto-fill this)
               </span>
             </label>
             <textarea
@@ -335,14 +365,19 @@ export default function Home() {
 
           <button
             onClick={handleResearch}
-            disabled={!companyName || !positionTitle || !jobDescription || isResearching || isGeneratingTailored}
-            className="btn-secondary text-base px-6 py-3"
-            title="Research the company and auto-generate tailored documents"
+            disabled={!isValid || isResearching || isGeneratingTailored}
+            className="btn-primary text-base px-8 py-3"
+            title="Research the company and generate tailored documents"
           >
             {isResearching ? (
               <>
                 <span className="spinner" />
                 Researching...
+              </>
+            ) : isGeneratingTailored ? (
+              <>
+                <span className="spinner" />
+                Generating...
               </>
             ) : (
               <>
@@ -357,24 +392,7 @@ export default function Home() {
                   <circle cx="11" cy="11" r="8" />
                   <path d="M21 21l-4.35-4.35" />
                 </svg>
-                Research Company
-              </>
-            )}
-          </button>
-
-          <button
-            onClick={handleGenerate}
-            disabled={!isValid || isGeneratingTailored || isResearching}
-            className="btn-primary text-base px-8 py-3"
-          >
-            {isGeneratingTailored ? (
-              <>
-                <span className="spinner" />
-                Generating...
-              </>
-            ) : (
-              <>
-                Generate Tailored Documents
+                Research &amp; Generate
                 <svg
                   width="18"
                   height="18"

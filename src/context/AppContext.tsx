@@ -10,6 +10,7 @@ interface AppState {
   personalDetails: string;
   companyInfo: string;
   companyName: string;
+  companyUrl: string;
   positionTitle: string;
 
   // Company Research
@@ -36,6 +37,7 @@ interface AppContextType extends AppState {
   setPersonalDetails: (value: string) => void;
   setCompanyInfo: (value: string) => void;
   setCompanyName: (value: string) => void;
+  setCompanyUrl: (value: string) => void;
   setPositionTitle: (value: string) => void;
   setCompanyResearch: (value: string) => void;
   setIsResearching: (value: boolean) => void;
@@ -55,6 +57,7 @@ const initialState: AppState = {
   personalDetails: "",
   companyInfo: "",
   companyName: "",
+  companyUrl: "",
   positionTitle: "",
   companyResearch: "",
   isResearching: false,
@@ -83,6 +86,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, companyInfo: value }));
   const setCompanyName = (value: string) =>
     setState((prev) => ({ ...prev, companyName: value }));
+  const setCompanyUrl = (value: string) =>
+    setState((prev) => ({ ...prev, companyUrl: value }));
   const setPositionTitle = (value: string) =>
     setState((prev) => ({ ...prev, positionTitle: value }));
   const setCompanyResearch = (value: string) =>
@@ -113,6 +118,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setPersonalDetails,
         setCompanyInfo,
         setCompanyName,
+        setCompanyUrl,
         setPositionTitle,
         setCompanyResearch,
         setIsResearching,
