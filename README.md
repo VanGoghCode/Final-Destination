@@ -7,8 +7,10 @@ AI-powered resume and cover letter tailoring + H-1B job alert system.
 ### Resume Tailoring
 
 - AI-tailored Resume & Cover Letter (LaTeX)
+- Separate cover letter generation with company research
 - Regenerate with feedback
-- Application Q&A generation
+- Application Q&A generation with first-person answers
+- Word/character limits and human-written tone for Q&A
 - Cold email & referral request generation
 - Google Sheets application tracking
 
@@ -16,10 +18,12 @@ AI-powered resume and cover letter tailoring + H-1B job alert system.
 
 - **732 H-1B sponsoring companies** across 4 tiers
 - **72+ companies** with automated job scraping
+- Collapsible sidebar with search and tier filters
+- Multi-select companies with bulk actions
 - Quarterly LCA tracking (Q1-Q4) from FY2025 DOL data
 - POC contact info for direct outreach
 - Multi-platform scraping: Greenhouse, Lever, Ashby, Workday
-- Responsive job dashboard with tier filters
+- Responsive job dashboard with 4-column grid layout
 
 ---
 
@@ -67,12 +71,13 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ## Pages
 
-| Route           | Description                          |
-| --------------- | ------------------------------------ |
-| `/`             | Resume tailoring homepage            |
-| `/tailored`     | Tailored resume/cover letter output  |
-| `/jobs`         | H-1B company browser (732 companies) |
-| `/job-listings` | Scraped job listings                 |
+| Route           | Description                                      |
+| --------------- | ------------------------------------------------ |
+| `/`             | Resume tailoring homepage                        |
+| `/tailored`     | Tailored resume/cover letter output              |
+| `/questions`    | Application Q&A generation                       |
+| `/jobs`         | H-1B company browser with collapsible sidebar    |
+| `/job-listings` | Scraped job listings                             |
 
 ---
 
@@ -83,10 +88,15 @@ src/
 ├── app/
 │   ├── page.tsx          # Resume tailoring homepage
 │   ├── tailored/         # Tailored output page
+│   ├── questions/        # Application Q&A page
 │   ├── jobs/             # H-1B company browser
 │   ├── job-listings/     # Scraped job listings
 │   └── api/
 │       ├── jobs/         # Jobs scraping API
+│       ├── tailor/       # Resume tailoring API
+│       ├── tailor-cover-letter/  # Cover letter API
+│       ├── research/     # Company research API
+│       ├── answers/      # Q&A generation API
 │       ├── top-tier/     # Top-tier companies API
 │       ├── middle-tier/  # Middle-tier companies API
 │       ├── lower-tier/   # Lower-tier companies API
