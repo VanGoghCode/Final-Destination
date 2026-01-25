@@ -4,7 +4,7 @@ import { researchCompany } from "@/lib/gemini";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { companyName, positionTitle, jobDescription } = body;
+    const { companyName, companyUrl, positionTitle, jobDescription } = body;
 
     if (!companyName || !positionTitle || !jobDescription) {
       return NextResponse.json(
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const research = await researchCompany(companyName, positionTitle, jobDescription);
+    const research = await researchCompany(companyName, companyUrl, positionTitle, jobDescription);
 
     return NextResponse.json({
       success: true,

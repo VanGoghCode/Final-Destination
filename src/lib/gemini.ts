@@ -78,16 +78,21 @@ async function generateContent(prompt: string): Promise<string> {
  */
 export async function researchCompany(
   companyName: string,
+  companyUrl: string | undefined,
   positionTitle: string,
   jobDescription: string,
 ): Promise<string> {
+  const companyUrlInfo = companyUrl 
+    ? `\n\n## COMPANY WEBSITE:\nIMPORTANT: Use this URL to identify the EXACT company: ${companyUrl}\nThis URL is authoritative - use it to research the correct company and avoid confusion with other companies that may have similar names.`
+    : '';
+
   const prompt = `You are an expert career researcher and strategist. Your task is to provide deep, actionable research about a company and role that will help a candidate stand out by showing MULTIDISCIPLINARY FIT.
 
 ## THE MULTIDISCIPLINARY ADVANTAGE:
 In 2026, candidates get rejected not because of bad resumes, but because other candidates have backgrounds MORE SIMILAR to the work the company is already doing. The key to standing out is showing MULTIDISCIPLINARY expertise that combines two or more fields relevant to this role.
 
 ## RESEARCH TASK:
-Provide comprehensive research on **${companyName}** for the **${positionTitle}** position.
+Provide comprehensive research on **${companyName}** for the **${positionTitle}** position.${companyUrlInfo}
 
 ## JOB DESCRIPTION:
 ${jobDescription}
@@ -198,11 +203,12 @@ Match the semantic tone to the company's stage and culture:
    - Professional summary/objective (align with company culture and role focus, emphasize multidisciplinary fit)
    - Skills section (group with technical adjacencies, reorder for relevance, show domain expertise)
    - How achievements are described (not the achievements themselves)
-5. **MULTIDISCIPLINARY SKILLS EMPHASIS:** In the summary and throughout, emphasize how the candidate's combination of skills (technical + domain) makes them uniquely qualified. Show how their background DIRECTLY RELATES to what the company does.
-6. **SKILLS FROM JOB DESCRIPTION:** Extract ALL required and preferred skills mentioned in the job description and ADD them to the Skills section. Include technical skills, tools, frameworks, methodologies, and soft skills. Group related skills together to show contextual clustering.
-7. **SEMANTIC KEYWORDS:** Naturally weave keywords and their technical adjacencies from the job description INTO existing bullet points.
-8. **IMPACT:** Quantify achievements (e.g., "Scaled system to handle 10x traffic") where possible, using velocity-signaling verbs.
-9. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown \`\`\`latex blocks. Do NOT include explanations.
+5. **SUMMARY WORD LIMIT:** The professional summary/objective section MUST NOT exceed 60 words. Keep it concise, impactful, and focused on multidisciplinary fit.
+6. **MULTIDISCIPLINARY SKILLS EMPHASIS:** In the summary and throughout, emphasize how the candidate's combination of skills (technical + domain) makes them uniquely qualified. Show how their background DIRECTLY RELATES to what the company does.
+7. **SKILLS FROM JOB DESCRIPTION:** Extract ALL required and preferred skills mentioned in the job description and ADD them to the Skills section. Include technical skills, tools, frameworks, methodologies, and soft skills. Group related skills together to show contextual clustering.
+8. **SEMANTIC KEYWORDS:** Naturally weave keywords and their technical adjacencies from the job description INTO existing bullet points.
+9. **IMPACT:** Quantify achievements (e.g., "Scaled system to handle 10x traffic") where possible, using velocity-signaling verbs.
+10. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown \`\`\`latex blocks. Do NOT include explanations.
 
 ## ORIGINAL RESUME (LaTeX):
 ${resumeLatex}
