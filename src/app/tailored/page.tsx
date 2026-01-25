@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
@@ -192,22 +192,6 @@ export default function TailoredPage() {
       setIsGeneratingCoverLetter(false);
     }
   };
-
-  // Redirect removed - allow free navigation between pages
-  // useEffect(() => {
-  //   if (!tailoredResume && !tailoredCoverLetter) {
-  //     if (!resumeLatex || !coverLetterLatex || !jobDescription) {
-  //       router.push("/");
-  //     }
-  //   }
-  // }, [
-  //   tailoredResume,
-  //   tailoredCoverLetter,
-  //   resumeLatex,
-  //   coverLetterLatex,
-  //   jobDescription,
-  //   router,
-  // ]);
 
   return (
     <main className="min-h-screen p-4 sm:p-6">

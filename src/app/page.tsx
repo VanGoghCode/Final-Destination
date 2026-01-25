@@ -129,8 +129,6 @@ export default function Home() {
     }
   };
 
-  const handleGenerate = () => triggerGenerate();
-
   const handleLoadTemplate = async () => {
     try {
       // Try custom templates first, then fall back to example templates
@@ -140,9 +138,6 @@ export default function Home() {
       }
 
       let coverLetterRes = await fetch("/templates/cover-letter.tex");
-      if (!coverLetterRes.ok) {
-        coverLetterRes = await fetch("/templates/cover-letter.example.tex");
-      }
 
       if (!resumeRes.ok || !coverLetterRes.ok) {
         throw new Error("Failed to load templates");

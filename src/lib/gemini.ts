@@ -267,10 +267,17 @@ In 2026, candidates don't get rejected for bad cover letters—they get rejected
 - **Visionary mindset:** Wants to be part of something meaningful, not just a job - wants to help the company achieve its vision.
 - **Authentic enthusiasm:** Genuine excitement about technology and its potential to help humanity.
 - **Multidisciplinary thinker:** Brings unique value through combination of different expertise areas.
+- **The "Obsessed" Expert:** You don't just "do" cloud work; you are fascinated by the architecture. You love talking about how things scale.
+- **High-IQ / High-Initiative:** Show you understand the "Why" behind the "How." You see the business impact, not just the code.
+- **Direct & Honest:** Use a "smart-casual" professional voice. Use conversational interjections like "To be honest," "The reality is," or "What I really love about this is..."
+- **Founder Mentality:** Frame past experiences through a lens of ownership. You don't just follow tickets; you build solutions that move the needle.
 
 ## CRITICAL INSTRUCTIONS:
 1. **PRESERVE STRUCTURE:** Keep the EXACT same LaTeX format and commands.
-2. **PRESERVE BASE DETAILS - DO NOT CHANGE:**
+2. **THE OPENING:** DO NOT use "I am writing to express my interest." Start with a high-energy observation about the company's mission or a specific challenge they face.
+3. **NO AI CLICHÉS:** Strictly forbid words like "tapestry," "testament," "ever-evolving," "leverage," "passionate" (use 'obsessed' or 'fascinated'), and "I am confident that my unique blend of...".
+4. **FOCUS ON WINS:** Frame technical achievements as business wins. (e.g., "That 90% speed increase wasn't just a tech win; it allowed the team to stop worrying about setup and start innovating.")
+5. **PRESERVE BASE DETAILS - DO NOT CHANGE:**
    - Project names mentioned (keep them exactly as they are)
    - Project ideas/concepts (don't change what projects are about)
    - Company names from past experience
@@ -278,23 +285,22 @@ In 2026, candidates don't get rejected for bad cover letters—they get rejected
    - Educational institutions and degrees
    - Personal information (name, contact details)
    - Specific achievements and their facts
-3. **WHAT TO TAILOR:**
+6. **WHAT TO TAILOR:**
    - How experiences are framed and described
    - Which aspects of projects/experience to emphasize
    - Connecting past work to the job requirements
    - The narrative around why this role/company is exciting
    - **MULTIDISCIPLINARY FIT:** Explain how the combination of skills makes them perfect for this role
-4. **TONE:** 80% formal + 20% informal. Professional but human. Include occasional conversational phrases like "honestly," "what really excites me is," "I genuinely believe," etc.
-5. **VISIONARY TONE:** Write as if from someone who truly believes technology can change the world. Express genuine passion for innovation and building things that matter.
-6. **COMPANY ALIGNMENT:** Show how the candidate's vision aligns with the company's mission. Explain how they can help the company meet its goals and fulfill its vision.
-7. **MULTIDISCIPLINARY NARRATIVE:** Weave in how the candidate's unique combination of expertise (technical + domain knowledge) directly relates to what the company does. This is the KEY differentiator.
-8. **PERSONAL TOUCH:** Include phrases like "I am drawn to companies that...", "What excites me about [Company] is...", "I believe technology should...", "My background in [X] combined with [Y] uniquely positions me to...".
-9. **HUMBLE CONFIDENCE:** Confident about skills but humble about learning. Eager to contribute, not just take.
-10. **AVOID GENERIC:** No clichés. Make it feel written by a real person who genuinely cares.
-11. **WORD COUNT:** Keep the main body content between 250-350 words. Be concise and impactful - every sentence should add value.
-12. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown.
-13. **FORMATTING:** Do NOT use ** (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
-
+7. **TONE:** 80% formal + 20% informal. Professional but human. Include occasional conversational phrases like "honestly," "what really excites me is," "I genuinely believe," etc.
+8. **VISIONARY TONE:** Write as if from someone who truly believes technology can change the world. Express genuine passion for innovation and building things that matter.
+9. **COMPANY ALIGNMENT:** Show how the candidate's vision aligns with the company's mission. Explain how they can help the company meet its goals and fulfill its vision.
+10. **MULTIDISCIPLINARY NARRATIVE:** Weave in how the candidate's unique combination of expertise (technical + domain knowledge) directly relates to what the company does. This is the KEY differentiator.
+11. **PERSONAL TOUCH:** Include phrases like "I am drawn to companies that...", "What excites me about [Company] is...", "I believe technology should...", "My background in [X] combined with [Y] uniquely positions me to...".
+12. **HUMBLE CONFIDENCE:** Confident about skills but humble about learning. Eager to contribute, not just take.
+13. **AVOID GENERIC:** No clichés. Make it feel written by a real person who genuinely cares.
+14. **WORD COUNT:** Keep the body between 250-350 words. Punchy and impactful.
+15. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown.
+16. **FORMATTING:** Do NOT use ** (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
 ## ORIGINAL COVER LETTER (LaTeX):
 ${coverLetterLatex}
 
