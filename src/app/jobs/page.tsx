@@ -19,7 +19,15 @@ interface Company {
   pocEmail?: string;
   pocPhone?: string;
   careerUrls: string[];
+  customCareerUrls?: string[];
   platform: string;
+}
+
+// Helper to get all career URLs (both scraped and custom)
+function getAllCareerUrls(company: Company): string[] {
+  const scraped = company.careerUrls || [];
+  const custom = company.customCareerUrls || [];
+  return [...new Set([...scraped, ...custom])];
 }
 
 interface TierData {
@@ -37,6 +45,13 @@ export default function JobsPage() {
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  // Link management modal state
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [linkModalCompany, setLinkModalCompany] = useState<Company | null>(null);
+  const [editingLinks, setEditingLinks] = useState<string[]>([]);
+  const [newLink, setNewLink] = useState("");
+  const [savingLinks, setSavingLinks] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -44,13 +59,15 @@ export default function JobsPage() {
       fetch("/api/middle-tier").then((res) => res.json()),
       fetch("/api/lower-tier").then((res) => res.json()),
       fetch("/api/lowest-tier").then((res) => res.json()),
+      fetch("/api/company-links?all=true").then((res) => res.json()).catch(() => ({ customLinks: {} })),
     ])
       .then(
-        ([topTier, middleTier, lowerTier, lowestTier]: [
+        ([topTier, middleTier, lowerTier, lowestTier, customLinksData]: [
           TierData,
           TierData,
           TierData,
           TierData,
+          { customLinks: Record<string, string[]> },
         ]) => {
           // Combine all companies, with higher tiers first (priority order)
           const allCompanies = [
@@ -70,7 +87,22 @@ export default function JobsPage() {
             return true;
           });
 
-          setCompanies(uniqueCompanies);
+          // Merge custom links from Redis (production) into companies
+          const customLinks = customLinksData.customLinks || {};
+          const companiesWithCustomLinks = uniqueCompanies.map((company) => {
+            if (customLinks[company.id]) {
+              return {
+                ...company,
+                customCareerUrls: [
+                  ...(company.customCareerUrls || []),
+                  ...customLinks[company.id],
+                ].filter((url, index, arr) => arr.indexOf(url) === index), // dedupe
+              };
+            }
+            return company;
+          });
+
+          setCompanies(companiesWithCustomLinks);
           setLoading(false);
         },
       )
@@ -106,8 +138,9 @@ export default function JobsPage() {
   }, [companies, search, selectedTier]);
 
   const openAllCareerPages = (company: Company) => {
-    if (company.careerUrls && company.careerUrls.length > 0) {
-      company.careerUrls.forEach((url) => {
+    const allUrls = getAllCareerUrls(company);
+    if (allUrls.length > 0) {
+      allUrls.forEach((url) => {
         window.open(url, "_blank");
       });
     }
@@ -120,12 +153,73 @@ export default function JobsPage() {
       : filteredCompanies;
 
     companiesToOpen.forEach((company) => {
-      if (company.careerUrls && company.careerUrls.length > 0) {
-        company.careerUrls.forEach((url) => {
+      const allUrls = getAllCareerUrls(company);
+      if (allUrls.length > 0) {
+        allUrls.forEach((url) => {
           window.open(url, "_blank");
         });
       }
     });
+  };
+
+  // Link management functions
+  const openLinkModal = (company: Company) => {
+    setLinkModalCompany(company);
+    setEditingLinks(company.customCareerUrls || []);
+    setNewLink("");
+    setLinkModalOpen(true);
+  };
+
+  const closeLinkModal = () => {
+    setLinkModalOpen(false);
+    setLinkModalCompany(null);
+    setEditingLinks([]);
+    setNewLink("");
+  };
+
+  const addNewLink = () => {
+    if (newLink.trim() && !editingLinks.includes(newLink.trim())) {
+      setEditingLinks([...editingLinks, newLink.trim()]);
+      setNewLink("");
+    }
+  };
+
+  const removeLink = (index: number) => {
+    setEditingLinks(editingLinks.filter((_, i) => i !== index));
+  };
+
+  const saveLinks = async () => {
+    if (!linkModalCompany) return;
+    
+    setSavingLinks(true);
+    try {
+      const response = await fetch("/api/company-links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyId: linkModalCompany.id,
+          urls: editingLinks,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save links");
+      }
+
+      // Update local state
+      setCompanies(companies.map((c) => 
+        c.id === linkModalCompany.id 
+          ? { ...c, customCareerUrls: editingLinks }
+          : c
+      ));
+      
+      closeLinkModal();
+    } catch (error) {
+      console.error("Failed to save links:", error);
+      alert("Failed to save links. Please try again.");
+    } finally {
+      setSavingLinks(false);
+    }
   };
 
   const handleCompanySelect = (company: Company, index: number, event: React.MouseEvent) => {
@@ -173,7 +267,7 @@ export default function JobsPage() {
     const companiesToCount = selectedCompanies.size > 0
       ? filteredCompanies.filter((c) => selectedCompanies.has(c.id))
       : filteredCompanies;
-    return companiesToCount.reduce((acc, c) => acc + (c.careerUrls?.length || 0), 0);
+    return companiesToCount.reduce((acc, c) => acc + getAllCareerUrls(c).length, 0);
   };
 
   if (loading) {
@@ -583,13 +677,21 @@ export default function JobsPage() {
               </div>
               {/* Company Info */}
               <div className="flex-1 min-w-0 mb-4 pr-6">
-                <div className="flex items-start gap-3 mb-2">
+                <div className="flex items-start gap-2 mb-2 flex-wrap">
                   <h2 className="font-bold text-lg leading-tight">
                     {company.name}
                   </h2>
                   <span className="shrink-0 text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium">
                     {company.lcaCount.toLocaleString()} LCAs
                   </span>
+                  {company.customCareerUrls && company.customCareerUrls.length > 0 && (
+                    <span className="shrink-0 text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 font-medium flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                      {company.customCareerUrls.length} custom
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-muted mb-2">
                   {company.city}, {company.state}
@@ -630,14 +732,12 @@ export default function JobsPage() {
               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => openAllCareerPages(company)}
-                  disabled={
-                    !company.careerUrls || company.careerUrls.length === 0
-                  }
+                  disabled={getAllCareerUrls(company).length === 0}
                   className="btn-primary text-sm flex items-center gap-2 flex-1 justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                   title={
-                    company.careerUrls?.length > 0
-                      ? `Open ${company.careerUrls.length} career page(s)`
-                      : "No career URLs configured"
+                    getAllCareerUrls(company).length > 0
+                      ? `Open ${getAllCareerUrls(company).length} career page(s)`
+                      : "No career URLs - click + to add"
                   }
                 >
                   <svg
@@ -653,7 +753,26 @@ export default function JobsPage() {
                       d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                     />
                   </svg>
-                  Jobs ({company.careerUrls?.length || 0})
+                  Jobs ({getAllCareerUrls(company).length})
+                </button>
+                <button
+                  onClick={() => openLinkModal(company)}
+                  className="btn-secondary text-sm flex items-center gap-1 px-2"
+                  title="Add or manage career page links"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
                 </button>
                 <a
                   href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(company.name + " recruiter")}`}
@@ -736,6 +855,158 @@ export default function JobsPage() {
         )}
         </div>
       </div>
+
+      {/* Link Management Modal */}
+      {linkModalOpen && linkModalCompany && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">
+                    Manage Career Links
+                  </h3>
+                  <p className="text-sm text-muted mt-1">{linkModalCompany.name}</p>
+                </div>
+                <button
+                  onClick={closeLinkModal}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 overflow-y-auto max-h-[50vh]">
+              {/* Existing scraped URLs (read-only) */}
+              {linkModalCompany.careerUrls && linkModalCompany.careerUrls.length > 0 && (
+                <div className="mb-5">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Scraped URLs (auto-detected)
+                  </label>
+                  <div className="space-y-2">
+                    {linkModalCompany.careerUrls.map((url, index) => (
+                      <div
+                        key={`scraped-${index}`}
+                        className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200"
+                      >
+                        <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline truncate flex-1"
+                        >
+                          {url}
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Custom URLs (editable) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Custom URLs
+                </label>
+                {editingLinks.length > 0 ? (
+                  <div className="space-y-2 mb-3">
+                    {editingLinks.map((url, index) => (
+                      <div
+                        key={`custom-${index}`}
+                        className="flex items-center gap-2 p-2.5 bg-purple-50 rounded-lg border border-purple-200"
+                      >
+                        <svg className="w-4 h-4 text-purple-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline truncate flex-1"
+                        >
+                          {url}
+                        </a>
+                        <button
+                          onClick={() => removeLink(index)}
+                          className="p-1 hover:bg-red-100 rounded text-red-500 transition-colors"
+                          title="Remove link"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted mb-3">No custom URLs added yet.</p>
+                )}
+
+                {/* Add new URL */}
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={newLink}
+                    onChange={(e) => setNewLink(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addNewLink();
+                      }
+                    }}
+                    placeholder="https://careers.example.com/jobs"
+                    className="flex-1 px-3 py-2 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                  />
+                  <button
+                    onClick={addNewLink}
+                    disabled={!newLink.trim()}
+                    className="btn-secondary px-4 disabled:opacity-50"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-5 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+              <button
+                onClick={closeLinkModal}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveLinks}
+                disabled={savingLinks}
+                className="btn-primary flex items-center gap-2"
+              >
+                {savingLinks ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Save Links
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
