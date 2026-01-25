@@ -16,9 +16,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get today's date in DD/MM/YYYY format
+    // Get today's date in DD/MM/YYYY format (using Arizona timezone)
     const today = new Date();
-    const dateApplied = `${today.getDate().toString().padStart(2, "0")}/${(today.getMonth() + 1).toString().padStart(2, "0")}/${today.getFullYear()}`;
+    const azFormatter = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "America/Phoenix",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+    const dateApplied = azFormatter.format(today);
 
     // Initialize Google Sheets API with Service Account
     let auth;
