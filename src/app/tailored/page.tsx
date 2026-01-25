@@ -29,6 +29,7 @@ export default function TailoredPage() {
   const [isRegeneratingResume, setIsRegeneratingResume] = useState(false);
   const [isRegeneratingCoverLetter, setIsRegeneratingCoverLetter] =
     useState(false);
+  const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
 
   // Sheet logging state
   const [showLogModal, setShowLogModal] = useState(false);
@@ -158,6 +159,35 @@ export default function TailoredPage() {
       console.error("Error regenerating cover letter:", err);
     } finally {
       setIsRegeneratingCoverLetter(false);
+    }
+  };
+
+  // Generate cover letter on-demand
+  const handleGenerateCoverLetter = async () => {
+    if (!coverLetterLatex || !jobDescription) {
+      console.error("Missing cover letter template or job description");
+      return;
+    }
+    
+    setIsGeneratingCoverLetter(true);
+    try {
+      const response = await fetch("/api/tailor-cover-letter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          coverLetterLatex,
+          jobDescription,
+          personalDetails,
+          companyInfo,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
+      setTailoredCoverLetter(data.tailoredCoverLetter);
+    } catch (err) {
+      console.error("Error generating cover letter:", err);
+    } finally {
+      setIsGeneratingCoverLetter(false);
     }
   };
 
@@ -305,12 +335,73 @@ export default function TailoredPage() {
           </div>
 
           <div className="fade-in" style={{ animationDelay: "0.1s" }}>
-            <CodeBlock
-              title="Tailored Cover Letter"
-              code={tailoredCoverLetter}
-              onRegenerate={handleRegenerateCoverLetter}
-              isRegenerating={isRegeneratingCoverLetter}
-            />
+            {tailoredCoverLetter ? (
+              <CodeBlock
+                title="Tailored Cover Letter"
+                code={tailoredCoverLetter}
+                onRegenerate={handleRegenerateCoverLetter}
+                isRegenerating={isRegeneratingCoverLetter}
+              />
+            ) : (
+              <div className="glass-card p-5 h-full flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Tailored Cover Letter
+                  </h3>
+                </div>
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                  <svg
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="text-muted mb-4"
+                  >
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
+                  </svg>
+                  <p className="text-muted text-sm mb-4">
+                    Cover letter not generated yet.
+                  </p>
+                  <button
+                    onClick={handleGenerateCoverLetter}
+                    disabled={isGeneratingCoverLetter || !coverLetterLatex}
+                    className="btn-primary text-sm py-2.5 px-5"
+                  >
+                    {isGeneratingCoverLetter ? (
+                      <>
+                        <span className="spinner" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                        </svg>
+                        Generate Cover Letter
+                      </>
+                    )}
+                  </button>
+                  {!coverLetterLatex && (
+                    <p className="text-xs text-red-400 mt-2">
+                      Please add a cover letter template on the home page first.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

@@ -1,41 +1,40 @@
 import { NextResponse } from "next/server";
-import { tailorResume } from "@/lib/gemini";
+import { tailorCoverLetter } from "@/lib/gemini";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
-      resumeLatex,
+      coverLetterLatex,
       jobDescription,
       personalDetails,
       companyInfo,
     } = body;
 
-    if (!resumeLatex || !jobDescription) {
+    if (!coverLetterLatex || !jobDescription) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
       );
     }
 
-    // Generate only the tailored resume
-    // Cover letter is generated on-demand via /api/tailor-cover-letter
-    const tailoredResume = await tailorResume(
-      resumeLatex,
+    // Generate the tailored cover letter on-demand
+    const tailoredCoverLetter = await tailorCoverLetter(
+      coverLetterLatex,
       jobDescription,
       personalDetails,
       companyInfo || ""
     );
 
     return NextResponse.json({
-      tailoredResume,
+      tailoredCoverLetter,
     });
   } catch (error) {
-    console.error("Error tailoring resume:", error);
+    console.error("Error tailoring cover letter:", error);
     return NextResponse.json(
       {
         error:
-          "Failed to tailor resume. Please check your API key and try again.",
+          "Failed to tailor cover letter. Please check your API key and try again.",
       },
       { status: 500 },
     );
