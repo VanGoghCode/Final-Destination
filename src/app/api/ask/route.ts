@@ -12,6 +12,8 @@ export async function POST(request: Request) {
       companyInfo,
       companyName,
       positionTitle,
+      limitType,
+      limitValue,
     } = body;
 
     if (!question || !tailoredResume) {
@@ -29,6 +31,8 @@ export async function POST(request: Request) {
       companyInfo || "",
       companyName || "",
       positionTitle || "",
+      limitType,
+      limitValue,
     );
 
     return NextResponse.json({ answer });

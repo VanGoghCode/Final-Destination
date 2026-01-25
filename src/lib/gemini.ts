@@ -138,8 +138,13 @@ Based on the job description and company context, identify:
 - **Company-specific language:** Words and concepts from their website, blog, JD
 - **Technical keywords:** Specific technologies, methodologies, frameworks to mention
 
+## FORMATTING RULES (CRITICAL):
+- Do NOT use ** (double asterisks) to bold text. Use plain text only.
+- Do NOT use em dashes (—). Use regular hyphens (-) or rewrite the sentence.
+- Keep formatting simple and clean.
+
 ## OUTPUT FORMAT:
-Provide the research in a clear, structured format using markdown. Be specific and actionable - every piece of information should help the candidate tailor their application to show multidisciplinary fit.`;
+Provide the research in a clear, structured format. Be specific and actionable - every piece of information should help the candidate tailor their application to show multidisciplinary fit.`;
 
   return await generateContent(prompt);
 }
@@ -213,6 +218,7 @@ Match the semantic tone to the company's stage and culture:
 8. **SEMANTIC KEYWORDS:** Naturally weave keywords and their technical adjacencies from the job description INTO existing bullet points.
 9. **IMPACT:** Quantify achievements (e.g., "Scaled system to handle 10x traffic") where possible, using velocity-signaling verbs.
 10. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown \`\`\`latex blocks. Do NOT include explanations.
+11. **FORMATTING:** Do NOT use ** (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
 
 ## ORIGINAL RESUME (LaTeX):
 ${resumeLatex}
@@ -285,8 +291,9 @@ In 2026, candidates don't get rejected for bad cover letters—they get rejected
 8. **PERSONAL TOUCH:** Include phrases like "I am drawn to companies that...", "What excites me about [Company] is...", "I believe technology should...", "My background in [X] combined with [Y] uniquely positions me to...".
 9. **HUMBLE CONFIDENCE:** Confident about skills but humble about learning. Eager to contribute, not just take.
 10. **AVOID GENERIC:** No clichés. Make it feel written by a real person who genuinely cares.
-11. **WORD COUNT:** Keep the main body content between **250-350 words**. Be concise and impactful - every sentence should add value.
+11. **WORD COUNT:** Keep the main body content between 250-350 words. Be concise and impactful - every sentence should add value.
 12. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown.
+13. **FORMATTING:** Do NOT use ** (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
 
 ## ORIGINAL COVER LETTER (LaTeX):
 ${coverLetterLatex}
@@ -345,14 +352,15 @@ export async function generateAnswers(
 4. **COMPANY FIT:** Explain how the candidate's vision aligns with the company. Show eagerness to help them succeed.
 5. **SPECIFIC:** Reference real experiences from the resume but paraphrase naturally.
 6. **HUMBLE CONFIDENCE:** Confident about abilities but eager to learn and contribute.
+7. **FORMATTING:** Do NOT use ** (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
 
 ## QUESTIONS TO ANSWER:
 ${questions}
 
 ## OUTPUT FORMAT:
 For each question, provide:
-**Question:** [Question Text]
-**Answer:** [A thoughtful, human-sounding answer that reflects the visionary personality]
+Question: [Question Text]
+Answer: [A thoughtful, human-sounding answer that reflects the visionary personality]
 ...`;
 
   return await generateContent(prompt);
@@ -390,6 +398,7 @@ export async function generateColdEmail(
 4. **VALUE:** Focus on what value YOU can bring to THEM, not what you want.
 5. **CTA:** End with a clear, simple call to action (e.g., "Would love 15 minutes to share how I could help with X").
 6. **NO ATTACHMENTS MENTION:** Don't say "I've attached my resume" - just focus on the pitch.
+7. **FORMATTING:** Do NOT use ** (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
 
 ## OUTPUT:
 Write the cold email body only (no subject line needed). Make it compelling, human, and confident but not arrogant.`;
@@ -429,6 +438,7 @@ export async function generateReferenceEmail(
 5. **WHY YOU:** Briefly (1-2 sentences) mention why you'd be a good fit - connect to company values.
 6. **GRATITUDE:** Express genuine appreciation for their time regardless of outcome.
 7. **NO PRESSURE:** Make it clear it's okay to say no.
+8. **FORMATTING:** Do NOT use ** (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
 
 ## OUTPUT:
 Write the referral request email body only (no subject line needed). Make it human, humble, and genuine.`;
@@ -473,6 +483,7 @@ ${companyInfo}
 2. **PRESERVE LATEX:** Keep the EXACT same LaTeX structure and formatting.
 3. **MAINTAIN QUALITY:** Ensure the resume remains ATS-friendly and professional.
 4. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown.
+5. **FORMATTING:** Do NOT use ** (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
 
 ## OUTPUT:
 The regenerated LaTeX resume with the user's requested changes applied.`;
@@ -516,6 +527,7 @@ ${companyInfo}
 2. **PRESERVE LATEX:** Keep the EXACT same LaTeX structure and formatting.
 3. **MAINTAIN TONE:** Keep it 80% formal + 20% informal, authentic, and passionate.
 4. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown.
+5. **FORMATTING:** Do NOT use ** (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
 
 ## OUTPUT:
 The regenerated LaTeX cover letter with the user's requested changes applied.`;
@@ -557,6 +569,7 @@ ${questions}
 2. **MAINTAIN AUTHENTICITY:** Keep the 80% formal + 20% informal tone.
 3. **KEEP STRUCTURE:** Follow the same Question/Answer format.
 4. **BE SPECIFIC:** Reference real experiences from the resume.
+5. **FORMATTING:** Do NOT use ** (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
 
 ## OUTPUT:
 The regenerated answers with the user's requested changes applied.`;
@@ -600,6 +613,7 @@ ${currentContent}
 2. **KEEP IT SHORT:** 100-200 words maximum.
 3. **TONE:** 70% formal + 30% informal. Professional yet personable.
 4. **BE GENUINE:** Sound like a real person, not a template.
+5. **FORMATTING:** Do NOT use ** (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
 
 ## OUTPUT:
 The regenerated email with the user's requested changes applied.`;
@@ -619,8 +633,14 @@ export async function answerGeneralQuestion(
   companyInfo: string,
   companyName: string,
   positionTitle: string,
+  limitType?: "words" | "characters",
+  limitValue?: number,
 ): Promise<string> {
-  const prompt = `You are a helpful assistant that answers questions about a job applicant's materials. Use ONLY the provided context to answer the question. If the answer cannot be found in the context, say so clearly.
+  const limitInstruction = limitType && limitValue
+    ? `\n6. IMPORTANT: Your answer MUST be within ${limitValue} ${limitType}. Be concise and stay within this limit.`
+    : "";
+
+  const prompt = `You are helping a job applicant write answers in FIRST PERSON (using "I", "my", "me"). Write as if you ARE the applicant. Use ONLY the provided context to answer the question. If the answer cannot be found in the context, say so clearly.
 
 ## QUESTION:
 ${question}
@@ -642,13 +662,15 @@ ${jobDescription || "Not provided"}
 ${companyInfo || "Not provided"}
 
 ## INSTRUCTIONS:
-1. Answer the question directly and concisely based on the context provided.
-2. If asking for a list (e.g., skills), provide a clean bulleted list.
-3. If the information is not available in the context, clearly state that.
-4. Be helpful and specific in your response.
-5. Do NOT make up information that isn't in the provided context.
+1. Answer the question in FIRST PERSON - write as if you are the applicant (use "I", "my", "me").
+2. TONE: Write like a human - use a mix of 50% formal and 30% informal tone. Sound natural, not robotic. Include occasional conversational phrases like "honestly," "I really enjoy," "what excites me is" to make it feel authentic.
+3. Answer the question directly and concisely based on the context provided.
+4. If asking for a list (e.g., skills), provide a clean list (still in first person where applicable).
+5. If the information is not available in the context, clearly state that.
+6. Do NOT make up information that isn't in the provided context.
+7. FORMATTING (CRITICAL): Do NOT use ** (double asterisks) to bold text - use plain text only. Do NOT use em dashes (—) - use regular hyphens (-) or rewrite the sentence instead. Keep it simple and clean.${limitInstruction}
 
-## ANSWER:`;
+## ANSWER (in first person, human-written tone):`;
 
   return await generateContent(prompt);
 }

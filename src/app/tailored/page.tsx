@@ -43,6 +43,8 @@ export default function TailoredPage() {
   const [generalQuestion, setGeneralQuestion] = useState("");
   const [generalAnswer, setGeneralAnswer] = useState("");
   const [isAskingQuestion, setIsAskingQuestion] = useState(false);
+  const [limitType, setLimitType] = useState<"none" | "words" | "characters">("none");
+  const [limitValue, setLimitValue] = useState<number>(100);
 
   // Generate formatted filenames
   const formatName = (str: string) =>
@@ -482,9 +484,7 @@ export default function TailoredPage() {
               strokeWidth="2"
               className="text-primary"
             >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             <h3 className="text-base font-semibold text-foreground">
               Ask About Your Application
@@ -496,9 +496,61 @@ export default function TailoredPage() {
               value={generalQuestion}
               onChange={(e) => setGeneralQuestion(e.target.value)}
               placeholder="Ask any question about your tailored documents..."
-              className="input-field flex-1 min-h-[60px] text-sm"
+              className="input-field flex-1 min-h-15 text-sm"
               rows={2}
             />
+          </div>
+
+          {/* Limit Options */}
+          <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-surface-hover rounded-lg border border-card-border">
+            <span className="text-xs font-medium text-muted">Answer Limit:</span>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  name="limitType"
+                  value="none"
+                  checked={limitType === "none"}
+                  onChange={() => setLimitType("none")}
+                  className="w-3.5 h-3.5 accent-primary"
+                />
+                <span className="text-xs text-foreground">No Limit</span>
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  name="limitType"
+                  value="words"
+                  checked={limitType === "words"}
+                  onChange={() => setLimitType("words")}
+                  className="w-3.5 h-3.5 accent-primary"
+                />
+                <span className="text-xs text-foreground">Word Limit</span>
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  name="limitType"
+                  value="characters"
+                  checked={limitType === "characters"}
+                  onChange={() => setLimitType("characters")}
+                  className="w-3.5 h-3.5 accent-primary"
+                />
+                <span className="text-xs text-foreground">Character Limit</span>
+              </label>
+            </div>
+            {limitType !== "none" && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={limitValue}
+                  onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value) || 1))}
+                  min="1"
+                  className="input-field w-20 text-xs py-1.5 text-center"
+                />
+                <span className="text-xs text-muted">{limitType}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 mb-4">
@@ -508,7 +560,7 @@ export default function TailoredPage() {
                   "Give me a list of skills from my current tailored resume, separated by commas. no extra text or formatting.",
                 )
               }
-              className="btn-secondary text-xs py-2 px-3 flex-shrink-0"
+              className="btn-secondary text-xs py-2 px-3 shrink-0"
             >
               <svg
                 width="14"
@@ -540,6 +592,8 @@ export default function TailoredPage() {
                       companyInfo,
                       companyName,
                       positionTitle,
+                      limitType: limitType !== "none" ? limitType : undefined,
+                      limitValue: limitType !== "none" ? limitValue : undefined,
                     }),
                   });
                   const data = await response.json();
