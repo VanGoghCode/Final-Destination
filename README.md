@@ -1,15 +1,25 @@
 # Final Destination
 
-AI-powered resume and cover letter tailoring using Google Vertex AI.
+AI-powered resume and cover letter tailoring + H-1B job alert system.
 
 ## Features
+
+### Resume Tailoring
 
 - AI-tailored Resume & Cover Letter (LaTeX)
 - Regenerate with feedback
 - Application Q&A generation
 - Cold email & referral request generation
 - Google Sheets application tracking
-- General Q&A about your application
+
+### Job Alert System
+
+- **732 H-1B sponsoring companies** across 4 tiers
+- **72+ companies** with automated job scraping
+- Quarterly LCA tracking (Q1-Q4) from FY2025 DOL data
+- POC contact info for direct outreach
+- Multi-platform scraping: Greenhouse, Lever, Ashby, Workday
+- Responsive job dashboard with tier filters
 
 ---
 
@@ -28,46 +38,24 @@ cd Final-Destination
 npm install
 ```
 
-### 2. Google Cloud Setup
-
-1. Create a project at [console.cloud.google.com](https://console.cloud.google.com)
-2. Enable **Vertex AI API**
-3. Create a Service Account with **Vertex AI User** role
-4. Download the JSON key file and place it in the project root
-
-### 3. Environment Variables
+### 2. Environment Variables
 
 Create `.env.local` in the project root:
 
 ```bash
-# For local development (file path)
-GOOGLE_APPLICATION_CREDENTIALS=./your-service-account-key.json
+# Google GenAI
+GOOGLE_GENAI_API_KEY=your-api-key
 
-# For Vercel/serverless (raw JSON content)
-# GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
-
-GOOGLE_CLOUD_PROJECT=your-project-id
-GOOGLE_CLOUD_LOCATION=us-central1
+# Google Sheets (optional)
 GOOGLE_SPREADSHEET_ID=your-spreadsheet-id
+GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
+
+# Job Filtering (optional)
+TARGET_ROLES=software engineer,cloud architect,devops
+EXCLUDED_KEYWORDS=director,vp,sales
 ```
 
-| Variable                         | Description                                                 |
-| -------------------------------- | ----------------------------------------------------------- |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account JSON file (local development)       |
-| `GOOGLE_SERVICE_ACCOUNT_KEY`     | Raw JSON content of service account key (Vercel deployment) |
-| `GOOGLE_CLOUD_PROJECT`           | Your Google Cloud Project ID                                |
-| `GOOGLE_CLOUD_LOCATION`          | Vertex AI region (default: `us-central1`)                   |
-| `GOOGLE_SPREADSHEET_ID`          | Google Sheets ID for application tracking (optional)        |
-
-### Vercel Deployment
-
-For Vercel, use `GOOGLE_SERVICE_ACCOUNT_KEY` instead of `GOOGLE_APPLICATION_CREDENTIALS`:
-
-1. Copy the **entire contents** of your service account JSON file
-2. In Vercel dashboard, add environment variable `GOOGLE_SERVICE_ACCOUNT_KEY`
-3. Paste the JSON as the value (single line or multi-line works)
-
-### 4. Run
+### 3. Run
 
 ```bash
 npm run dev
@@ -77,15 +65,73 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## Google Sheets Integration (Optional)
+## Pages
 
-1. Create a Google Sheet with columns: `Name, Position, Date Applied, Application Link, Status, Interview Date, Email Link, Notes`
-2. Share the sheet with your service account email (from JSON file)
-3. Update `src/app/api/sheets/route.ts` line 4 with your Spreadsheet ID
+| Route           | Description                          |
+| --------------- | ------------------------------------ |
+| `/`             | Resume tailoring homepage            |
+| `/tailored`     | Tailored resume/cover letter output  |
+| `/jobs`         | H-1B company browser (732 companies) |
+| `/job-listings` | Scraped job listings                 |
+
+---
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── page.tsx          # Resume tailoring homepage
+│   ├── tailored/         # Tailored output page
+│   ├── jobs/             # H-1B company browser
+│   ├── job-listings/     # Scraped job listings
+│   └── api/
+│       ├── jobs/         # Jobs scraping API
+│       ├── top-tier/     # Top-tier companies API
+│       ├── middle-tier/  # Middle-tier companies API
+│       ├── lower-tier/   # Lower-tier companies API
+│       └── lowest-tier/  # Lowest-tier companies API
+├── components/           # React components
+├── lib/
+│   ├── scrapers/         # ATS platform scrapers
+│   └── gemini.ts         # AI integration
+└── scripts/
+    └── parse-dol.ts      # DOL LCA parser
+
+data/
+├── top-tier.json         # 33 top H-1B sponsors
+├── middle-tier.json      # 36 middle-tier sponsors
+├── lower-tier.json       # 298 lower-tier sponsors
+├── lowest-tier.json      # 365 lowest-tier sponsors
+└── jobs.json             # Scraped job listings
+
+docs/
+├── module-1-dol-parser.md  # DOL preprocessing guide
+├── module-2-dashboard.md   # Dashboard documentation
+└── module-3-scraper.md     # Scraper documentation
+```
+
+---
+
+## Branches
+
+| Branch                        | Status   | Description       |
+| ----------------------------- | -------- | ----------------- |
+| `main`                        | Stable   | Production        |
+| `feature/module-1-dol-parser` | Complete | DOL data pipeline |
+| `feature/module-2-dashboard`  | Complete | Job dashboard     |
+| `feature/module-3-scraper`    | Complete | Career scraper    |
+
+---
+
+## Data Sources
+
+- **DOL LCA Data**: https://www.dol.gov/agencies/eta/foreign-labor/performance
+- FY2025 Q1-Q4 combined (H-1B/E-3 tech roles only)
 
 ---
 
 ## Security
 
 - Never commit `.env.local` or service account JSON files
-- Both are in `.gitignore` by default
+- Large data files (CSV, Excel) are gitignored

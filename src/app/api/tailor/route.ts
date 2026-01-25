@@ -20,13 +20,14 @@ export async function POST(request: Request) {
     }
 
     // Generate both tailored documents in parallel
+    // companyInfo now contains the research data
     const [tailoredResume, tailoredCoverLetter] = await Promise.all([
-      tailorResume(resumeLatex, jobDescription, personalDetails, companyInfo),
+      tailorResume(resumeLatex, jobDescription, personalDetails, companyInfo || ""),
       tailorCoverLetter(
         coverLetterLatex,
         jobDescription,
         personalDetails,
-        companyInfo,
+        companyInfo || "",
       ),
     ]);
 

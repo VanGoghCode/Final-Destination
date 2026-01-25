@@ -43,3 +43,7 @@ next-env.d.ts
 
 # GCP credentials
 final-destination-484619-4e905e82893c.json
+
+# Large data files
+/data/*.xlsx
+/data/*.csv

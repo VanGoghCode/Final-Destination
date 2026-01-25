@@ -12,6 +12,10 @@ interface AppState {
   companyName: string;
   positionTitle: string;
 
+  // Company Research
+  companyResearch: string;
+  isResearching: boolean;
+
   // Step 2 outputs
   tailoredResume: string;
   tailoredCoverLetter: string;
@@ -33,6 +37,8 @@ interface AppContextType extends AppState {
   setCompanyInfo: (value: string) => void;
   setCompanyName: (value: string) => void;
   setPositionTitle: (value: string) => void;
+  setCompanyResearch: (value: string) => void;
+  setIsResearching: (value: boolean) => void;
   setTailoredResume: (value: string) => void;
   setTailoredCoverLetter: (value: string) => void;
   setApplicationQuestions: (value: string) => void;
@@ -50,6 +56,8 @@ const initialState: AppState = {
   companyInfo: "",
   companyName: "",
   positionTitle: "",
+  companyResearch: "",
+  isResearching: false,
   tailoredResume: "",
   tailoredCoverLetter: "",
   applicationQuestions: "",
@@ -77,6 +85,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, companyName: value }));
   const setPositionTitle = (value: string) =>
     setState((prev) => ({ ...prev, positionTitle: value }));
+  const setCompanyResearch = (value: string) =>
+    setState((prev) => ({ ...prev, companyResearch: value }));
+  const setIsResearching = (value: boolean) =>
+    setState((prev) => ({ ...prev, isResearching: value }));
   const setTailoredResume = (value: string) =>
     setState((prev) => ({ ...prev, tailoredResume: value }));
   const setTailoredCoverLetter = (value: string) =>
@@ -102,6 +114,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setCompanyInfo,
         setCompanyName,
         setPositionTitle,
+        setCompanyResearch,
+        setIsResearching,
         setTailoredResume,
         setTailoredCoverLetter,
         setApplicationQuestions,
