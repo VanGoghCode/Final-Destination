@@ -36,6 +36,7 @@ export default function JobsPage() {
   const [selectedTier, setSelectedTier] = useState<string>("all");
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -200,27 +201,161 @@ export default function JobsPage() {
   const lowestCount = companies.filter((c) => c.tier === "lowest").length;
 
   return (
-    <div className="min-h-screen">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 py-4 lg:py-6">
-        <div className="responsive-container">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div className="min-h-screen flex">
+      {/* Collapsible Sidebar */}
+      <div
+        className={`${
+          sidebarOpen ? "w-80" : "w-0"
+        } transition-all duration-300 ease-in-out overflow-hidden shrink-0 sticky top-0 h-screen`}
+      >
+        <div className="w-80 h-full bg-white border-r border-gray-200 flex flex-col">
+          {/* Sidebar Header */}
+          <div className="p-4 border-b border-gray-100">
+            <h2 className="font-bold text-lg gradient-text">Filters & Actions</h2>
+            <p className="text-xs text-muted mt-1">
+              {companies.length} companies total
+            </p>
+          </div>
+
+          {/* Sidebar Content */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {/* Search */}
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold gradient-text mb-2">
-                H-1B Sponsoring Companies
-              </h1>
-              <p className="text-muted text-sm">
-                {companies.length} companies ({topCount} top, {middleCount}{" "}
-                middle, {lowerCount} lower, {lowestCount} lowest)
-              </p>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Search Companies
+              </label>
+              <div className="relative">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search by name, city, state..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
+                />
+              </div>
             </div>
-            <div className="flex gap-3 flex-wrap">
-            {selectedCompanies.size > 0 && (
-              <>
+
+            {/* Tier Filters */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Filter by Tier
+              </label>
+              <div className="space-y-2">
                 <button
-                  onClick={clearSelection}
-                  className="btn-secondary flex items-center gap-2 text-sm"
-                  title="Clear selection"
+                  onClick={() => setSelectedTier("all")}
+                  className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex justify-between items-center ${
+                    selectedTier === "all"
+                      ? "bg-primary text-white"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    {selectedTier === "all" && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                    All Tiers
+                  </span>
+                  <span className="text-xs opacity-75">{companies.length}</span>
+                </button>
+                <button
+                  onClick={() => setSelectedTier("top")}
+                  className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex justify-between items-center ${
+                    selectedTier === "top"
+                      ? "bg-emerald-600 text-white"
+                      : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    {selectedTier === "top" && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                    Top Tier
+                  </span>
+                  <span className="text-xs opacity-75">{topCount}</span>
+                </button>
+                <button
+                  onClick={() => setSelectedTier("middle")}
+                  className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex justify-between items-center ${
+                    selectedTier === "middle"
+                      ? "bg-blue-600 text-white"
+                      : "bg-blue-50 hover:bg-blue-100 text-blue-800"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    {selectedTier === "middle" && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                    Middle Tier
+                  </span>
+                  <span className="text-xs opacity-75">{middleCount}</span>
+                </button>
+                <button
+                  onClick={() => setSelectedTier("lower")}
+                  className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex justify-between items-center ${
+                    selectedTier === "lower"
+                      ? "bg-amber-600 text-white"
+                      : "bg-amber-50 hover:bg-amber-100 text-amber-800"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    {selectedTier === "lower" && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                    Lower Tier
+                  </span>
+                  <span className="text-xs opacity-75">{lowerCount}</span>
+                </button>
+                <button
+                  onClick={() => setSelectedTier("lowest")}
+                  className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left flex justify-between items-center ${
+                    selectedTier === "lowest"
+                      ? "bg-purple-600 text-white"
+                      : "bg-purple-50 hover:bg-purple-100 text-purple-800"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    {selectedTier === "lowest" && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                    Lowest Tier
+                  </span>
+                  <span className="text-xs opacity-75">{lowestCount}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Selection Actions */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Selection
+              </label>
+              <div className="space-y-2">
+                <button
+                  onClick={selectAll}
+                  className="w-full btn-secondary flex items-center justify-center gap-2 text-sm"
                 >
                   <svg
                     className="w-4 h-4"
@@ -232,177 +367,192 @@ export default function JobsPage() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  Clear ({selectedCompanies.size})
+                  Select All Visible
                 </button>
-              </>
-            )}
-            <button
-              onClick={selectAll}
-              className="btn-secondary flex items-center gap-2 text-sm"
-              title="Select all visible companies"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+                {selectedCompanies.size > 0 && (
+                  <button
+                    onClick={clearSelection}
+                    className="w-full btn-secondary flex items-center justify-center gap-2 text-sm"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                    Clear Selection ({selectedCompanies.size})
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Bulk Actions */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Bulk Actions
+              </label>
+              <div className="space-y-2">
+                <button
+                  onClick={openAllCompanyPages}
+                  className={`w-full flex items-center justify-center gap-2 text-sm ${
+                    selectedCompanies.size > 0 ? "btn-primary" : "btn-secondary"
+                  }`}
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                  {selectedCompanies.size > 0
+                    ? `Open Selected (${getTabsCount()} tabs)`
+                    : `Open All (${getTabsCount()} tabs)`}
+                </button>
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Navigation
+              </label>
+              <a
+                href="/job-listings"
+                className="w-full btn-primary inline-flex items-center justify-center gap-2 text-sm"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              Select All
-            </button>
-            <button
-              onClick={openAllCompanyPages}
-              className={`flex items-center gap-2 text-sm ${selectedCompanies.size > 0 ? 'btn-primary' : 'btn-secondary'}`}
-              title={selectedCompanies.size > 0 ? "Open selected companies" : "Open all career pages"}
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-              {selectedCompanies.size > 0 ? `Open Selected (${getTabsCount()} tabs)` : `Open All (${getTabsCount()} tabs)`}
-            </button>
-            <a
-              href="/job-listings"
-              className="btn-primary inline-flex items-center gap-2 text-sm"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                />
-              </svg>
-              Scraped Jobs
-            </a>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
+                </svg>
+                View Scraped Jobs
+              </a>
+            </div>
           </div>
-        </div>
+
+          {/* Sidebar Footer - Stats */}
+          <div className="p-4 border-t border-gray-100 bg-gray-50">
+            <div className="text-sm text-muted">
+              <span className="font-medium text-gray-900">
+                {filteredCompanies.length}
+              </span>{" "}
+              of {companies.length} companies
+              {selectedCompanies.size > 0 && (
+                <span className="block text-primary font-medium mt-1">
+                  {selectedCompanies.size} selected
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* Sidebar Toggle Button */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className={`fixed z-20 top-1/2 -translate-y-1/2 bg-white border border-gray-200 rounded-r-lg p-2 shadow-md hover:bg-gray-50 transition-all ${
+          sidebarOpen ? "left-80" : "left-0"
+        }`}
+        title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+      >
+        <svg
+          className={`w-5 h-5 text-gray-600 transition-transform ${
+            sidebarOpen ? "rotate-180" : ""
+          }`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 5l7 7-7 7"
+          />
+        </svg>
+      </button>
+
       {/* Main Content */}
-      <div className="responsive-container py-6">
-        {/* Search and Tier Filter */}
-        <div className="glass-card p-4 mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <svg
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search companies..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-              />
-            </div>
-            <div className="flex gap-2">
+      <div className="flex-1 min-w-0">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 py-4 lg:py-6">
+          <div className="px-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <h1 className="text-2xl lg:text-3xl font-bold gradient-text mb-2">
+                  H-1B Sponsoring Companies
+                </h1>
+                <p className="text-muted text-sm">
+                  Showing {filteredCompanies.length} companies
+                  {selectedTier !== "all" && ` in ${selectedTier} tier`}
+                  {search && ` matching "${search}"`}
+                  {selectedCompanies.size > 0 && (
+                    <span className="ml-2 text-primary font-medium">
+                      • {selectedCompanies.size} selected
+                    </span>
+                  )}
+                </p>
+              </div>
+              {/* Mobile toggle for sidebar */}
               <button
-                onClick={() => setSelectedTier("all")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedTier === "all"
-                    ? "bg-primary text-white"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                }`}
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="md:hidden btn-secondary flex items-center gap-2"
               >
-                All ({companies.length})
-              </button>
-              <button
-                onClick={() => setSelectedTier("top")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedTier === "top"
-                    ? "bg-emerald-600 text-white"
-                    : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800"
-                }`}
-              >
-                Top ({topCount})
-              </button>
-              <button
-                onClick={() => setSelectedTier("middle")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedTier === "middle"
-                    ? "bg-blue-600 text-white"
-                    : "bg-blue-50 hover:bg-blue-100 text-blue-800"
-                }`}
-              >
-                Middle ({middleCount})
-              </button>
-              <button
-                onClick={() => setSelectedTier("lower")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedTier === "lower"
-                    ? "bg-amber-600 text-white"
-                    : "bg-amber-50 hover:bg-amber-100 text-amber-800"
-                }`}
-              >
-                Lower ({lowerCount})
-              </button>
-              <button
-                onClick={() => setSelectedTier("lowest")}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedTier === "lowest"
-                    ? "bg-purple-600 text-white"
-                    : "bg-purple-50 hover:bg-purple-100 text-purple-800"
-                }`}
-              >
-                Lowest ({lowestCount})
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+                {sidebarOpen ? "Hide Filters" : "Show Filters"}
               </button>
             </div>
-          </div>
-          <div className="mt-3 text-sm text-muted">
-            Showing {filteredCompanies.length} of {companies.length} companies
-            {selectedCompanies.size > 0 && (
-              <span className="ml-2 text-primary font-medium">
-                • {selectedCompanies.size} selected
-              </span>
-            )}
           </div>
         </div>
 
         {/* Company List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredCompanies.map((company, index) => (
             <div
               key={company.id}
               onClick={(e) => handleCompanySelect(company, index, e)}
-              className={`relative glass-card p-5 hover:shadow-lg transition-all flex flex-col cursor-pointer select-none ${
+              className={`relative glass-card p-5 hover:shadow-xl transition-all flex flex-col cursor-pointer select-none ${
                 selectedCompanies.has(company.id)
-                  ? "ring-2 ring-primary bg-primary/5"
-                  : ""
+                  ? "ring-2 ring-primary bg-primary/5 hover:bg-primary/20"
+                  : "hover:bg-blue-50 hover:border-blue-200"
               }`}
             >
               {/* Selection checkbox indicator */}
@@ -572,12 +722,19 @@ export default function JobsPage() {
               />
             </svg>
             <h3 className="text-lg font-medium mb-2">No companies found</h3>
-            <p className="text-muted mb-4">Try adjusting your search term</p>
-            <button onClick={() => setSearch("")} className="btn-primary">
-              Clear Search
+            <p className="text-muted mb-4">Try adjusting your search or filter</p>
+            <button
+              onClick={() => {
+                setSearch("");
+                setSelectedTier("all");
+              }}
+              className="btn-primary"
+            >
+              Clear Filters
             </button>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
