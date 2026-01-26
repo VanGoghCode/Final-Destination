@@ -19,11 +19,20 @@ AI-powered resume and cover letter tailoring + H-1B job alert system.
 - **732 H-1B sponsoring companies** across 4 tiers
 - **72+ companies** with automated job scraping
 - **Custom career page links** - Save your own discovered career URLs
-- Collapsible sidebar with search and tier filters
+- **External Job Portals** - Add links to Handshake, LinkedIn, Indeed, etc. with logos
+- Compact collapsible sidebar with search and tier filters
 - Multi-select companies with bulk actions
 - Quarterly LCA tracking (Q1-Q4) from FY2025 DOL data
 - POC contact info for direct outreach
 - Multi-platform scraping: Greenhouse, Lever, Ashby, Workday
+
+### External Job Portals
+
+- Add custom job portal links (Handshake, LinkedIn Jobs, Indeed, Glassdoor, etc.)
+- Support for portal logos/icons
+- Quick-add suggestions for popular job boards
+- Edit and delete portals anytime
+- Persisted in localStorage (works on deployed sites)
 
 ### Mobile Responsive
 
@@ -33,14 +42,34 @@ AI-powered resume and cover letter tailoring + H-1B job alert system.
 - Adaptive grid layouts (1-4 columns)
 - Collapsible filters for mobile screens
 
+### UI/UX Improvements
+
+- **Compact sidebar layout** - Tier filters in 2-column grid
+- **Quick Actions** - Combined Selection, Bulk Actions, and Navigation
+- **Flex button layout** - 1/4 icon, 3/4 text for better alignment
+- Click company name to copy to clipboard
+
 ---
 
 ## Setup
 
 ### Prerequisites
 
-- Node.js 18+
-- Google Cloud account with billing enabled
+- **Node.js 18+** - [Download](https://nodejs.org/)
+- **npm** or **yarn** - Package manager (comes with Node.js)
+- **Git** - [Download](https://git-scm.com/)
+- **Google Cloud Account** - For Gemini AI API (billing enabled)
+- **Upstash Redis** (optional) - For persisting custom career links on Vercel deployment
+- **Google Service Account** (optional) - For Google Sheets integration
+
+### Required Accounts & Services
+
+| Service | Purpose | Required? |
+|---------|---------|-----------|
+| [Google AI Studio](https://aistudio.google.com/) | Gemini API key for AI features | ✅ Required |
+| [Upstash](https://upstash.com/) | Redis database for career links (production) | ⚠️ For Vercel deployment |
+| [Google Cloud Console](https://console.cloud.google.com/) | Service account for Sheets API | ⚠️ Optional |
+| [Vercel](https://vercel.com/) | Deployment platform | ⚠️ Optional |
 
 ### 1. Install
 
@@ -55,20 +84,35 @@ npm install
 Create `.env.local` in the project root:
 
 ```bash
-# Google GenAI
-GOOGLE_GENAI_API_KEY=your-api-key
+# ============================================
+# REQUIRED - AI Features
+# ============================================
+# Get from: https://aistudio.google.com/apikey
+GOOGLE_GENAI_API_KEY=your-gemini-api-key
 
-# Google Sheets (optional)
+# ============================================
+# OPTIONAL - Google Sheets Integration
+# ============================================
+# For tracking job applications in Google Sheets
 GOOGLE_SPREADSHEET_ID=your-spreadsheet-id
-GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
+# Service account JSON (stringify it to single line)
+GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"...","private_key":"..."}
 
-# Job Filtering (optional)
-TARGET_ROLES=software engineer,cloud architect,devops
-EXCLUDED_KEYWORDS=director,vp,sales
+# ============================================
+# OPTIONAL - Job Filtering
+# ============================================
+# Comma-separated roles to include in scraped jobs
+TARGET_ROLES=software engineer,cloud architect,devops,backend,frontend,full stack
+# Keywords to exclude from job listings
+EXCLUDED_KEYWORDS=director,vp,sales,senior director,principal
 
-# Upstash Redis - for custom career links on Vercel (optional)
-KV_REST_API_URL=https://your-redis.upstash.io
-KV_REST_API_TOKEN=your-token
+# ============================================
+# OPTIONAL - Upstash Redis (for Vercel deployment)
+# ============================================
+# Required only if deploying to Vercel and want to persist custom career links
+# Get from: https://console.upstash.com/
+KV_REST_API_URL=https://your-redis-instance.upstash.io
+KV_REST_API_TOKEN=your-upstash-token
 ```
 
 ### 3. Run
@@ -78,6 +122,15 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000)
+
+### 4. Deploy to Vercel (Optional)
+
+```bash
+npm install -g vercel
+vercel
+```
+
+Add environment variables in Vercel dashboard under Project Settings → Environment Variables.
 
 ---
 
@@ -106,6 +159,26 @@ For companies without auto-detected career pages, you can manually save career U
 **Storage:**
 - **Local development**: Saved to JSON files in `/data/`
 - **Vercel production**: Saved to Upstash Redis (requires env vars)
+
+---
+
+## External Job Portals
+
+Add quick-access links to external job boards like Handshake, LinkedIn, etc.:
+
+1. Navigate to `/jobs` page
+2. In the sidebar, find **"External Portals"** section
+3. Click **"Add"** to open the portal management modal
+4. Either:
+   - Use **Quick Add** buttons for popular portals (Handshake, LinkedIn, Indeed, etc.)
+   - Manually add custom portals with name, URL, and optional logo
+5. Click portal buttons in sidebar to open them in new tabs
+
+**Features:**
+- Custom logo support for each portal
+- Edit existing portals (click pencil icon)
+- Delete portals (click trash icon)
+- Data persisted in browser localStorage
 
 ---
 
@@ -167,6 +240,26 @@ docs/
 
 - **DOL LCA Data**: https://www.dol.gov/agencies/eta/foreign-labor/performance
 - FY2025 Q1-Q4 combined (H-1B/E-3 tech roles only)
+
+---
+
+## Recent Updates (January 2026)
+
+### External Job Portals
+- Added ability to save external job portal links (Handshake, LinkedIn, Indeed, etc.)
+- Logo/icon support for portals
+- Quick-add suggestions for popular job boards
+- Edit and delete functionality for saved portals
+
+### Compact Sidebar UI
+- Tier filter buttons now in 2-column grid layout
+- Combined Selection, Bulk Actions, and Navigation into "Quick Actions"
+- Buttons use flex layout with 1/4 icon and 3/4 text
+- Reduced vertical space usage for better UX
+
+### Copy Company Name
+- Click on company name to copy to clipboard
+- Visual feedback on successful copy
 
 ---
 
