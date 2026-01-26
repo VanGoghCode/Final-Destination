@@ -9,17 +9,16 @@ interface NavbarProps {
 
 export default function Navbar({ currentStep }: NavbarProps) {
   return (
-    <nav className="sticky top-4 z-50 glass-card px-4 sm:px-6 py-3 sm:py-4 mb-8 mx-auto max-w-6xl mt-4">
-      <div className="w-full flex items-center justify-between">
+    <nav className="sticky top-2 sm:top-4 z-50 glass-card px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 mb-6 sm:mb-8 mx-auto max-w-6xl mt-2 sm:mt-4">
+      <div className="w-full flex items-center justify-between gap-2">
         {/* Left: Logo */}
         <Link
           href="/"
-          className="flex items-center gap-2 sm:gap-3 flex-shrink-0"
+          className="flex items-center gap-2 sm:gap-3 shrink-0"
         >
-          <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-primary flex items-center justify-center">
             <svg
-              width="20"
-              height="20"
+              className="w-4 h-4 sm:w-5 sm:h-5"
               viewBox="0 0 24 24"
               fill="none"
               stroke="white"
@@ -32,13 +31,13 @@ export default function Navbar({ currentStep }: NavbarProps) {
               <polyline points="10 9 9 9 8 9" />
             </svg>
           </div>
-          <span className="text-base sm:text-lg font-bold text-foreground hidden sm:block tracking-tight">
+          <span className="text-sm sm:text-base md:text-lg font-bold text-foreground hidden sm:block tracking-tight">
             Final Destination
           </span>
         </Link>
 
-        {/* Center: Step Indicator */}
-        <div className="absolute left-1/2 transform -translate-x-1/2">
+        {/* Center: Step Indicator - Hidden on very small screens */}
+        <div className="hidden xs:block absolute left-1/2 transform -translate-x-1/2">
           <StepIndicator currentStep={currentStep} />
         </div>
 
@@ -47,11 +46,10 @@ export default function Navbar({ currentStep }: NavbarProps) {
           href="/jobs"
           target="_blank"
           rel="noopener noreferrer"
-          className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium transition-colors flex-shrink-0"
+          className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs sm:text-sm font-medium transition-colors shrink-0"
         >
           <svg
-            width="16"
-            height="16"
+            className="w-3.5 h-3.5 sm:w-4 sm:h-4"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -60,7 +58,7 @@ export default function Navbar({ currentStep }: NavbarProps) {
             <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
             <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
           </svg>
-          Companies
+          <span className="hidden xs:inline">Companies</span>
         </a>
       </div>
     </nav>

@@ -44,7 +44,21 @@ export default function JobsPage() {
   const [selectedTier, setSelectedTier] = useState<string>("all");
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Start with sidebar closed on mobile, open on desktop
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setSidebarOpen(true);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Link management modal state
   const [linkModalOpen, setLinkModalOpen] = useState(false);
@@ -52,6 +66,36 @@ export default function JobsPage() {
   const [editingLinks, setEditingLinks] = useState<string[]>([]);
   const [newLink, setNewLink] = useState("");
   const [savingLinks, setSavingLinks] = useState(false);
+  
+  // Track which companies have POC info revealed
+  const [revealedPOC, setRevealedPOC] = useState<Set<string>>(new Set());
+  
+  // Track which company name was just copied (for visual feedback)
+  const [copiedCompanyId, setCopiedCompanyId] = useState<string | null>(null);
+  
+  const togglePOCVisibility = (companyId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRevealedPOC(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(companyId)) {
+        newSet.delete(companyId);
+      } else {
+        newSet.add(companyId);
+      }
+      return newSet;
+    });
+  };
+  
+  const copyCompanyName = async (companyId: string, companyName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(companyName);
+      setCopiedCompanyId(companyId);
+      setTimeout(() => setCopiedCompanyId(null), 1500);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -299,10 +343,19 @@ export default function JobsPage() {
       {/* Collapsible Sidebar */}
       <div
         className={`${
-          sidebarOpen ? "w-80" : "w-0"
-        } transition-all duration-300 ease-in-out overflow-hidden shrink-0 sticky top-0 h-screen`}
+          sidebarOpen ? "w-full md:w-80" : "w-0"
+        } transition-all duration-300 ease-in-out overflow-hidden shrink-0 ${
+          isMobile ? "fixed inset-0 z-40 bg-black/50" : "sticky top-0 h-screen"
+        }`}
+        onClick={(e) => {
+          if (isMobile && e.target === e.currentTarget) setSidebarOpen(false);
+        }}
       >
-        <div className="w-80 h-full bg-white border-r border-gray-200 flex flex-col">
+        <div className={`${
+          isMobile ? "w-[85%] max-w-sm" : "w-80"
+        } h-full bg-white border-r border-gray-200 flex flex-col ${
+          isMobile ? "shadow-2xl" : ""
+        }`}>
           {/* Sidebar Header */}
           <div className="p-4 border-b border-gray-100">
             <h2 className="font-bold text-lg gradient-text">Filters & Actions</h2>
@@ -566,10 +619,10 @@ export default function JobsPage() {
         </div>
       </div>
 
-      {/* Sidebar Toggle Button */}
+      {/* Sidebar Toggle Button - hidden on mobile (use header button) */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className={`fixed z-20 top-1/2 -translate-y-1/2 bg-white border border-gray-200 rounded-r-lg p-2 shadow-md hover:bg-gray-50 transition-all ${
+        className={`hidden md:block fixed z-20 top-1/2 -translate-y-1/2 bg-white border border-gray-200 rounded-r-lg p-2 shadow-md hover:bg-gray-50 transition-all ${
           sidebarOpen ? "left-80" : "left-0"
         }`}
         title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
@@ -594,56 +647,16 @@ export default function JobsPage() {
       {/* Main Content */}
       <div className="flex-1 min-w-0">
         {/* Sticky Header */}
-        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 py-4 lg:py-6">
-          <div className="px-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <h1 className="text-2xl lg:text-3xl font-bold gradient-text mb-2">
-                  H-1B Sponsoring Companies
-                </h1>
-                <p className="text-muted text-sm">
-                  Showing {filteredCompanies.length} companies
-                  {selectedTier !== "all" && ` in ${selectedTier} tier`}
-                  {search && ` matching "${search}"`}
-                  {selectedCompanies.size > 0 && (
-                    <span className="ml-2 text-primary font-medium">
-                      • {selectedCompanies.size} selected
-                    </span>
-                  )}
-                </p>
-              </div>
-              {/* Mobile toggle for sidebar */}
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="md:hidden btn-secondary flex items-center gap-2"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
-                {sidebarOpen ? "Hide Filters" : "Show Filters"}
-              </button>
-            </div>
-          </div>
-        </div>
+
 
         {/* Company List */}
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="p-3 md:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
           {filteredCompanies.map((company, index) => (
             <div
               key={company.id}
               onClick={(e) => handleCompanySelect(company, index, e)}
-              className={`relative glass-card p-5 hover:shadow-xl transition-all flex flex-col cursor-pointer select-none ${
+              className={`relative glass-card p-4 md:p-5 hover:shadow-xl transition-all flex flex-col cursor-pointer select-none ${
                 selectedCompanies.has(company.id)
                   ? "ring-2 ring-primary bg-primary/5 hover:bg-primary/20"
                   : "hover:bg-blue-50 hover:border-blue-200"
@@ -676,52 +689,83 @@ export default function JobsPage() {
                 </div>
               </div>
               {/* Company Info */}
-              <div className="flex-1 min-w-0 mb-4 pr-6">
-                <div className="flex items-start gap-2 mb-2 flex-wrap">
-                  <h2 className="font-bold text-lg leading-tight">
-                    {company.name}
+              <div className="flex-1 min-w-0 mb-3 md:mb-4 pr-6">
+                <div className="flex items-center gap-1.5 md:gap-2 mb-2">
+                  <h2 
+                    className={`font-bold text-base md:text-lg leading-tight truncate max-w-48 md:max-w-56 lg:max-w-64 cursor-pointer transition-all duration-200 hover:text-primary ${
+                      copiedCompanyId === company.id ? 'text-green-600 scale-105' : ''
+                    }`}
+                    onClick={(e) => copyCompanyName(company.id, company.name, e)}
+                    title={`${company.name} (click to copy)`}
+                  >
+                    {copiedCompanyId === company.id ? '✓ Copied!' : company.name}
                   </h2>
-                  <span className="shrink-0 text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium">
+                  <span className="shrink-0 text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium">
                     {company.lcaCount.toLocaleString()} LCAs
                   </span>
                   {company.customCareerUrls && company.customCareerUrls.length > 0 && (
-                    <span className="shrink-0 text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 font-medium flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span className="shrink-0 text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 font-medium flex items-center gap-1">
+                      <svg className="w-2.5 md:w-3 h-2.5 md:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                       </svg>
-                      {company.customCareerUrls.length} custom
+                      {company.customCareerUrls.length}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-muted mb-2">
+                <p className="text-xs md:text-sm text-muted mb-2">
                   {company.city}, {company.state}
                 </p>
 
-                {/* POC Info */}
+                {/* POC Info - Hidden by default, revealed on button click */}
                 {company.pocEmail && (
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                    <span className="font-medium text-gray-700">
-                      {company.pocFirstName} {company.pocLastName}
-                    </span>
-                    <a
-                      href={`mailto:${company.pocEmail}`}
-                      className="text-blue-600 hover:underline truncate"
-                    >
-                      {company.pocEmail}
-                    </a>
+                  <div className="hidden sm:block mb-2">
+                    {revealedPOC.has(company.id) ? (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                        <span className="font-medium text-gray-700">
+                          {company.pocFirstName} {company.pocLastName}
+                        </span>
+                        <a
+                          href={`mailto:${company.pocEmail}`}
+                          className="text-blue-600 hover:underline truncate"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {company.pocEmail}
+                        </a>
+                        <button
+                          onClick={(e) => togglePOCVisibility(company.id, e)}
+                          className="text-xs text-gray-400 hover:text-gray-600 ml-auto"
+                          title="Hide contact"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => togglePOCVisibility(company.id, e)}
+                        className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Show Contact
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
 
               {/* Quarterly Stats - Compact */}
-              <div className="flex items-center justify-between gap-2 mb-4">
+              <div className="flex items-center justify-between gap-1.5 md:gap-2 mb-3 md:mb-4">
                 {["Q1", "Q2", "Q3", "Q4"].map((q) => (
                   <div
                     key={q}
-                    className="text-center px-3 py-2 bg-gray-50 rounded-lg flex-1"
+                    className="text-center px-2 md:px-3 py-1.5 md:py-2 bg-gray-50 rounded-lg flex-1"
                   >
-                    <div className="text-xs text-muted">{q}</div>
-                    <div className="font-semibold text-sm">
+                    <div className="text-[10px] md:text-xs text-muted">{q}</div>
+                    <div className="font-semibold text-xs md:text-sm">
                       {(company[`lca${q}` as keyof Company] as number) || 0}
                     </div>
                   </div>
@@ -729,11 +773,11 @@ export default function JobsPage() {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-1.5 md:gap-2" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => openAllCareerPages(company)}
                   disabled={getAllCareerUrls(company).length === 0}
-                  className="btn-primary text-sm flex items-center gap-2 flex-1 justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn-primary text-xs md:text-sm flex items-center gap-1.5 md:gap-2 flex-1 justify-center disabled:opacity-50 disabled:cursor-not-allowed py-2 md:py-3"
                   title={
                     getAllCareerUrls(company).length > 0
                       ? `Open ${getAllCareerUrls(company).length} career page(s)`
@@ -741,7 +785,7 @@ export default function JobsPage() {
                   }
                 >
                   <svg
-                    className="w-4 h-4"
+                    className="w-3.5 md:w-4 h-3.5 md:h-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -753,15 +797,15 @@ export default function JobsPage() {
                       d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                     />
                   </svg>
-                  Jobs ({getAllCareerUrls(company).length})
+                  ({getAllCareerUrls(company).length})
                 </button>
                 <button
                   onClick={() => openLinkModal(company)}
-                  className="btn-secondary text-sm flex items-center gap-1 px-2"
+                  className="btn-secondary text-xs md:text-sm flex items-center gap-1 px-2 py-2 md:py-3"
                   title="Add or manage career page links"
                 >
                   <svg
-                    className="w-4 h-4"
+                    className="w-3.5 md:w-4 h-3.5 md:h-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -778,11 +822,11 @@ export default function JobsPage() {
                   href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(company.name + " recruiter")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-secondary text-sm flex items-center gap-2"
+                  className="btn-secondary text-xs md:text-sm gap-2 px-2 py-2 md:py-3 sm:inline-flex hidden"
                   title="Find recruiters on LinkedIn"
                 >
                   <svg
-                    className="w-4 h-4"
+                    className="w-3.5 md:w-4 h-3.5 md:h-4"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
@@ -793,11 +837,11 @@ export default function JobsPage() {
                   href={`https://www.google.com/search?q=${encodeURIComponent(company.name + " careers jobs")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-secondary text-sm flex items-center gap-2"
+                  className="btn-secondary text-xs md:text-sm gap-2 px-2 py-2 md:py-3 sm:inline-flex hidden"
                   title="Search Google for career page"
                 >
                   <svg
-                    className="w-4 h-4"
+                    className="w-3.5 md:w-4 h-3.5 md:h-4"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >

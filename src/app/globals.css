@@ -433,8 +433,30 @@ body {
 /* Responsive */
 .responsive-container {
   width: 100%;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Extra small devices */
+@media (min-width: 475px) {
+  .responsive-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+/* xs: breakpoint helper classes */
+@media (min-width: 475px) {
+  .xs\:block { display: block; }
+  .xs\:inline { display: inline; }
+  .xs\:hidden { display: none; }
+  .xs\:flex { display: flex; }
+}
+
+@media (max-width: 474px) {
+  .xs\:block { display: none; }
+  .xs\:inline { display: none; }
+  .xs\:flex { display: none; }
 }
 
 @media (max-width: 639px) {
@@ -444,18 +466,23 @@ body {
   }
 
   .glass-card {
-    padding: 1.25rem;
+    padding: 1rem;
     border-radius: 12px;
   }
 
   .btn-primary,
   .btn-secondary {
-    width: 100%;
-    justify-content: center;
+    padding: 10px 16px;
+    font-size: 13px;
   }
 
   .section-label {
     font-size: 11px;
+  }
+  
+  /* Hide step indicator on very small mobile */
+  .step-indicator-container {
+    display: none;
   }
 }
 

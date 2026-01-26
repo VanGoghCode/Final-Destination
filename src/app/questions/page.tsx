@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
@@ -240,7 +240,7 @@ export default function QuestionsPage() {
             </div>
 
             <textarea
-              className="input-field flex-1 min-h-[280px] mb-4 font-sans"
+              className="input-field flex-1 min-h-72 mb-4 font-sans"
               placeholder="Paste the application questions here..."
               value={applicationQuestions}
               onChange={(e) => setApplicationQuestions(e.target.value)}
@@ -298,7 +298,7 @@ export default function QuestionsPage() {
               </div>
             </div>
 
-            <div className="flex-1 output-panel p-4 sm:p-5 overflow-y-auto whitespace-pre-wrap min-h-[250px] sm:min-h-[300px]">
+            <div className="flex-1 output-panel p-4 sm:p-5 overflow-y-auto whitespace-pre-wrap min-h-64 sm:min-h-80">
               {generatedAnswers ? (
                 <div className="prose max-w-none text-sm font-sans">
                   {generatedAnswers}
@@ -399,7 +399,7 @@ export default function QuestionsPage() {
                   )}
                 </button>
               </div>
-              <div className="flex-1 output-panel p-3 sm:p-4 text-sm text-muted min-h-[160px] sm:min-h-[180px]">
+              <div className="flex-1 output-panel p-3 sm:p-4 text-sm text-muted min-h-40 sm:min-h-44">
                 {coldEmail ? (
                   <>
                     <div className="whitespace-pre-wrap">{coldEmail}</div>
@@ -491,7 +491,7 @@ export default function QuestionsPage() {
                   )}
                 </button>
               </div>
-              <div className="flex-1 output-panel p-3 sm:p-4 text-sm text-muted min-h-[160px] sm:min-h-[180px]">
+              <div className="flex-1 output-panel p-3 sm:p-4 text-sm text-muted min-h-40 sm:min-h-44">
                 {referenceEmail ? (
                   <>
                     <div className="whitespace-pre-wrap">{referenceEmail}</div>

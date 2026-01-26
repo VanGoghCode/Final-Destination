@@ -18,12 +18,20 @@ AI-powered resume and cover letter tailoring + H-1B job alert system.
 
 - **732 H-1B sponsoring companies** across 4 tiers
 - **72+ companies** with automated job scraping
+- **Custom career page links** - Save your own discovered career URLs
 - Collapsible sidebar with search and tier filters
 - Multi-select companies with bulk actions
 - Quarterly LCA tracking (Q1-Q4) from FY2025 DOL data
 - POC contact info for direct outreach
 - Multi-platform scraping: Greenhouse, Lever, Ashby, Workday
-- Responsive job dashboard with 4-column grid layout
+
+### Mobile Responsive
+
+- **Fully responsive design** for all screen sizes
+- Mobile-optimized sidebar with overlay navigation
+- Touch-friendly buttons and cards
+- Adaptive grid layouts (1-4 columns)
+- Collapsible filters for mobile screens
 
 ---
 
@@ -57,6 +65,10 @@ GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account",...}
 # Job Filtering (optional)
 TARGET_ROLES=software engineer,cloud architect,devops
 EXCLUDED_KEYWORDS=director,vp,sales
+
+# Upstash Redis - for custom career links on Vercel (optional)
+KV_REST_API_URL=https://your-redis.upstash.io
+KV_REST_API_TOKEN=your-token
 ```
 
 ### 3. Run
@@ -81,6 +93,22 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ---
 
+## Custom Career Links
+
+For companies without auto-detected career pages, you can manually save career URLs:
+
+1. Navigate to `/jobs` page
+2. Find the company card
+3. Click the **"+"** button next to the Jobs button
+4. Paste the career page URL and click **"Add"**
+5. Click **"Save Links"** to persist
+
+**Storage:**
+- **Local development**: Saved to JSON files in `/data/`
+- **Vercel production**: Saved to Upstash Redis (requires env vars)
+
+---
+
 ## Project Structure
 
 ```
@@ -93,6 +121,7 @@ src/
 │   ├── job-listings/     # Scraped job listings
 │   └── api/
 │       ├── jobs/         # Jobs scraping API
+│       ├── company-links/# Custom career links API
 │       ├── tailor/       # Resume tailoring API
 │       ├── tailor-cover-letter/  # Cover letter API
 │       ├── research/     # Company research API
