@@ -19,15 +19,12 @@ interface Company {
   pocEmail?: string;
   pocPhone?: string;
   careerUrls: string[];
-  customCareerUrls?: string[];
   platform: string;
 }
 
-// Helper to get all career URLs (both scraped and custom)
+// Helper to get all career URLs
 function getAllCareerUrls(company: Company): string[] {
-  const scraped = company.careerUrls || [];
-  const custom = company.customCareerUrls || [];
-  return [...new Set([...scraped, ...custom])];
+  return company.careerUrls || [];
 }
 
 interface TierData {
@@ -103,15 +100,13 @@ export default function JobsPage() {
       fetch("/api/middle-tier").then((res) => res.json()),
       fetch("/api/lower-tier").then((res) => res.json()),
       fetch("/api/lowest-tier").then((res) => res.json()),
-      fetch("/api/company-links?all=true").then((res) => res.json()).catch(() => ({ customLinks: {} })),
     ])
       .then(
-        ([topTier, middleTier, lowerTier, lowestTier, customLinksData]: [
+        ([topTier, middleTier, lowerTier, lowestTier]: [
           TierData,
           TierData,
           TierData,
           TierData,
-          { customLinks: Record<string, string[]> },
         ]) => {
           // Combine all companies, with higher tiers first (priority order)
           const allCompanies = [
@@ -131,22 +126,7 @@ export default function JobsPage() {
             return true;
           });
 
-          // Merge custom links from Redis (production) into companies
-          const customLinks = customLinksData.customLinks || {};
-          const companiesWithCustomLinks = uniqueCompanies.map((company) => {
-            if (customLinks[company.id]) {
-              return {
-                ...company,
-                customCareerUrls: [
-                  ...(company.customCareerUrls || []),
-                  ...customLinks[company.id],
-                ].filter((url, index, arr) => arr.indexOf(url) === index), // dedupe
-              };
-            }
-            return company;
-          });
-
-          setCompanies(companiesWithCustomLinks);
+          setCompanies(uniqueCompanies);
           setLoading(false);
         },
       )
@@ -209,7 +189,8 @@ export default function JobsPage() {
   // Link management functions
   const openLinkModal = (company: Company) => {
     setLinkModalCompany(company);
-    setEditingLinks(company.customCareerUrls || []);
+    // Now we edit careerUrls directly (all URLs are in one place)
+    setEditingLinks(company.careerUrls || []);
     setNewLink("");
     setLinkModalOpen(true);
   };
@@ -250,10 +231,10 @@ export default function JobsPage() {
         throw new Error("Failed to save links");
       }
 
-      // Update local state
+      // Update local state - now updating careerUrls directly
       setCompanies(companies.map((c) => 
         c.id === linkModalCompany.id 
-          ? { ...c, customCareerUrls: editingLinks }
+          ? { ...c, careerUrls: editingLinks }
           : c
       ));
       
@@ -703,12 +684,12 @@ export default function JobsPage() {
                   <span className="shrink-0 text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium">
                     {company.lcaCount.toLocaleString()} LCAs
                   </span>
-                  {company.customCareerUrls && company.customCareerUrls.length > 0 && (
-                    <span className="shrink-0 text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300 font-medium flex items-center gap-1">
+                  {company.careerUrls && company.careerUrls.length > 0 && (
+                    <span className="shrink-0 text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 font-medium flex items-center gap-1">
                       <svg className="w-2.5 md:w-3 h-2.5 md:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                       </svg>
-                      {company.customCareerUrls.length}
+                      {company.careerUrls.length} URLs
                     </span>
                   )}
                 </div>
@@ -926,48 +907,19 @@ export default function JobsPage() {
 
             {/* Modal Body */}
             <div className="p-5 overflow-y-auto max-h-[50vh]">
-              {/* Existing scraped URLs (read-only) */}
-              {linkModalCompany.careerUrls && linkModalCompany.careerUrls.length > 0 && (
-                <div className="mb-5">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Scraped URLs (auto-detected)
-                  </label>
-                  <div className="space-y-2">
-                    {linkModalCompany.careerUrls.map((url, index) => (
-                      <div
-                        key={`scraped-${index}`}
-                        className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200"
-                      >
-                        <svg className="w-4 h-4 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline truncate flex-1"
-                        >
-                          {url}
-                        </a>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Custom URLs (editable) */}
+              {/* All Career URLs (editable) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Your Custom URLs
+                  Career URLs ({editingLinks.length})
                 </label>
                 {editingLinks.length > 0 ? (
                   <div className="space-y-2 mb-3">
                     {editingLinks.map((url, index) => (
                       <div
-                        key={`custom-${index}`}
-                        className="flex items-center gap-2 p-2.5 bg-purple-50 rounded-lg border border-purple-200"
+                        key={`url-${index}`}
+                        className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors group"
                       >
-                        <svg className="w-4 h-4 text-purple-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                         </svg>
                         <a
@@ -975,13 +927,14 @@ export default function JobsPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-sm text-blue-600 hover:underline truncate flex-1"
+                          title={url}
                         >
                           {url}
                         </a>
                         <button
                           onClick={() => removeLink(index)}
-                          className="p-1 hover:bg-red-100 rounded text-red-500 transition-colors"
-                          title="Remove link"
+                          className="p-1.5 hover:bg-red-100 rounded-lg text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                          title="Delete this URL"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -991,11 +944,11 @@ export default function JobsPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted mb-3">No custom URLs added yet.</p>
+                  <p className="text-sm text-muted mb-3 p-3 bg-gray-50 rounded-lg text-center">No career URLs configured for this company.</p>
                 )}
 
                 {/* Add new URL */}
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-4">
                   <input
                     type="url"
                     value={newLink}

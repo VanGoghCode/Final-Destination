@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "tsx src/scripts/seed-redis.ts"
   },
   "dependencies": {
     "@google/genai": "^1.37.0",

@@ -1,19 +1,16 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { getTierData } from "@/lib/db";
 
 export async function GET() {
   try {
-    const dataPath = path.join(process.cwd(), "data", "middle-tier.json");
+    const data = await getTierData("middle");
 
-    if (!fs.existsSync(dataPath)) {
+    if (!data) {
       return NextResponse.json(
-        { error: "Middle-tier data not found" },
+        { error: "Middle-tier data not found. Please seed the database first." },
         { status: 404 },
       );
     }
-
-    const data = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
 
     return NextResponse.json(data);
   } catch (error) {

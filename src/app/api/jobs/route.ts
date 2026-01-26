@@ -1,67 +1,12 @@
 import { NextResponse } from "next/server";
-import { promises as fs } from "fs";
-import path from "path";
 import {
   scrapeAllCompanies,
-  type Job,
 } from "@/lib/scrapers";
-
-const JOBS_FILE_PATH = path.join(process.cwd(), "data", "jobs.json");
-const REDIS_JOBS_KEY = "scraped_jobs";
-
-// Check if running in production (Vercel)
-const isProduction = process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
-
-interface JobsData {
-  lastScraped: string;
-  totalJobs: number;
-  jobs: Job[];
-}
-
-// Dynamic import for Redis (only used in production)
-async function getRedis() {
-  if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-    return null;
-  }
-  const { Redis } = await import("@upstash/redis");
-  return new Redis({
-    url: process.env.KV_REST_API_URL,
-    token: process.env.KV_REST_API_TOKEN,
-  });
-}
-
-// Read jobs from storage (Redis in production, local file in development)
-async function readJobsData(): Promise<JobsData | null> {
-  if (isProduction) {
-    const redis = await getRedis();
-    if (redis) {
-      const data = await redis.get<JobsData>(REDIS_JOBS_KEY);
-      return data;
-    }
-  }
-  
-  // Local development: read from JSON file
-  try {
-    const fileContent = await fs.readFile(JOBS_FILE_PATH, "utf-8");
-    return JSON.parse(fileContent);
-  } catch {
-    return null;
-  }
-}
-
-// Write jobs to storage (Redis in production, local file in development)
-async function writeJobsData(data: JobsData): Promise<void> {
-  if (isProduction) {
-    const redis = await getRedis();
-    if (redis) {
-      await redis.set(REDIS_JOBS_KEY, data);
-      return;
-    }
-  }
-  
-  // Local development: write to JSON file
-  await fs.writeFile(JOBS_FILE_PATH, JSON.stringify(data, null, 2));
-}
+import { 
+  getJobs, 
+  setJobs,
+  type JobsData,
+} from "@/lib/db";
 
 /**
  * GET /api/jobs - Get all scraped jobs
@@ -73,15 +18,14 @@ export async function GET(request: Request) {
     const location = searchParams.get("location");
     const limit = parseInt(searchParams.get("limit") || "100");
 
-    // Read from storage (Redis in production, local file in development)
-    const jobsData = await readJobsData();
+    const jobsData = await getJobs();
     
     if (!jobsData) {
       return NextResponse.json({
         lastScraped: null,
         totalJobs: 0,
         jobs: [],
-        message: "No jobs scraped yet. Click 'Refresh Jobs' to trigger scraping.",
+        message: "No jobs in database. Click 'Refresh Jobs' to trigger scraping.",
       });
     }
 
@@ -149,10 +93,10 @@ export async function POST() {
       jobs: recentJobs,
     };
 
-    // Save to storage (Redis in production, local file in development)
-    await writeJobsData(jobsData);
+    // Save to Redis
+    await setJobs(jobsData);
 
-    console.log(`Saved ${recentJobs.length} jobs (${isProduction ? 'Redis' : 'local file'})`);
+    console.log(`Saved ${recentJobs.length} jobs to Redis`);
 
     return NextResponse.json({
       success: true,
