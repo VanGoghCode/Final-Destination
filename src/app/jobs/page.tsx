@@ -76,6 +76,7 @@ export default function JobsPage() {
   const [newPortalName, setNewPortalName] = useState("");
   const [newPortalUrl, setNewPortalUrl] = useState("");
   const [newPortalLogo, setNewPortalLogo] = useState("");
+  const [editingPortalIndex, setEditingPortalIndex] = useState<number | null>(null);
   
   // Load external portals from localStorage on mount
   useEffect(() => {
@@ -104,7 +105,17 @@ export default function JobsPage() {
       if (newPortalLogo.trim()) {
         newPortal.logo = newPortalLogo.trim();
       }
-      const newPortals = [...externalPortals, newPortal];
+      
+      let newPortals;
+      if (editingPortalIndex !== null) {
+        // Edit mode - update existing portal
+        newPortals = externalPortals.map((p, i) => i === editingPortalIndex ? newPortal : p);
+        setEditingPortalIndex(null);
+      } else {
+        // Add mode - add new portal
+        newPortals = [...externalPortals, newPortal];
+      }
+      
       saveExternalPortals(newPortals);
       setNewPortalName("");
       setNewPortalUrl("");
@@ -112,9 +123,27 @@ export default function JobsPage() {
     }
   };
   
+  const startEditPortal = (index: number) => {
+    const portal = externalPortals[index];
+    setNewPortalName(portal.name);
+    setNewPortalUrl(portal.url);
+    setNewPortalLogo(portal.logo || "");
+    setEditingPortalIndex(index);
+  };
+  
+  const cancelEditPortal = () => {
+    setEditingPortalIndex(null);
+    setNewPortalName("");
+    setNewPortalUrl("");
+    setNewPortalLogo("");
+  };
+  
   const removeExternalPortal = (index: number) => {
     const newPortals = externalPortals.filter((_, i) => i !== index);
     saveExternalPortals(newPortals);
+    if (editingPortalIndex === index) {
+      cancelEditPortal();
+    }
   };
   
   const togglePOCVisibility = (companyId: string, e: React.MouseEvent) => {
@@ -431,7 +460,7 @@ export default function JobsPage() {
               <div className="grid grid-cols-2 gap-1.5">
                 <button
                   onClick={() => setSelectedTier("all")}
-                  className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors flex justify-between items-center ${
+                  className={`col-span-2 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors flex justify-between items-center ${
                     selectedTier === "all"
                       ? "bg-primary text-white"
                       : "bg-gray-100 hover:bg-gray-200 text-gray-700"
@@ -475,7 +504,7 @@ export default function JobsPage() {
                 </button>
                 <button
                   onClick={() => setSelectedTier("lowest")}
-                  className={`col-span-2 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors flex justify-between items-center ${
+                  className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors flex justify-between items-center ${
                     selectedTier === "lowest"
                       ? "bg-purple-600 text-white"
                       : "bg-purple-50 hover:bg-purple-100 text-purple-800"
@@ -495,50 +524,60 @@ export default function JobsPage() {
               <div className="grid grid-cols-2 gap-1.5">
                 <button
                   onClick={selectAll}
-                  className="btn-secondary flex items-center justify-center gap-1 text-xs py-1.5"
+                  className="btn-secondary flex items-center text-xs py-1.5 px-2"
                   title="Select All Visible"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Select All
+                  <span className="w-1/4 flex justify-center">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </span>
+                  <span className="w-3/4 text-left truncate">Select All</span>
                 </button>
                 {selectedCompanies.size > 0 ? (
                   <button
                     onClick={clearSelection}
-                    className="btn-secondary flex items-center justify-center gap-1 text-xs py-1.5"
+                    className="btn-secondary flex items-center text-xs py-1.5 px-2"
                     title="Clear Selection"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    Clear ({selectedCompanies.size})
+                    <span className="w-1/4 flex justify-center">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </span>
+                    <span className="w-3/4 text-left truncate">Clear ({selectedCompanies.size})</span>
                   </button>
                 ) : (
                   <a
                     href="/job-listings"
-                    className="btn-secondary inline-flex items-center justify-center gap-1 text-xs py-1.5"
+                    className="btn-secondary flex items-center text-xs py-1.5 px-2"
                     title="View Scraped Jobs"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    Scraped Jobs
+                    <span className="w-1/4 flex justify-center">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </span>
+                    <span className="w-3/4 text-left truncate">Scraped Jobs</span>
                   </a>
                 )}
                 <button
                   onClick={openAllCompanyPages}
-                  className={`col-span-2 flex items-center justify-center gap-1 text-xs py-1.5 ${
+                  className={`col-span-2 flex items-center text-xs py-1.5 px-2 ${
                     selectedCompanies.size > 0 ? "btn-primary" : "btn-secondary"
                   }`}
                   title={selectedCompanies.size > 0 ? "Open Selected Companies" : "Open All Companies"}
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                  {selectedCompanies.size > 0
-                    ? `Open Selected (${getTabsCount()} tabs)`
-                    : `Open All (${getTabsCount()} tabs)`}
+                  <span className="w-1/8 flex justify-center mr-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </span>
+                  <span className="flex-1 text-left truncate">
+                    {selectedCompanies.size > 0
+                      ? `Open Selected (${getTabsCount()} tabs)`
+                      : `Open All (${getTabsCount()} tabs)`}
+                  </span>
                 </button>
               </div>
             </div>
@@ -567,17 +606,19 @@ export default function JobsPage() {
                       href={portal.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn-secondary flex items-center justify-center gap-1 text-xs py-1.5 truncate"
+                      className="btn-secondary flex items-center text-xs py-1.5 px-2"
                       title={portal.url}
                     >
-                      {portal.logo ? (
-                        <img src={portal.logo} alt="" className="w-3.5 h-3.5 shrink-0 rounded-sm object-contain" />
-                      ) : (
-                        <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      )}
-                      <span className="truncate">{portal.name}</span>
+                      <span className="w-1/4 flex justify-center">
+                        {portal.logo ? (
+                          <img src={portal.logo} alt="" className="w-4 h-4 rounded-sm object-contain" />
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        )}
+                      </span>
+                      <span className="w-3/4 text-left truncate">{portal.name}</span>
                     </a>
                   ))}
                 </div>
@@ -1069,6 +1110,15 @@ export default function JobsPage() {
                           </a>
                         </div>
                         <button
+                          onClick={() => startEditPortal(index)}
+                          className="p-1.5 hover:bg-blue-100 rounded-lg text-gray-400 hover:text-blue-500 transition-colors opacity-0 group-hover:opacity-100"
+                          title="Edit this portal"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
                           onClick={() => removeExternalPortal(index)}
                           className="p-1.5 hover:bg-red-100 rounded-lg text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                           title="Delete this portal"
@@ -1083,10 +1133,10 @@ export default function JobsPage() {
                 </div>
               )}
 
-              {/* Add new Portal */}
+              {/* Add/Edit Portal */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Add New Portal
+                  {editingPortalIndex !== null ? "Edit Portal" : "Add New Portal"}
                 </label>
                 <div className="space-y-2">
                   <input
@@ -1116,16 +1166,26 @@ export default function JobsPage() {
                     placeholder="Logo URL (optional) - e.g., https://example.com/logo.png"
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
                   />
-                  <button
-                    onClick={addExternalPortal}
-                    disabled={!newPortalName.trim() || !newPortalUrl.trim()}
-                    className="w-full btn-primary disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add Portal
-                  </button>
+                  <div className="flex gap-2">
+                    {editingPortalIndex !== null && (
+                      <button
+                        onClick={cancelEditPortal}
+                        className="flex-1 btn-secondary flex items-center justify-center gap-2"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                    <button
+                      onClick={addExternalPortal}
+                      disabled={!newPortalName.trim() || !newPortalUrl.trim()}
+                      className={`${editingPortalIndex !== null ? "flex-1" : "w-full"} btn-primary disabled:opacity-50 flex items-center justify-center gap-2`}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={editingPortalIndex !== null ? "M5 13l4 4L19 7" : "M12 4v16m8-8H4"} />
+                      </svg>
+                      {editingPortalIndex !== null ? "Save Changes" : "Add Portal"}
+                    </button>
+                  </div>
                 </div>
               </div>
 
