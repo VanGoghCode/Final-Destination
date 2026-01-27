@@ -1092,7 +1092,7 @@ export default function JobsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Saved Portals ({externalPortals.length})
                   </label>
-                  <div className="space-y-2">
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
                     {externalPortals.map((portal, index) => (
                       <div
                         key={index}
@@ -1194,35 +1194,6 @@ export default function JobsPage() {
                       {editingPortalIndex !== null ? "Save Changes" : "Add Portal"}
                     </button>
                   </div>
-                </div>
-              </div>
-
-              {/* Quick Add Suggestions */}
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Quick Add
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { name: "Handshake", url: "https://app.joinhandshake.com/stu/postings", logo: "https://app.joinhandshake.com/favicon.ico" },
-                    { name: "LinkedIn Jobs", url: "https://www.linkedin.com/jobs/", logo: "https://static.licdn.com/aero-v1/sc/h/akt4ae504epesldzj74dzred8" },
-                    { name: "Indeed", url: "https://www.indeed.com/", logo: "https://www.indeed.com/favicon.ico" },
-                    { name: "Glassdoor", url: "https://www.glassdoor.com/Job/index.htm", logo: "https://www.glassdoor.com/favicon.ico" },
-                    { name: "WellFound", url: "https://wellfound.com/jobs", logo: "https://wellfound.com/images/shared/favicon.ico" },
-                    { name: "Simplify", url: "https://simplify.jobs/jobs", logo: "https://simplify.jobs/favicon.ico" },
-                  ].filter(suggestion => !externalPortals.some(p => p.name === suggestion.name)).map((suggestion) => (
-                    <button
-                      key={suggestion.name}
-                      onClick={() => {
-                        const newPortals = [...externalPortals, suggestion];
-                        saveExternalPortals(newPortals);
-                      }}
-                      className="btn-secondary text-xs py-1.5 flex items-center justify-center gap-1.5"
-                    >
-                      <img src={suggestion.logo} alt="" className="w-4 h-4 rounded-sm object-contain" />
-                      {suggestion.name}
-                    </button>
-                  ))}
                 </div>
               </div>
             </div>

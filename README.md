@@ -169,9 +169,7 @@ Add quick-access links to external job boards like Handshake, LinkedIn, etc.:
 1. Navigate to `/jobs` page
 2. In the sidebar, find **"External Portals"** section
 3. Click **"Add"** to open the portal management modal
-4. Either:
-   - Use **Quick Add** buttons for popular portals (Handshake, LinkedIn, Indeed, etc.)
-   - Manually add custom portals with name, URL, and optional logo
+4. Manually add custom portals with name, URL, and optional logo
 5. Click portal buttons in sidebar to open them in new tabs
 
 **Features:**
@@ -248,7 +246,6 @@ docs/
 ### External Job Portals
 - Added ability to save external job portal links (Handshake, LinkedIn, Indeed, etc.)
 - Logo/icon support for portals
-- Quick-add suggestions for popular job boards
 - Edit and delete functionality for saved portals
 
 ### Compact Sidebar UI
