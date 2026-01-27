@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
 import CopyButton from "@/components/CopyButton";
+import Button from "@/components/Button";
 
 export default function QuestionsPage() {
   const router = useRouter();
@@ -231,12 +232,13 @@ export default function QuestionsPage() {
           >
             <div className="flex items-center justify-between mb-4">
               <label className="section-label m-0">Your Questions</label>
-              <button
+              <Button
                 onClick={() => setShowConfig(!showConfig)}
+                variant="ghost"
                 className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
               >
                 {showConfig ? "Hide Config" : "Show Config"}
-              </button>
+              </Button>
             </div>
 
             <textarea
@@ -246,10 +248,11 @@ export default function QuestionsPage() {
               onChange={(e) => setApplicationQuestions(e.target.value)}
             />
 
-            <button
+            <Button
               onClick={handleGenerateAnswers}
               disabled={!applicationQuestions.trim() || isGeneratingAnswers}
-              className="btn-primary w-full"
+              variant="primary"
+              className="w-full"
             >
               {isGeneratingAnswers ? (
                 <>
@@ -259,7 +262,7 @@ export default function QuestionsPage() {
               ) : (
                 "Generate Answers"
               )}
-            </button>
+            </Button>
           </div>
 
           {/* Generated Answers */}
@@ -273,10 +276,11 @@ export default function QuestionsPage() {
                 {generatedAnswers && (
                   <>
                     <CopyButton text={generatedAnswers} label="Copy All" />
-                    <button
+                    <Button
                       onClick={() =>
                         setShowAnswersFeedback(!showAnswersFeedback)
                       }
+                      variant="ghost"
                       className="copy-btn"
                       title="Regenerate with feedback"
                     >
@@ -292,7 +296,7 @@ export default function QuestionsPage() {
                         <path d="M3 3v5h5" />
                       </svg>
                       <span className="hidden sm:inline">Regenerate</span>
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>
@@ -324,19 +328,20 @@ export default function QuestionsPage() {
                   rows={2}
                 />
                 <div className="flex gap-2 justify-end">
-                  <button
+                  <Button
                     onClick={() => {
                       setShowAnswersFeedback(false);
                       setAnswersComment("");
                     }}
-                    className="btn-secondary text-xs py-2 px-3"
+                    variant="secondary"
+                    className="text-xs py-2 px-3"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleRegenerateAnswers}
                     disabled={!answersComment.trim() || isRegeneratingAnswers}
-                    className="btn-regenerate"
+                    variant="regenerate"
                   >
                     {isRegeneratingAnswers ? (
                       <>
@@ -345,7 +350,7 @@ export default function QuestionsPage() {
                     ) : (
                       <>Apply Changes</>
                     )}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -387,17 +392,18 @@ export default function QuestionsPage() {
             >
               <div className="flex items-center justify-between mb-4 gap-2">
                 <h3 className="font-bold text-foreground">Cold Email</h3>
-                <button
+                <Button
                   onClick={() => handleGenerateEmail("cold")}
                   disabled={isGeneratingColdEmail}
-                  className="btn-secondary text-xs px-3 sm:px-4 py-1.5"
+                  variant="secondary"
+                  className="text-xs px-3 sm:px-4 py-1.5"
                 >
                   {isGeneratingColdEmail ? (
                     <span className="spinner scale-75" />
                   ) : (
                     "Generate"
                   )}
-                </button>
+                </Button>
               </div>
               <div className="flex-1 output-panel p-3 sm:p-4 text-sm text-muted min-h-40 sm:min-h-44">
                 {coldEmail ? (
@@ -405,10 +411,11 @@ export default function QuestionsPage() {
                     <div className="whitespace-pre-wrap">{coldEmail}</div>
                     <div className="mt-4 pt-4 border-t border-card-border flex justify-end gap-2">
                       <CopyButton text={coldEmail} label="Copy" />
-                      <button
+                      <Button
                         onClick={() =>
                           setShowColdEmailFeedback(!showColdEmailFeedback)
                         }
+                        variant="ghost"
                         className="copy-btn"
                         title="Regenerate with feedback"
                       >
@@ -423,7 +430,7 @@ export default function QuestionsPage() {
                           <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                           <path d="M3 3v5h5" />
                         </svg>
-                      </button>
+                      </Button>
                     </div>
                   </>
                 ) : (
@@ -443,21 +450,22 @@ export default function QuestionsPage() {
                     rows={2}
                   />
                   <div className="flex gap-2 justify-end">
-                    <button
+                    <Button
                       onClick={() => {
                         setShowColdEmailFeedback(false);
                         setColdEmailComment("");
                       }}
-                      className="btn-secondary text-xs py-2 px-3"
+                      variant="secondary"
+                      className="text-xs py-2 px-3"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => handleRegenerateEmailContent("cold")}
                       disabled={
                         !coldEmailComment.trim() || isRegeneratingColdEmail
                       }
-                      className="btn-regenerate"
+                      variant="regenerate"
                     >
                       {isRegeneratingColdEmail ? (
                         <>
@@ -466,7 +474,7 @@ export default function QuestionsPage() {
                       ) : (
                         <>Apply</>
                       )}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -479,17 +487,18 @@ export default function QuestionsPage() {
             >
               <div className="flex items-center justify-between mb-4 gap-2">
                 <h3 className="font-bold text-foreground">Reference Ask</h3>
-                <button
+                <Button
                   onClick={() => handleGenerateEmail("reference")}
                   disabled={isGeneratingReferenceEmail}
-                  className="btn-secondary text-xs px-3 sm:px-4 py-1.5"
+                  variant="secondary"
+                  className="text-xs px-3 sm:px-4 py-1.5"
                 >
                   {isGeneratingReferenceEmail ? (
                     <span className="spinner scale-75" />
                   ) : (
                     "Generate"
                   )}
-                </button>
+                </Button>
               </div>
               <div className="flex-1 output-panel p-3 sm:p-4 text-sm text-muted min-h-40 sm:min-h-44">
                 {referenceEmail ? (
@@ -497,12 +506,13 @@ export default function QuestionsPage() {
                     <div className="whitespace-pre-wrap">{referenceEmail}</div>
                     <div className="mt-4 pt-4 border-t border-card-border flex justify-end gap-2">
                       <CopyButton text={referenceEmail} label="Copy" />
-                      <button
+                      <Button
                         onClick={() =>
                           setShowReferenceEmailFeedback(
                             !showReferenceEmailFeedback,
                           )
                         }
+                        variant="ghost"
                         className="copy-btn"
                         title="Regenerate with feedback"
                       >
@@ -517,7 +527,7 @@ export default function QuestionsPage() {
                           <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                           <path d="M3 3v5h5" />
                         </svg>
-                      </button>
+                      </Button>
                     </div>
                   </>
                 ) : (
@@ -537,22 +547,23 @@ export default function QuestionsPage() {
                     rows={2}
                   />
                   <div className="flex gap-2 justify-end">
-                    <button
+                    <Button
                       onClick={() => {
                         setShowReferenceEmailFeedback(false);
                         setReferenceEmailComment("");
                       }}
-                      className="btn-secondary text-xs py-2 px-3"
+                      variant="secondary"
+                      className="text-xs py-2 px-3"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => handleRegenerateEmailContent("reference")}
                       disabled={
                         !referenceEmailComment.trim() ||
                         isRegeneratingReferenceEmail
                       }
-                      className="btn-regenerate"
+                      variant="regenerate"
                     >
                       {isRegeneratingReferenceEmail ? (
                         <>
@@ -561,7 +572,7 @@ export default function QuestionsPage() {
                       ) : (
                         <>Apply</>
                       )}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
@@ -575,9 +586,10 @@ export default function QuestionsPage() {
           style={{ animationDelay: "0.25s" }}
         >
           <div className="flex gap-3">
-            <button
+            <Button
               onClick={() => router.push("/tailored")}
-              className="btn-secondary py-2.5 px-5 text-sm"
+              variant="secondary"
+              className="py-2.5 px-5 text-sm"
             >
               <svg
                 width="16"
@@ -591,10 +603,11 @@ export default function QuestionsPage() {
                 <polyline points="12 19 5 12 12 5" />
               </svg>
               Back to Documents
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => router.push("/")}
-              className="btn-secondary py-2.5 px-5 text-sm"
+              variant="secondary"
+              className="py-2.5 px-5 text-sm"
             >
               <svg
                 width="16"
@@ -608,7 +621,7 @@ export default function QuestionsPage() {
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
               Start New
-            </button>
+            </Button>
           </div>
           <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
             <span className="text-xs font-medium text-muted-light">

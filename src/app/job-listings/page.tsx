@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Button from "@/components/Button";
 
 interface Job {
   id: string;
@@ -210,17 +211,19 @@ export default function JobListingsPage() {
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               {selectedCompany && (
-                <button
+                <Button
                   onClick={() => setSelectedCompany(null)}
+                  variant="ghost"
                   className="px-3 py-1.5 md:px-4 md:py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs md:text-sm font-medium transition-colors"
                 >
                   ← Back
-                </button>
+                </Button>
               )}
-              <button
+              <Button
                 onClick={triggerScrape}
                 disabled={scraping}
-                className="btn-primary flex items-center gap-1.5 md:gap-2 text-xs md:text-sm"
+                variant="primary"
+                className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm"
               >
                 {scraping ? (
                   <>
@@ -246,7 +249,7 @@ export default function JobListingsPage() {
                     <span className="sm:hidden">Refresh</span>
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -329,9 +332,10 @@ export default function JobListingsPage() {
           /* Companies Grid View */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {companyStats.map((stat) => (
-              <button
+              <Button
                 key={stat.name}
                 onClick={() => setSelectedCompany(stat.name)}
+                variant="ghost"
                 className="glass-card p-4 md:p-5 text-left hover:shadow-lg transition-all group flex flex-col justify-between h-full relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-2 md:p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -376,7 +380,7 @@ export default function JobListingsPage() {
                     <div className="text-[10px] md:text-xs text-gray-500">Total Jobs</div>
                   </div>
                 </div>
-              </button>
+              </Button>
             ))}
           </div>
         )}

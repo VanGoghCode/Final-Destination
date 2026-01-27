@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Button from "./Button";
 
 interface CopyButtonProps {
   text: string;
@@ -21,8 +22,9 @@ export default function CopyButton({ text, label = "Copy" }: CopyButtonProps) {
   };
 
   return (
-    <button
+    <Button
       onClick={handleCopy}
+      variant="ghost"
       className={`copy-btn ${copied ? "copied" : ""}`}
       title={copied ? "Copied!" : `Copy ${label}`}
     >
@@ -56,6 +58,6 @@ export default function CopyButton({ text, label = "Copy" }: CopyButtonProps) {
           {label}
         </>
       )}
-    </button>
+    </Button>
   );
 }

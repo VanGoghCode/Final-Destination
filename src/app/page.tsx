@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
+import Button from "@/components/Button";
 
 const RESUME_TEMPLATE_KEY = "resume_template_latex";
 const COVER_LETTER_TEMPLATE_KEY = "cover_letter_template_latex";
@@ -187,17 +188,6 @@ export default function Home() {
       <Navbar currentStep={1} />
 
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-10 fade-in">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-foreground mb-3 tracking-tight">
-            Welcome to Your{" "}
-            <span className="text-primary">Final Destination</span>
-          </h1>
-          <p className="text-muted text-lg max-w-2xl mx-auto">
-            The last tool you'll ever need. Secure that dream job with
-            precision-tailored documents.
-          </p>
-        </div>
 
         {/* Form */}
         <div className="grid lg:grid-cols-2 gap-5">
@@ -338,9 +328,10 @@ export default function Home() {
           className="mt-8 flex flex-col sm:flex-row justify-center gap-3 fade-in"
           style={{ animationDelay: "0.3s" }}
         >
-          <button
+          <Button
             onClick={handleLoadTemplate}
-            className="btn-secondary text-base px-6 py-3"
+            variant="secondary"
+            className="text-base px-6 py-3"
           >
             <svg
               width="18"
@@ -357,12 +348,13 @@ export default function Home() {
               <polyline points="10 9 9 9 8 9" />
             </svg>
             Load Template
-          </button>
+          </Button>
 
           {tailoredResume && tailoredCoverLetter && (
-            <button
+            <Button
               onClick={() => router.push("/tailored")}
-              className="btn-secondary text-sm px-6 py-3"
+              variant="secondary"
+              className="text-sm px-6 py-3"
             >
               <svg
                 width="16"
@@ -376,13 +368,14 @@ export default function Home() {
                 <circle cx="12" cy="12" r="3" />
               </svg>
               View Existing
-            </button>
+            </Button>
           )}
 
-          <button
+          <Button
             onClick={handleResearch}
             disabled={!isValid || isResearching || isGeneratingTailored}
-            className="btn-primary text-base px-8 py-3"
+            variant="primary"
+            className="text-base px-8 py-3"
             title="Research the company and generate tailored documents"
           >
             {isResearching ? (
@@ -422,7 +415,7 @@ export default function Home() {
                 </svg>
               </>
             )}
-          </button>
+          </Button>
         </div>
         {!isValid && (
           <p className="text-muted text-sm mt-3 text-center">
@@ -437,15 +430,17 @@ export default function Home() {
           <div className="glass-card p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-foreground">Upload LaTeX Templates</h2>
-              <button
+              <Button
                 onClick={() => setShowTemplateUpload(false)}
+                variant="ghost"
                 className="text-muted hover:text-foreground"
+                aria-label="Close"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
-              </button>
+              </Button>
             </div>
             
             <p className="text-muted mb-4">
@@ -475,19 +470,21 @@ export default function Home() {
             </div>
 
             <div className="flex justify-end gap-3">
-              <button
+              <Button
                 onClick={() => setShowTemplateUpload(false)}
-                className="btn-secondary px-4 py-2"
+                variant="secondary"
+                className="px-4 py-2"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleSaveTemplates}
-                className="btn-primary px-4 py-2"
+                variant="primary"
+                className="px-4 py-2"
                 disabled={!tempResumeTemplate.trim() || !tempCoverLetterTemplate.trim()}
               >
                 Save &amp; Load Templates
-              </button>
+              </Button>
             </div>
           </div>
         </div>

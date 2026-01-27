@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Button from "./Button";
 
 interface StepIndicatorProps {
   currentStep: number;
@@ -26,8 +27,9 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
         {steps.map((step, index) => (
           <div key={step.number} className="flex items-center flex-1">
             <div className="flex flex-col items-center">
-              <button
+              <Button
                 onClick={() => handleStepClick(step.number, step.path)}
+                variant="ghost"
                 className={`step-dot cursor-pointer hover:scale-110 transition-transform ${
                   currentStep === step.number
                     ? "active"
@@ -50,7 +52,7 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
                 ) : (
                   step.number
                 )}
-              </button>
+              </Button>
               <span className="text-[10px] sm:text-xs mt-0.5 sm:mt-1 text-muted hidden sm:block">
                 {step.label}
               </span>

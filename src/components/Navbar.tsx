@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import StepIndicator from "./StepIndicator";
+import Button from "./Button";
 
 interface NavbarProps {
   currentStep: number;
@@ -9,7 +10,7 @@ interface NavbarProps {
 
 export default function Navbar({ currentStep }: NavbarProps) {
   return (
-    <nav className="sticky top-2 sm:top-4 z-50 glass-card px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 mb-6 sm:mb-8 mx-auto max-w-6xl mt-2 sm:mt-4">
+    <nav className="sticky top-2 sm:top-4 z-50 glass-card glass-navbar px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 mb-6 sm:mb-8 mx-auto max-w-6xl mt-2 sm:mt-4">
       <div className="w-full flex items-center justify-between gap-2">
         {/* Left: Logo */}
         <Link
@@ -42,11 +43,13 @@ export default function Navbar({ currentStep }: NavbarProps) {
         </div>
 
         {/* Right: Companies Button */}
-        <a
+        <Button
+          as="a"
           href="/jobs"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs sm:text-sm font-medium transition-colors shrink-0"
+          variant="secondary"
+          className="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 shrink-0"
         >
           <svg
             className="w-3.5 h-3.5 sm:w-4 sm:h-4"
@@ -59,7 +62,7 @@ export default function Navbar({ currentStep }: NavbarProps) {
             <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
           </svg>
           <span className="hidden xs:inline">Companies</span>
-        </a>
+        </Button>
       </div>
     </nav>
   );

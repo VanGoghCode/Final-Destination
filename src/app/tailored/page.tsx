@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
 import CodeBlock from "@/components/CodeBlock";
+import Button from "@/components/Button";
 
 export default function TailoredPage() {
   const router = useRouter();
@@ -219,8 +220,9 @@ export default function TailoredPage() {
               <code className="flex-1 bg-surface-hover px-3 py-2 rounded-lg text-sm font-mono text-foreground truncate">
                 {resumeFileName}
               </code>
-              <button
+              <Button
                 onClick={() => copyToClipboard(resumeFileName, "resume")}
+                variant="ghost"
                 className="copy-btn shrink-0"
               >
                 {copiedResume ? (
@@ -253,7 +255,7 @@ export default function TailoredPage() {
                     Copy
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -268,10 +270,11 @@ export default function TailoredPage() {
               <code className="flex-1 bg-surface-hover px-3 py-2 rounded-lg text-sm font-mono text-foreground truncate">
                 {coverLetterFileName}
               </code>
-              <button
+              <Button
                 onClick={() =>
                   copyToClipboard(coverLetterFileName, "coverLetter")
                 }
+                variant="ghost"
                 className="copy-btn shrink-0"
               >
                 {copiedCoverLetter ? (
@@ -304,7 +307,7 @@ export default function TailoredPage() {
                     Copy
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -354,10 +357,11 @@ export default function TailoredPage() {
                   <p className="text-muted text-sm mb-4">
                     Cover letter not generated yet.
                   </p>
-                  <button
+                  <Button
                     onClick={handleGenerateCoverLetter}
                     disabled={isGeneratingCoverLetter || !coverLetterLatex}
-                    className="btn-primary text-sm py-2.5 px-5"
+                    variant="primary"
+                    className="text-sm py-2.5 px-5"
                   >
                     {isGeneratingCoverLetter ? (
                       <>
@@ -379,7 +383,7 @@ export default function TailoredPage() {
                         Generate Cover Letter
                       </>
                     )}
-                  </button>
+                  </Button>
                   {!coverLetterLatex && (
                     <p className="text-xs text-red-400 mt-2">
                       Please add a cover letter template on the home page first.
@@ -396,9 +400,10 @@ export default function TailoredPage() {
           className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center gap-3 fade-in"
           style={{ animationDelay: "0.15s" }}
         >
-          <button
+          <Button
             onClick={() => router.push("/")}
-            className="btn-secondary text-sm py-2.5"
+            variant="secondary"
+            className="text-sm py-2.5"
           >
             <svg
               width="16"
@@ -412,11 +417,12 @@ export default function TailoredPage() {
               <polyline points="12 19 5 12 12 5" />
             </svg>
             Back to Inputs
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={() => setShowLogModal(true)}
-            className="btn-secondary text-sm py-2.5"
+            variant="secondary"
+            className="text-sm py-2.5"
           >
             <svg
               width="16"
@@ -432,11 +438,12 @@ export default function TailoredPage() {
               <line x1="9" y1="3" x2="9" y2="21" />
             </svg>
             Log to Sheet
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={() => router.push("/questions")}
-            className="btn-primary text-sm py-2.5"
+            variant="primary"
+            className="text-sm py-2.5"
           >
             Continue to Q&A
             <svg
@@ -450,7 +457,7 @@ export default function TailoredPage() {
               <line x1="5" y1="12" x2="19" y2="12" />
               <polyline points="12 5 19 12 12 19" />
             </svg>
-          </button>
+          </Button>
         </div>
 
         {/* General Q&A Section */}
@@ -538,13 +545,14 @@ export default function TailoredPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 mb-4">
-            <button
+            <Button
               onClick={() =>
                 setGeneralQuestion(
                   "Give me a list of skills from my current tailored resume, separated by commas. no extra text or formatting.",
                 )
               }
-              className="btn-secondary text-xs py-2 px-3 shrink-0"
+              variant="secondary"
+              className="text-xs py-2 px-3 shrink-0"
             >
               <svg
                 width="14"
@@ -558,8 +566,8 @@ export default function TailoredPage() {
                 <path d="M5 10l7 7 7-7" />
               </svg>
               Quick: List Skills
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={async () => {
                 if (!generalQuestion.trim()) return;
                 setIsAskingQuestion(true);
@@ -595,7 +603,8 @@ export default function TailoredPage() {
                 }
               }}
               disabled={!generalQuestion.trim() || isAskingQuestion}
-              className="btn-primary text-sm py-2 px-4"
+              variant="primary"
+              className="text-sm py-2 px-4"
             >
               {isAskingQuestion ? (
                 <>
@@ -617,19 +626,20 @@ export default function TailoredPage() {
                   Generate Answer
                 </>
               )}
-            </button>
+            </Button>
           </div>
 
           {generalAnswer && (
             <div className="bg-surface-hover rounded-lg p-4 border border-card-border">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-medium text-muted">Answer</span>
-                <button
+                <Button
                   onClick={() => navigator.clipboard.writeText(generalAnswer)}
+                  variant="ghost"
                   className="copy-btn text-xs py-1 px-2"
                 >
                   Copy
-                </button>
+                </Button>
               </div>
               <div className="prose max-w-none text-sm whitespace-pre-wrap">
                 {generalAnswer}
@@ -730,16 +740,18 @@ export default function TailoredPage() {
                 )}
 
                 <div className="flex gap-3">
-                  <button
+                  <Button
                     onClick={() => setShowLogModal(false)}
-                    className="btn-secondary flex-1"
+                    variant="secondary"
+                    className="flex-1"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleLogToSheet}
                     disabled={isLogging}
-                    className="btn-primary flex-1"
+                    variant="primary"
+                    className="flex-1"
                   >
                     {isLogging ? (
                       <>
@@ -749,7 +761,7 @@ export default function TailoredPage() {
                     ) : (
                       "Log Application"
                     )}
-                  </button>
+                  </Button>
                 </div>
               </>
             )}

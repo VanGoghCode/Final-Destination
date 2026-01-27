@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Button from "@/components/Button";
 
 interface Company {
   id: string;
@@ -407,30 +408,63 @@ export default function JobsPage() {
     <div className="min-h-screen flex">
       {/* Collapsible Sidebar */}
       <div
-        className={`${
-          sidebarOpen ? "w-full md:w-80" : "w-0"
-        } transition-all duration-300 ease-in-out overflow-hidden shrink-0 ${
-          isMobile ? "fixed inset-0 z-40 bg-black/50" : "sticky top-0 h-screen"
+        className={`shrink-0 overflow-visible ${
+          isMobile 
+            ? `fixed inset-0 z-40 ${sidebarOpen ? "bg-black/50" : "pointer-events-none"}` 
+            : `sticky top-0 h-screen ${sidebarOpen ? "w-80" : "w-12"}`
         }`}
         onClick={(e) => {
           if (isMobile && e.target === e.currentTarget) setSidebarOpen(false);
         }}
       >
-        <div className={`${
-          isMobile ? "w-[85%] max-w-sm" : "w-80"
-        } h-full bg-white border-r border-gray-200 flex flex-col ${
-          isMobile ? "shadow-2xl" : ""
-        }`}>
-          {/* Sidebar Header */}
-          <div className="p-4 border-b border-gray-100">
-            <h2 className="font-bold text-lg gradient-text">Filters & Actions</h2>
-            <p className="text-xs text-muted mt-1">
-              {companies.length} companies total
-            </p>
-          </div>
+        <div
+          className={`h-full bg-white border-r border-gray-200 flex flex-col w-80 ${
+            isMobile 
+              ? `max-w-sm shadow-2xl ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`
+              : `${sidebarOpen ? "translate-x-0" : "-translate-x-67"}`
+          }`}
+        >
+          {/* Sidebar Toggle Bar (desktop) - Always visible */}
+          {!isMobile && (
+            <div className="h-12 flex items-center justify-end px-2 border-b border-gray-100">
+              <Button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                variant="ghost"
+                className="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-50"
+                title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+                aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+              >
+                <svg
+                  className={`w-4 h-4 text-gray-600 ${sidebarOpen ? "" : "rotate-180"}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </Button>
+            </div>
+          )}
+          <div
+            className={`flex flex-col flex-1 overflow-hidden ${
+              sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+            } ${!isMobile && !sidebarOpen ? "pointer-events-none" : ""}`}
+          >
+            {/* Sidebar Header */}
+            <div className="p-4 border-b border-gray-100">
+              <h2 className="font-bold text-lg gradient-text">Filters & Actions</h2>
+              <p className="text-xs text-muted mt-1">
+                {companies.length} companies total
+              </p>
+            </div>
 
-          {/* Sidebar Content */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {/* Sidebar Content */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
             {/* Search */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -466,8 +500,9 @@ export default function JobsPage() {
                 Filter by Tier
               </label>
               <div className="grid grid-cols-2 gap-1.5">
-                <button
+                <Button
                   onClick={() => setSelectedTier("all")}
+                  variant="ghost"
                   className={`col-span-2 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors flex justify-between items-center ${
                     selectedTier === "all"
                       ? "bg-primary text-white"
@@ -476,9 +511,10 @@ export default function JobsPage() {
                 >
                   <span>All</span>
                   <span className="opacity-75">{companies.length}</span>
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setSelectedTier("top")}
+                  variant="ghost"
                   className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors flex justify-between items-center ${
                     selectedTier === "top"
                       ? "bg-emerald-600 text-white"
@@ -487,9 +523,10 @@ export default function JobsPage() {
                 >
                   <span>Top</span>
                   <span className="opacity-75">{topCount}</span>
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setSelectedTier("middle")}
+                  variant="ghost"
                   className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors flex justify-between items-center ${
                     selectedTier === "middle"
                       ? "bg-blue-600 text-white"
@@ -498,9 +535,10 @@ export default function JobsPage() {
                 >
                   <span>Middle</span>
                   <span className="opacity-75">{middleCount}</span>
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setSelectedTier("lower")}
+                  variant="ghost"
                   className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors flex justify-between items-center ${
                     selectedTier === "lower"
                       ? "bg-amber-600 text-white"
@@ -509,9 +547,10 @@ export default function JobsPage() {
                 >
                   <span>Lower</span>
                   <span className="opacity-75">{lowerCount}</span>
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setSelectedTier("lowest")}
+                  variant="ghost"
                   className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors flex justify-between items-center ${
                     selectedTier === "lowest"
                       ? "bg-purple-600 text-white"
@@ -520,7 +559,7 @@ export default function JobsPage() {
                 >
                   <span>Lowest</span>
                   <span className="opacity-75">{lowestCount}</span>
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -530,9 +569,10 @@ export default function JobsPage() {
                 Quick Actions
               </label>
               <div className="grid grid-cols-2 gap-1.5">
-                <button
+                <Button
                   onClick={selectAll}
-                  className="btn-secondary flex items-center text-xs py-1.5 px-2"
+                  variant="secondary"
+                  className="flex items-center text-xs py-1.5 px-2"
                   title="Select All Visible"
                 >
                   <span className="w-1/4 flex justify-center">
@@ -541,11 +581,12 @@ export default function JobsPage() {
                     </svg>
                   </span>
                   <span className="w-3/4 text-left truncate">Select All</span>
-                </button>
+                </Button>
                 {selectedCompanies.size > 0 ? (
-                  <button
+                  <Button
                     onClick={clearSelection}
-                    className="btn-secondary flex items-center text-xs py-1.5 px-2"
+                    variant="secondary"
+                    className="flex items-center text-xs py-1.5 px-2"
                     title="Clear Selection"
                   >
                     <span className="w-1/4 flex justify-center">
@@ -554,11 +595,13 @@ export default function JobsPage() {
                       </svg>
                     </span>
                     <span className="w-3/4 text-left truncate">Clear ({selectedCompanies.size})</span>
-                  </button>
+                  </Button>
                 ) : (
-                  <a
+                  <Button
+                    as="a"
                     href="/job-listings"
-                    className="btn-secondary flex items-center text-xs py-1.5 px-2"
+                    variant="secondary"
+                    className="flex items-center text-xs py-1.5 px-2"
                     title="View Scraped Jobs"
                   >
                     <span className="w-1/4 flex justify-center">
@@ -567,13 +610,12 @@ export default function JobsPage() {
                       </svg>
                     </span>
                     <span className="w-3/4 text-left truncate">Scraped Jobs</span>
-                  </a>
+                  </Button>
                 )}
-                <button
+                <Button
                   onClick={openAllCompanyPages}
-                  className={`col-span-2 flex items-center text-xs py-1.5 px-2 ${
-                    selectedCompanies.size > 0 ? "btn-primary" : "btn-secondary"
-                  }`}
+                  variant={selectedCompanies.size > 0 ? "primary" : "secondary"}
+                  className="col-span-2 flex items-center text-xs py-1.5 px-2"
                   title={selectedCompanies.size > 0 ? "Open Selected Companies" : "Open All Companies"}
                 >
                   <span className="w-1/8 flex justify-center mr-2">
@@ -586,7 +628,7 @@ export default function JobsPage() {
                       ? `Open Selected (${getTabsCount()} tabs)`
                       : `Open All (${getTabsCount()} tabs)`}
                   </span>
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -596,25 +638,28 @@ export default function JobsPage() {
                 <label className="block text-sm font-medium text-gray-700">
                   External Portals
                 </label>
-                <button
+                <Button
                   onClick={() => setPortalModalOpen(true)}
+                  variant="ghost"
                   className="text-xs text-primary hover:text-primary/80 flex items-center gap-1"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                   Add
-                </button>
+                </Button>
               </div>
               {externalPortals.length > 0 ? (
                 <div className="grid grid-cols-2 gap-1.5">
                   {externalPortals.map((portal, index) => (
-                    <a
+                    <Button
                       key={index}
+                      as="a"
                       href={portal.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn-secondary flex items-center text-xs py-1.5 px-2"
+                      variant="secondary"
+                      className="flex items-center text-xs py-1.5 px-2"
                       title={portal.url}
                     >
                       <span className="w-1/4 flex justify-center">
@@ -627,7 +672,7 @@ export default function JobsPage() {
                         )}
                       </span>
                       <span className="w-3/4 text-left truncate">{portal.name}</span>
-                    </a>
+                    </Button>
                   ))}
                 </div>
               ) : (
@@ -636,55 +681,32 @@ export default function JobsPage() {
                 </p>
               )}
             </div>
-          </div>
+            </div>
 
-          {/* Sidebar Footer - Stats */}
-          <div className="p-4 border-t border-gray-100 bg-gray-50">
-            <div className="text-sm text-muted">
-              <span className="font-medium text-gray-900">
-                {filteredCompanies.length}
-              </span>{" "}
-              of {companies.length} companies
-              {selectedCompanies.size > 0 && (
-                <span className="block text-primary font-medium mt-1">
-                  {selectedCompanies.size} selected
-                </span>
-              )}
+            {/* Sidebar Footer - Stats */}
+            <div className="p-4 border-t border-gray-100 bg-gray-50">
+              <div className="text-sm text-muted">
+                <span className="font-medium text-gray-900">
+                  {filteredCompanies.length}
+                </span>{" "}
+                of {companies.length} companies
+                {selectedCompanies.size > 0 && (
+                  <span className="block text-primary font-medium mt-1">
+                    {selectedCompanies.size} selected
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+
         </div>
       </div>
 
       {/* Sidebar Toggle Button - hidden on mobile (use header button) */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className={`hidden md:block fixed z-20 top-1/2 -translate-y-1/2 bg-white border border-gray-200 rounded-r-lg p-2 shadow-md hover:bg-gray-50 transition-all ${
-          sidebarOpen ? "left-80" : "left-0"
-        }`}
-        title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-      >
-        <svg
-          className={`w-5 h-5 text-gray-600 transition-transform ${
-            sidebarOpen ? "rotate-180" : ""
-          }`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5l7 7-7 7"
-          />
-        </svg>
-      </button>
+      {/* Desktop toggle handled inside sidebar */}
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0">
-        {/* Sticky Header */}
-
-
+      <div className="flex-1 min-w-0 flex flex-col">
         {/* Company List */}
         <div className="p-3 md:p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
@@ -692,9 +714,9 @@ export default function JobsPage() {
             <div
               key={company.id}
               onClick={(e) => handleCompanySelect(company, index, e)}
-              className={`relative glass-card p-4 md:p-5 hover:shadow-xl transition-all flex flex-col cursor-pointer select-none ${
+              className={`relative glass-card p-4 md:p-5 flex flex-col cursor-pointer select-none ${
                 selectedCompanies.has(company.id)
-                  ? "ring-2 ring-primary bg-primary/5 hover:bg-primary/20"
+                  ? "ring-2 ring-primary bg-primary/5"
                   : "hover:bg-blue-50 hover:border-blue-200"
               }`}
             >
@@ -767,19 +789,21 @@ export default function JobsPage() {
                         >
                           {company.pocEmail}
                         </a>
-                        <button
+                        <Button
                           onClick={(e) => togglePOCVisibility(company.id, e)}
+                          variant="ghost"
                           className="text-xs text-gray-400 hover:text-gray-600 ml-auto"
                           title="Hide contact"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                           </svg>
-                        </button>
+                        </Button>
                       </div>
                     ) : (
-                      <button
+                      <Button
                         onClick={(e) => togglePOCVisibility(company.id, e)}
+                        variant="ghost"
                         className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -787,7 +811,7 @@ export default function JobsPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
                         Show Contact
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )}
@@ -810,10 +834,11 @@ export default function JobsPage() {
 
               {/* Actions */}
               <div className="flex items-center gap-1.5 md:gap-2" onClick={(e) => e.stopPropagation()}>
-                <button
+                <Button
                   onClick={() => openAllCareerPages(company)}
                   disabled={getAllCareerUrls(company).length === 0}
-                  className="btn-primary text-xs md:text-sm flex items-center gap-1.5 md:gap-2 flex-1 justify-center disabled:opacity-50 disabled:cursor-not-allowed py-2 md:py-3"
+                  variant="primary"
+                  className="text-xs md:text-sm flex items-center gap-1.5 md:gap-2 flex-1 justify-center disabled:opacity-50 disabled:cursor-not-allowed py-2 md:py-3"
                   title={
                     getAllCareerUrls(company).length > 0
                       ? `Open ${getAllCareerUrls(company).length} career page(s)`
@@ -834,10 +859,11 @@ export default function JobsPage() {
                     />
                   </svg>
                   ({getAllCareerUrls(company).length})
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => openLinkModal(company)}
-                  className="btn-secondary text-xs md:text-sm flex items-center gap-1 px-2 py-2 md:py-3"
+                  variant="secondary"
+                  className="text-xs md:text-sm flex items-center gap-1 px-2 py-2 md:py-3"
                   title="Add or manage career page links"
                 >
                   <svg
@@ -853,12 +879,14 @@ export default function JobsPage() {
                       d="M12 4v16m8-8H4"
                     />
                   </svg>
-                </button>
-                <a
+                </Button>
+                <Button
+                  as="a"
                   href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(company.name + " recruiter")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-secondary text-xs md:text-sm gap-2 px-2 py-2 md:py-3 sm:inline-flex hidden"
+                  variant="secondary"
+                  className="text-xs md:text-sm gap-2 px-2 py-2 md:py-3 sm:inline-flex hidden"
                   title="Find recruiters on LinkedIn"
                 >
                   <svg
@@ -868,12 +896,14 @@ export default function JobsPage() {
                   >
                     <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
                   </svg>
-                </a>
-                <a
+                </Button>
+                <Button
+                  as="a"
                   href={`https://www.google.com/search?q=${encodeURIComponent(company.name + " careers jobs")}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-secondary text-xs md:text-sm gap-2 px-2 py-2 md:py-3 sm:inline-flex hidden"
+                  variant="secondary"
+                  className="text-xs md:text-sm gap-2 px-2 py-2 md:py-3 sm:inline-flex hidden"
                   title="Search Google for career page"
                 >
                   <svg
@@ -898,7 +928,7 @@ export default function JobsPage() {
                       fill="#EA4335"
                     />
                   </svg>
-                </a>
+                </Button>
               </div>
             </div>
           ))}
@@ -922,15 +952,15 @@ export default function JobsPage() {
             </svg>
             <h3 className="text-lg font-medium mb-2">No companies found</h3>
             <p className="text-muted mb-4">Try adjusting your search or filter</p>
-            <button
+            <Button
               onClick={() => {
                 setSearch("");
                 setSelectedTier("all");
               }}
-              className="btn-primary"
+              variant="primary"
             >
               Clear Filters
-            </button>
+            </Button>
           </div>
         )}
         </div>
@@ -949,14 +979,16 @@ export default function JobsPage() {
                   </h3>
                   <p className="text-sm text-muted mt-1">{linkModalCompany.name}</p>
                 </div>
-                <button
+                <Button
                   onClick={closeLinkModal}
+                  variant="ghost"
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-label="Close"
                 >
                   <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -986,15 +1018,16 @@ export default function JobsPage() {
                         >
                           {url}
                         </a>
-                        <button
+                        <Button
                           onClick={() => removeLink(index)}
+                          variant="ghost"
                           className="p-1.5 hover:bg-red-100 rounded-lg text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                           title="Delete this URL"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                        </button>
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -1017,29 +1050,31 @@ export default function JobsPage() {
                     placeholder="https://careers.example.com/jobs"
                     className="flex-1 px-3 py-2 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
                   />
-                  <button
+                  <Button
                     onClick={addNewLink}
                     disabled={!newLink.trim()}
-                    className="btn-secondary px-4 disabled:opacity-50"
+                    variant="secondary"
+                    className="px-4 disabled:opacity-50"
                   >
                     Add
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
 
             {/* Modal Footer */}
             <div className="p-5 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
-              <button
+              <Button
                 onClick={closeLinkModal}
-                className="btn-secondary"
+                variant="secondary"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={saveLinks}
                 disabled={savingLinks}
-                className="btn-primary flex items-center gap-2"
+                variant="primary"
+                className="flex items-center gap-2"
               >
                 {savingLinks ? (
                   <>
@@ -1054,7 +1089,7 @@ export default function JobsPage() {
                     Save Links
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1073,14 +1108,16 @@ export default function JobsPage() {
                   </h3>
                   <p className="text-sm text-muted mt-1">Add links to job boards like Handshake, LinkedIn, etc.</p>
                 </div>
-                <button
+                <Button
                   onClick={() => setPortalModalOpen(false)}
+                  variant="ghost"
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-label="Close"
                 >
                   <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -1117,24 +1154,26 @@ export default function JobsPage() {
                             {portal.url}
                           </a>
                         </div>
-                        <button
+                        <Button
                           onClick={() => startEditPortal(index)}
+                          variant="ghost"
                           className="p-1.5 hover:bg-blue-100 rounded-lg text-gray-400 hover:text-blue-500 transition-colors opacity-0 group-hover:opacity-100"
                           title="Edit this portal"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => removeExternalPortal(index)}
+                          variant="ghost"
                           className="p-1.5 hover:bg-red-100 rounded-lg text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                           title="Delete this portal"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                        </button>
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -1176,23 +1215,25 @@ export default function JobsPage() {
                   />
                   <div className="flex gap-2">
                     {editingPortalIndex !== null && (
-                      <button
+                      <Button
                         onClick={cancelEditPortal}
-                        className="flex-1 btn-secondary flex items-center justify-center gap-2"
+                        variant="secondary"
+                        className="flex-1 flex items-center justify-center gap-2"
                       >
                         Cancel
-                      </button>
+                      </Button>
                     )}
-                    <button
+                    <Button
                       onClick={addExternalPortal}
                       disabled={!newPortalName.trim() || !newPortalUrl.trim()}
-                      className={`${editingPortalIndex !== null ? "flex-1" : "w-full"} btn-primary disabled:opacity-50 flex items-center justify-center gap-2`}
+                      variant="primary"
+                      className={`${editingPortalIndex !== null ? "flex-1" : "w-full"} disabled:opacity-50 flex items-center justify-center gap-2`}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={editingPortalIndex !== null ? "M5 13l4 4L19 7" : "M12 4v16m8-8H4"} />
                       </svg>
                       {editingPortalIndex !== null ? "Save Changes" : "Add Portal"}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1200,12 +1241,12 @@ export default function JobsPage() {
 
             {/* Modal Footer */}
             <div className="p-5 border-t border-gray-100 bg-gray-50 flex justify-end">
-              <button
+              <Button
                 onClick={() => setPortalModalOpen(false)}
-                className="btn-primary"
+                variant="primary"
               >
                 Done
-              </button>
+              </Button>
             </div>
           </div>
         </div>

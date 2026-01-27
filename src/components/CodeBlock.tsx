@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import CopyButton from "./CopyButton";
+import Button from "./Button";
 
 interface CodeBlockProps {
   code: string;
@@ -45,8 +46,9 @@ export default function CodeBlock({
         <div className="flex items-center gap-2 shrink-0">
           {showCopy && code && <CopyButton text={code} label="Copy" />}
           {onRegenerate && code && (
-            <button
+            <Button
               onClick={() => setShowFeedback(!showFeedback)}
+              variant="ghost"
               className="copy-btn"
               title="Add feedback and regenerate"
             >
@@ -64,7 +66,7 @@ export default function CodeBlock({
                 <path d="M16 21h5v-5" />
               </svg>
               <span className="hidden sm:inline">Regenerate</span>
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -89,19 +91,20 @@ export default function CodeBlock({
             rows={2}
           />
           <div className="flex gap-2 justify-end">
-            <button
+            <Button
               onClick={() => {
                 setShowFeedback(false);
                 setComment("");
               }}
-              className="btn-secondary text-xs py-2 px-3"
+              variant="secondary"
+              className="text-xs py-2 px-3"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleRegenerate}
               disabled={!comment.trim() || isRegenerating}
-              className="btn-regenerate"
+              variant="regenerate"
             >
               {isRegenerating ? (
                 <>
@@ -124,7 +127,7 @@ export default function CodeBlock({
                   Apply Changes
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
       )}
