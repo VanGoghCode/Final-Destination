@@ -240,8 +240,11 @@ export default function JobsPage() {
   const openAllCareerPages = (company: Company) => {
     const allUrls = getAllCareerUrls(company);
     if (allUrls.length > 0) {
-      allUrls.forEach((url) => {
-        window.open(url, "_blank");
+      allUrls.forEach((url, index) => {
+        // Add delay between each open to avoid browser popup blocking
+        setTimeout(() => {
+          window.open(url, "_blank");
+        }, index * 150);
       });
     }
   };
@@ -252,11 +255,16 @@ export default function JobsPage() {
       ? filteredCompanies.filter((c) => selectedCompanies.has(c.id))
       : filteredCompanies;
 
+    let delay = 0;
     companiesToOpen.forEach((company) => {
       const allUrls = getAllCareerUrls(company);
       if (allUrls.length > 0) {
         allUrls.forEach((url) => {
-          window.open(url, "_blank");
+          // Add delay between each open to avoid browser popup blocking
+          setTimeout(() => {
+            window.open(url, "_blank");
+          }, delay);
+          delay += 150;
         });
       }
     });
