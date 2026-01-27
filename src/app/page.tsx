@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
+
+const RESUME_TEMPLATE_KEY = "resume_template_latex";
+const COVER_LETTER_TEMPLATE_KEY = "cover_letter_template_latex";
 
 export default function Home() {
   const router = useRouter();
@@ -35,6 +38,9 @@ export default function Home() {
   } = useAppContext();
 
   const [error, setError] = useState<string | null>(null);
+  const [showTemplateUpload, setShowTemplateUpload] = useState(false);
+  const [tempResumeTemplate, setTempResumeTemplate] = useState("");
+  const [tempCoverLetterTemplate, setTempCoverLetterTemplate] = useState("");
 
   const handleResearch = async () => {
     if (!companyName || !positionTitle || !jobDescription) {
@@ -129,29 +135,44 @@ export default function Home() {
     }
   };
 
-  const handleLoadTemplate = async () => {
-    try {
-      // Try custom templates first, then fall back to example templates
-      let resumeRes = await fetch("/templates/resume.tex");
-      if (!resumeRes.ok) {
-        resumeRes = await fetch("/templates/resume.example.tex");
-      }
+  const handleLoadTemplate = () => {
+    // Try to load templates from localStorage
+    const savedResume = localStorage.getItem(RESUME_TEMPLATE_KEY);
+    const savedCoverLetter = localStorage.getItem(COVER_LETTER_TEMPLATE_KEY);
 
-      let coverLetterRes = await fetch("/templates/cover-letter.tex");
-
-      if (!resumeRes.ok || !coverLetterRes.ok) {
-        throw new Error("Failed to load templates");
-      }
-
-      const resumeTemplate = await resumeRes.text();
-      const coverLetterTemplate = await coverLetterRes.text();
-
-      setResumeLatex(resumeTemplate);
-      setCoverLetterLatex(coverLetterTemplate);
-    } catch (err) {
-      console.error("Error loading templates:", err);
-      alert("Failed to load templates. Make sure template files exist.");
+    if (savedResume && savedCoverLetter) {
+      setResumeLatex(savedResume);
+      setCoverLetterLatex(savedCoverLetter);
+    } else {
+      // Show upload modal if templates not found in localStorage
+      setShowTemplateUpload(true);
     }
+  };
+
+  const handleSaveTemplates = () => {
+    if (!tempResumeTemplate.trim() || !tempCoverLetterTemplate.trim()) {
+      alert("Please provide both Resume and Cover Letter LaTeX templates.");
+      return;
+    }
+
+    // Save to localStorage
+    localStorage.setItem(RESUME_TEMPLATE_KEY, tempResumeTemplate);
+    localStorage.setItem(COVER_LETTER_TEMPLATE_KEY, tempCoverLetterTemplate);
+
+    // Load into current form
+    setResumeLatex(tempResumeTemplate);
+    setCoverLetterLatex(tempCoverLetterTemplate);
+
+    // Clear temp and close modal
+    setTempResumeTemplate("");
+    setTempCoverLetterTemplate("");
+    setShowTemplateUpload(false);
+  };
+
+  const handleClearStoredTemplates = () => {
+    localStorage.removeItem(RESUME_TEMPLATE_KEY);
+    localStorage.removeItem(COVER_LETTER_TEMPLATE_KEY);
+    alert("Stored templates have been cleared.");
   };
 
   const isValid =
@@ -409,6 +430,68 @@ export default function Home() {
           </p>
         )}
       </div>
+
+      {/* Template Upload Modal */}
+      {showTemplateUpload && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="glass-card p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-foreground">Upload LaTeX Templates</h2>
+              <button
+                onClick={() => setShowTemplateUpload(false)}
+                className="text-muted hover:text-foreground"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            
+            <p className="text-muted mb-4">
+              No saved templates found in your browser. Please paste your Resume and Cover Letter LaTeX templates below. 
+              These will be saved locally in your browser for future use.
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="section-label">Resume Template (LaTeX)</label>
+                <textarea
+                  className="input-field h-64 font-mono text-sm"
+                  placeholder="Paste your resume LaTeX template here..."
+                  value={tempResumeTemplate}
+                  onChange={(e) => setTempResumeTemplate(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="section-label">Cover Letter Template (LaTeX)</label>
+                <textarea
+                  className="input-field h-64 font-mono text-sm"
+                  placeholder="Paste your cover letter LaTeX template here..."
+                  value={tempCoverLetterTemplate}
+                  onChange={(e) => setTempCoverLetterTemplate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowTemplateUpload(false)}
+                className="btn-secondary px-4 py-2"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveTemplates}
+                className="btn-primary px-4 py-2"
+                disabled={!tempResumeTemplate.trim() || !tempCoverLetterTemplate.trim()}
+              >
+                Save &amp; Load Templates
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
