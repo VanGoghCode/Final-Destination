@@ -341,7 +341,7 @@ The complete, compilable LaTeX code with tailored content that sounds like a vis
 export async function generateAnswers(
   questions: string,
   tailoredResume: string,
-  tailoredCoverLetter: string,
+  tailoredCoverLetter: string | undefined,
   jobDescription: string,
   companyInfo: string,
 ): Promise<string> {
@@ -358,24 +358,25 @@ export async function generateAnswers(
 - **Job:** ${jobDescription}
 - **Company:** ${companyInfo}
 - **Resume:** ${tailoredResume}
-- **Cover Letter:** ${tailoredCoverLetter}
+- **Cover Letter:** ${tailoredCoverLetter || "Not provided"}
 
 ## CRITICAL INSTRUCTIONS:
-1. **TONE:** 80% formal + 20% informal. Professional but human. Include occasional conversational phrases like "honestly," "what really excites me is," "I genuinely believe," etc.
+1. **TONE (VERY IMPORTANT):** 70% formal + 30% informal. Write like a smart, articulate human - not a robot. Mix professional language with natural conversational elements. Include phrases like "honestly," "what really excites me is," "I genuinely believe," "to be frank," "the thing I love most about," "what drew me to" etc. The answer should feel like it came from a real person having a professional conversation, not a corporate template.
 2. **AUTHENTICITY:** Sound like a real person wrote this, not a template. Vary sentence structure. Avoid corporate buzzwords.
 3. **PASSION:** Show genuine enthusiasm for technology, innovation, and making a difference.
 4. **COMPANY FIT:** Explain how the candidate's vision aligns with the company. Show eagerness to help them succeed.
 5. **SPECIFIC:** Reference real experiences from the resume but paraphrase naturally.
 6. **HUMBLE CONFIDENCE:** Confident about abilities but eager to learn and contribute.
 7. **FORMATTING:** Do NOT use ** (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
+8. **WORD/CHARACTER LIMITS:** If a question has a [LIMIT: X words] or [LIMIT: X characters] tag, you MUST strictly adhere to that limit. Count carefully and ensure the answer does not exceed the specified limit. For word limits, count actual words. For character limits, count all characters including spaces.
 
 ## QUESTIONS TO ANSWER:
 ${questions}
 
 ## OUTPUT FORMAT:
 For each question, provide:
-Question: [Question Text]
-Answer: [A thoughtful, human-sounding answer that reflects the visionary personality]
+Question: [Question Text - without the limit tag]
+Answer: [A thoughtful, human-sounding answer that reflects the visionary personality and respects any word/character limits]
 ...`;
 
   return await generateContent(prompt);

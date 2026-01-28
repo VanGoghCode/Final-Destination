@@ -7,6 +7,13 @@ import Navbar from "@/components/Navbar";
 import CopyButton from "@/components/CopyButton";
 import Button from "@/components/Button";
 
+interface QuestionField {
+  id: number;
+  question: string;
+  limitType: "none" | "words" | "characters";
+  limitValue: number;
+}
+
 export default function QuestionsPage() {
   const router = useRouter();
   const {
@@ -23,6 +30,14 @@ export default function QuestionsPage() {
     isGeneratingAnswers,
     setIsGeneratingAnswers,
   } = useAppContext();
+
+  // Individual question fields state
+  const [questionFields, setQuestionFields] = useState<QuestionField[]>([
+    { id: 1, question: "", limitType: "none", limitValue: 100 },
+    { id: 2, question: "", limitType: "none", limitValue: 100 },
+    { id: 3, question: "", limitType: "none", limitValue: 100 },
+  ]);
+  const [nextId, setNextId] = useState(4);
 
   const [error, setError] = useState<string | null>(null);
   const [questionsCompanyInfo, setQuestionsCompanyInfo] = useState(
@@ -55,11 +70,45 @@ export default function QuestionsPage() {
   //   }
   // }, [tailoredResume, tailoredCoverLetter, router]);
 
+  // Question field handlers
+  const addQuestionField = () => {
+    setQuestionFields([
+      ...questionFields,
+      { id: nextId, question: "", limitType: "none", limitValue: 100 },
+    ]);
+    setNextId(nextId + 1);
+  };
+
+  const removeQuestionField = (id: number) => {
+    if (questionFields.length > 1) {
+      setQuestionFields(questionFields.filter((q) => q.id !== id));
+    }
+  };
+
+  const updateQuestionField = (
+    id: number,
+    field: keyof QuestionField,
+    value: string | number
+  ) => {
+    setQuestionFields(
+      questionFields.map((q) =>
+        q.id === id ? { ...q, [field]: value } : q
+      )
+    );
+  };
+
   const handleGenerateAnswers = async () => {
-    if (!applicationQuestions.trim()) {
+    const filledQuestions = questionFields.filter((q) => q.question.trim());
+    if (filledQuestions.length === 0) {
       setError("Please enter at least one question.");
       return;
     }
+
+    // Store combined questions for context/regeneration
+    const combinedQuestions = filledQuestions
+      .map((q) => q.question)
+      .join("\n\n");
+    setApplicationQuestions(combinedQuestions);
 
     setError(null);
     setIsGeneratingAnswers(true);
@@ -69,7 +118,11 @@ export default function QuestionsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          questions: applicationQuestions,
+          questions: filledQuestions.map((q) => ({
+            question: q.question,
+            limitType: q.limitType !== "none" ? q.limitType : undefined,
+            limitValue: q.limitType !== "none" ? q.limitValue : undefined,
+          })),
           tailoredResume,
           tailoredCoverLetter,
           jobDescription,
@@ -241,16 +294,80 @@ export default function QuestionsPage() {
               </Button>
             </div>
 
-            <textarea
-              className="input-field flex-1 min-h-72 mb-4 font-sans"
-              placeholder="Paste the application questions here..."
-              value={applicationQuestions}
-              onChange={(e) => setApplicationQuestions(e.target.value)}
-            />
+            <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-1" style={{ maxHeight: "400px" }}>
+              {questionFields.map((field, index) => (
+                <div key={field.id} className="p-3 bg-background/50 rounded-lg border border-card-border/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-muted">Question {index + 1}</span>
+                    {questionFields.length > 1 && (
+                      <button
+                        onClick={() => removeQuestionField(field.id)}
+                        className="text-muted hover:text-red-400 transition-colors p-1"
+                        title="Remove question"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M18 6L6 18M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  <textarea
+                    className="input-field min-h-16 mb-2 font-sans text-sm"
+                    placeholder="Enter your question..."
+                    value={field.question}
+                    onChange={(e) => updateQuestionField(field.id, "question", e.target.value)}
+                    rows={2}
+                  />
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-muted">Limit:</label>
+                      <select
+                        value={field.limitType}
+                        onChange={(e) =>
+                          updateQuestionField(field.id, "limitType", e.target.value)
+                        }
+                        className="input-field text-xs py-1 px-2 w-auto"
+                      >
+                        <option value="none">No limit</option>
+                        <option value="words">Words</option>
+                        <option value="characters">Characters</option>
+                      </select>
+                    </div>
+                    {field.limitType !== "none" && (
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-muted">Max:</label>
+                        <input
+                          type="number"
+                          value={field.limitValue}
+                          onChange={(e) =>
+                            updateQuestionField(field.id, "limitValue", parseInt(e.target.value) || 0)
+                          }
+                          className="input-field text-xs py-1 px-2 w-20"
+                          min="1"
+                          placeholder="100"
+                        />
+                        <span className="text-xs text-muted-light">{field.limitType}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Button
+              onClick={addQuestionField}
+              variant="ghost"
+              className="w-full mb-3 text-sm border border-dashed border-card-border hover:border-primary/50"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              Add Another Question
+            </Button>
 
             <Button
               onClick={handleGenerateAnswers}
-              disabled={!applicationQuestions.trim() || isGeneratingAnswers}
+              disabled={!questionFields.some((q) => q.question.trim()) || isGeneratingAnswers}
               variant="primary"
               className="w-full"
             >
