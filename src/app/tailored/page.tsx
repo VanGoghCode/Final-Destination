@@ -39,6 +39,9 @@ export default function TailoredPage() {
   const [isLogging, setIsLogging] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
   const [logError, setLogError] = useState("");
+  const [country, setCountry] = useState("");
+  const [workMode, setWorkMode] = useState<"" | "Remote" | "Hybrid" | "On-site">("");
+  const [isExtractingJobInfo, setIsExtractingJobInfo] = useState(false);
 
   // General Q&A state
   const [generalQuestion, setGeneralQuestion] = useState("");
@@ -46,6 +49,7 @@ export default function TailoredPage() {
   const [isAskingQuestion, setIsAskingQuestion] = useState(false);
   const [limitType, setLimitType] = useState<"none" | "words" | "characters">("none");
   const [limitValue, setLimitValue] = useState<number>(100);
+  const [searchMode, setSearchMode] = useState<"context" | "context+internet" | "internet">("context");
 
   // Generate formatted filenames
   const formatName = (str: string) =>
@@ -71,9 +75,47 @@ export default function TailoredPage() {
     }
   };
 
+  // Extract country and work mode from job description using AI
+  const extractJobInfo = async () => {
+    if (!jobDescription) return;
+    
+    setIsExtractingJobInfo(true);
+    try {
+      const response = await fetch("/api/data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "extract-job-info",
+          jobDescription,
+          companyName,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.country) {
+        setCountry(data.country);
+      }
+      if (response.ok && data.workMode) {
+        setWorkMode(data.workMode);
+      }
+    } catch (err) {
+      console.error("Error extracting job info:", err);
+    } finally {
+      setIsExtractingJobInfo(false);
+    }
+  };
+
   const handleLogToSheet = async () => {
     setLogError("");
     setIsLogging(true);
+
+    // Compose notes with country and work mode
+    const noteParts: string[] = [];
+    if (country) noteParts.push(`Country: ${country}`);
+    if (workMode) noteParts.push(`Work Mode: ${workMode}`);
+    if (notes.trim()) noteParts.push(notes.trim());
+    const composedNotes = noteParts.join(" | ");
 
     try {
       const response = await fetch("/api/sheets", {
@@ -83,7 +125,7 @@ export default function TailoredPage() {
           companyName,
           positionTitle,
           applicationLink: applicationLink.trim() || "N/A",
-          notes,
+          notes: composedNotes,
         }),
       });
 
@@ -99,6 +141,8 @@ export default function TailoredPage() {
         setLogSuccess(false);
         setApplicationLink("");
         setNotes("");
+        setCountry("");
+        setWorkMode("");
       }, 2000);
     } catch (err) {
       setLogError(err instanceof Error ? err.message : "An error occurred");
@@ -491,7 +535,7 @@ export default function TailoredPage() {
           </div>
 
           {/* Limit Options */}
-          <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-surface-hover rounded-lg border border-card-border">
+          <div className="flex flex-wrap items-center gap-3 mb-3 p-3 bg-surface-hover rounded-lg border border-card-border">
             <span className="text-xs font-medium text-muted">Answer Limit:</span>
             <div className="flex items-center gap-2">
               <label className="flex items-center gap-1.5 cursor-pointer">
@@ -542,6 +586,46 @@ export default function TailoredPage() {
             )}
           </div>
 
+          {/* Search Mode Options */}
+          <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-surface-hover rounded-lg border border-card-border">
+            <span className="text-xs font-medium text-muted">Knowledge Source:</span>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  name="searchMode"
+                  value="context"
+                  checked={searchMode === "context"}
+                  onChange={() => setSearchMode("context")}
+                  className="w-3.5 h-3.5 accent-primary"
+                />
+                <span className="text-xs text-foreground">Context Only</span>
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  name="searchMode"
+                  value="context+internet"
+                  checked={searchMode === "context+internet"}
+                  onChange={() => setSearchMode("context+internet")}
+                  className="w-3.5 h-3.5 accent-primary"
+                />
+                <span className="text-xs text-foreground">Context + Internet</span>
+              </label>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  name="searchMode"
+                  value="internet"
+                  checked={searchMode === "internet"}
+                  onChange={() => setSearchMode("internet")}
+                  className="w-3.5 h-3.5 accent-primary"
+                />
+                <span className="text-xs text-foreground">Internet Only</span>
+              </label>
+            </div>
+          </div>
+
           <div className="flex flex-col sm:flex-row gap-2 mb-4">
             <Button
               onClick={() =>
@@ -584,6 +668,7 @@ export default function TailoredPage() {
                       positionTitle,
                       limitType: limitType !== "none" ? limitType : undefined,
                       limitValue: limitType !== "none" ? limitValue : undefined,
+                      searchMode,
                     }),
                   });
                   const data = await response.json();
@@ -717,6 +802,63 @@ export default function TailoredPage() {
                     placeholder="https://..."
                     className="input-field"
                   />
+                </div>
+
+                {/* Country and Work Mode */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm text-muted">
+                      Location & Work Mode
+                    </label>
+                    <Button
+                      onClick={extractJobInfo}
+                      disabled={isExtractingJobInfo || !jobDescription}
+                      variant="ghost"
+                      className="text-xs py-1 px-2"
+                    >
+                      {isExtractingJobInfo ? (
+                        <>
+                          <span className="spinner-small" />
+                          Extracting...
+                        </>
+                      ) : (
+                        <>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                          </svg>
+                          Auto-fill
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="flex gap-3">
+                    {/* Country Input */}
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        placeholder="Country (e.g., USA, UK)"
+                        className="input-field text-sm"
+                      />
+                    </div>
+                    {/* Work Mode Buttons */}
+                    <div className="flex gap-1">
+                      {(["Remote", "Hybrid", "On-site"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          onClick={() => setWorkMode(workMode === mode ? "" : mode)}
+                          className={`px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${
+                            workMode === mode
+                              ? "bg-primary text-white border-primary"
+                              : "bg-surface-hover text-muted border-card-border hover:border-primary/50"
+                          }`}
+                        >
+                          {mode}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Optional field */}

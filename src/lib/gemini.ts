@@ -4,9 +4,11 @@ import {
   HarmBlockThreshold,
   ThinkingLevel,
   type GenerateContentConfig,
+  DynamicRetrievalConfigMode,
 } from "@google/genai";
 
 const MODEL_NAME = "gemini-3-pro-preview";
+const MODEL_NAME_GROUNDED = "gemini-2.0-flash";
 
 // Initialize Google GenAI client using API key mode
 function getGenAI(): GoogleGenAI {
@@ -47,6 +49,41 @@ const generationConfig: GenerateContentConfig = {
   ],
 };
 
+// Generation config with Google Search grounding (for internet search)
+const groundedConfig: GenerateContentConfig = {
+  maxOutputTokens: 8192,
+  temperature: 0.7,
+  topP: 0.95,
+  safetySettings: [
+    {
+      category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+      threshold: HarmBlockThreshold.OFF,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+      threshold: HarmBlockThreshold.OFF,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+      threshold: HarmBlockThreshold.OFF,
+    },
+    {
+      category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+      threshold: HarmBlockThreshold.OFF,
+    },
+  ],
+  tools: [
+    {
+      googleSearch: {
+        dynamicRetrievalConfig: {
+          mode: DynamicRetrievalConfigMode.MODE_DYNAMIC,
+          dynamicThreshold: 0.3,
+        },
+      },
+    },
+  ],
+};
+
 // Helper to generate content using Google GenAI
 async function generateContent(prompt: string): Promise<string> {
   try {
@@ -70,6 +107,90 @@ async function generateContent(prompt: string): Promise<string> {
   } catch (error) {
     console.error("[Gemini] Error generating content:", error);
     throw error;
+  }
+}
+
+// Helper to generate content with Google Search grounding
+async function generateContentWithSearch(prompt: string): Promise<string> {
+  try {
+    const ai = getGenAI();
+    console.log(`[Gemini] Initializing grounded model ${MODEL_NAME_GROUNDED}`);
+
+    console.log("[Gemini] Sending request with Google Search grounding...");
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME_GROUNDED,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: groundedConfig,
+    });
+
+    const text = response.text || "";
+
+    console.log(
+      "[Gemini] Successfully received grounded response, length:",
+      text.length,
+    );
+    return text;
+  } catch (error) {
+    console.error("[Gemini] Error generating grounded content:", error);
+    throw error;
+  }
+}
+
+// ========================================
+// JOB INFO EXTRACTION
+// ========================================
+
+/**
+ * Extract country and work mode from job description
+ */
+export async function extractJobLocationInfo(
+  jobDescription: string,
+  companyName: string,
+): Promise<{ country: string; workMode: string }> {
+  const prompt = `Analyze this job description and extract location/work mode information.
+
+## JOB DESCRIPTION:
+${jobDescription}
+
+## COMPANY: ${companyName || "Not specified"}
+
+## TASK:
+Extract the following information from the job description:
+1. Country where the job is located (e.g., "USA", "United Kingdom", "Canada", "Germany", etc.)
+2. Work mode: Must be one of "Remote", "Hybrid", or "On-site"
+
+## RULES:
+- If the country is not explicitly mentioned, try to infer from:
+  - City names (e.g., "San Francisco" = USA, "London" = UK)
+  - Currency mentioned (e.g., USD = USA, GBP = UK, EUR = multiple EU countries)
+  - Company headquarters if well-known
+- If work mode is not specified, default to "On-site"
+- For "remote-first" or "fully remote", use "Remote"
+- For "hybrid" or "flexible", use "Hybrid"
+- For "in-office", "on-site", or "in-person", use "On-site"
+
+## OUTPUT FORMAT (JSON only, no markdown):
+{"country": "COUNTRY_NAME", "workMode": "Remote|Hybrid|On-site"}
+
+Output ONLY the JSON, nothing else:`;
+
+  try {
+    const response = await generateContent(prompt);
+    
+    // Parse the JSON response
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        country: parsed.country || "",
+        workMode: ["Remote", "Hybrid", "On-site"].includes(parsed.workMode) ? parsed.workMode : "",
+      };
+    }
+    
+    return { country: "", workMode: "" };
+  } catch (error) {
+    console.error("[Gemini] Error extracting job info:", error);
+    return { country: "", workMode: "" };
   }
 }
 
@@ -689,4 +810,90 @@ ${companyInfo || "Not provided"}
 ## ANSWER (in first person, human-written tone):`;
 
   return await generateContent(prompt);
+}
+
+/**
+ * Answer a question using both application context AND internet search
+ */
+export async function answerWithInternet(
+  question: string,
+  tailoredResume: string,
+  tailoredCoverLetter: string,
+  jobDescription: string,
+  companyInfo: string,
+  companyName: string,
+  positionTitle: string,
+  limitType?: "words" | "characters",
+  limitValue?: number,
+): Promise<string> {
+  const limitInstruction = limitType && limitValue
+    ? `\n7. IMPORTANT: Your answer MUST be within ${limitValue} ${limitType}. Be concise and stay within this limit.`
+    : "";
+
+  const prompt = `You are helping a job applicant answer questions. You have access to their APPLICATION CONTEXT and can also search the INTERNET for additional information.
+
+## QUESTION:
+${question}
+
+## APPLICATION CONTEXT:
+
+### Tailored Resume:
+${tailoredResume}
+
+### Tailored Cover Letter:
+${tailoredCoverLetter || "Not provided"}
+
+### Target Position: ${positionTitle || "Not specified"} at ${companyName || "Not specified"}
+
+### Job Description:
+${jobDescription || "Not provided"}
+
+### Company Information:
+${companyInfo || "Not provided"}
+
+## INSTRUCTIONS:
+1. Answer the question in FIRST PERSON - write as if you are the applicant (use "I", "my", "me").
+2. Use the application context as your PRIMARY source for personal information about the applicant.
+3. Use internet search to supplement with external information (company details, industry trends, market data, etc.).
+4. TONE: Write like a human - use a mix of 50% formal and 30% informal tone. Sound natural, not robotic.
+5. Clearly indicate when information comes from external sources vs. the applicant's context.
+6. FORMATTING (CRITICAL): Do NOT use ** (double asterisks) to bold text - use plain text only. Do NOT use em dashes (—) - use regular hyphens (-) instead.${limitInstruction}
+
+## ANSWER (combining context + internet research):`;
+
+  return await generateContentWithSearch(prompt);
+}
+
+/**
+ * Answer a question using ONLY internet search (no application context)
+ */
+export async function answerInternetOnly(
+  question: string,
+  companyName: string,
+  positionTitle: string,
+  limitType?: "words" | "characters",
+  limitValue?: number,
+): Promise<string> {
+  const limitInstruction = limitType && limitValue
+    ? `\n5. IMPORTANT: Your answer MUST be within ${limitValue} ${limitType}. Be concise and stay within this limit.`
+    : "";
+
+  const contextHint = companyName || positionTitle
+    ? `\n\n## CONTEXT HINT:\nThe user is researching for a ${positionTitle || "position"} at ${companyName || "a company"}. Keep this context in mind when searching.`
+    : "";
+
+  const prompt = `You are a helpful research assistant. Answer the following question using internet search. Provide accurate, up-to-date information from the web.${contextHint}
+
+## QUESTION:
+${question}
+
+## INSTRUCTIONS:
+1. Search the internet to find relevant, accurate information.
+2. Provide a clear, well-organized answer.
+3. TONE: Write naturally, balancing professionalism with accessibility.
+4. FORMATTING (CRITICAL): Do NOT use ** (double asterisks) to bold text - use plain text only. Do NOT use em dashes (—) - use regular hyphens (-) instead.${limitInstruction}
+
+## ANSWER (based on internet research):`;
+
+  return await generateContentWithSearch(prompt);
 }

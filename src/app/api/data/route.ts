@@ -10,6 +10,7 @@ import {
   type TierData,
   type JobsData,
 } from "@/lib/db";
+import { extractJobLocationInfo } from "@/lib/gemini";
 
 /**
  * GET /api/data - Get data statistics
@@ -39,19 +40,34 @@ export async function GET() {
 }
 
 /**
- * POST /api/data - Seed Redis with data from local JSON files
+ * POST /api/data - Seed Redis with data from local JSON files or extract job info
  */
 export async function POST(request: NextRequest) {
   try {
+    const body = await request.json().catch(() => ({}));
+    const { action = "seed", type } = body;
+
+    // Handle extract-job-info type
+    if (type === "extract-job-info") {
+      const { jobDescription, companyName } = body;
+      
+      if (!jobDescription) {
+        return NextResponse.json(
+          { error: "Job description is required" },
+          { status: 400 }
+        );
+      }
+
+      const result = await extractJobLocationInfo(jobDescription, companyName || "");
+      return NextResponse.json(result);
+    }
+
     if (!isRedisConfigured()) {
       return NextResponse.json(
         { error: "Redis is not configured. Set KV_REST_API_URL and KV_REST_API_TOKEN environment variables." },
         { status: 400 }
       );
     }
-
-    const body = await request.json().catch(() => ({}));
-    const { action = "seed" } = body;
 
     if (action === "clear") {
       const success = await clearAllData();

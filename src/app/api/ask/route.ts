@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { answerGeneralQuestion } from "@/lib/gemini";
+import { answerGeneralQuestion, answerWithInternet, answerInternetOnly } from "@/lib/gemini";
 
 export async function POST(request: Request) {
   try {
@@ -14,26 +14,62 @@ export async function POST(request: Request) {
       positionTitle,
       limitType,
       limitValue,
+      searchMode = "context", // "context" | "context+internet" | "internet"
     } = body;
 
-    if (!question || !tailoredResume) {
+    if (!question) {
       return NextResponse.json(
-        { error: "Question and tailored resume are required" },
+        { error: "Question is required" },
         { status: 400 },
       );
     }
 
-    const answer = await answerGeneralQuestion(
-      question,
-      tailoredResume,
-      tailoredCoverLetter || "",
-      jobDescription || "",
-      companyInfo || "",
-      companyName || "",
-      positionTitle || "",
-      limitType,
-      limitValue,
-    );
+    // For context-based modes, require tailored resume
+    if (searchMode !== "internet" && !tailoredResume) {
+      return NextResponse.json(
+        { error: "Tailored resume is required for context-based answers" },
+        { status: 400 },
+      );
+    }
+
+    let answer: string;
+
+    if (searchMode === "internet") {
+      // Internet only - no application context
+      answer = await answerInternetOnly(
+        question,
+        companyName || "",
+        positionTitle || "",
+        limitType,
+        limitValue,
+      );
+    } else if (searchMode === "context+internet") {
+      // Context + Internet combined
+      answer = await answerWithInternet(
+        question,
+        tailoredResume,
+        tailoredCoverLetter || "",
+        jobDescription || "",
+        companyInfo || "",
+        companyName || "",
+        positionTitle || "",
+        limitType,
+        limitValue,
+      );
+    } else {
+      // Context only (default)
+      answer = await answerGeneralQuestion(
+        question,
+        tailoredResume,
+        tailoredCoverLetter || "",
+        jobDescription || "",
+        companyInfo || "",
+        companyName || "",
+        positionTitle || "",
+        limitType,
+        limitValue,
+      );
+    }
 
     return NextResponse.json({ answer });
   } catch (error) {
