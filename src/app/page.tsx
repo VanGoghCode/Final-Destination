@@ -53,7 +53,7 @@ export default function Home() {
 
     // If company info is already filled, skip research and go directly to generation
     if (companyInfo.trim()) {
-      if (resumeLatex && coverLetterLatex && jobDescription) {
+      if (resumeLatex && jobDescription) {
         await triggerGenerate(companyInfo);
       }
       return;
@@ -87,7 +87,7 @@ export default function Home() {
       
       // Auto-trigger generation after research is complete, passing research directly
       // All fields should be valid since we already validated companyName, positionTitle, jobDescription above
-      if (resumeLatex && coverLetterLatex && jobDescription) {
+      if (resumeLatex && jobDescription) {
         await triggerGenerate(data.research);
       }
     } catch (err) {
@@ -97,9 +97,9 @@ export default function Home() {
   };
 
   const triggerGenerate = async (research?: string) => {
-    if (!resumeLatex || !coverLetterLatex || !jobDescription) {
+    if (!resumeLatex || !jobDescription) {
       setError(
-        "Please fill in your resume, cover letter, and job description.",
+        "Please fill in your resume and job description.",
       );
       return;
     }
@@ -113,7 +113,6 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           resumeLatex,
-          coverLetterLatex,
           jobDescription,
           personalDetails,
           companyInfo: research ?? companyInfo,
@@ -178,7 +177,6 @@ export default function Home() {
 
   const isValid =
     resumeLatex &&
-    coverLetterLatex &&
     jobDescription &&
     companyName &&
     positionTitle;

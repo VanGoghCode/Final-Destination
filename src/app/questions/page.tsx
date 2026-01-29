@@ -34,10 +34,8 @@ export default function QuestionsPage() {
   // Individual question fields state
   const [questionFields, setQuestionFields] = useState<QuestionField[]>([
     { id: 1, question: "", limitType: "none", limitValue: 100 },
-    { id: 2, question: "", limitType: "none", limitValue: 100 },
-    { id: 3, question: "", limitType: "none", limitValue: 100 },
   ]);
-  const [nextId, setNextId] = useState(4);
+  const [nextId, setNextId] = useState(2);
 
   const [error, setError] = useState<string | null>(null);
   const [questionsCompanyInfo, setQuestionsCompanyInfo] = useState(
@@ -294,7 +292,7 @@ export default function QuestionsPage() {
               </Button>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-4 mb-4 pr-1" style={{ maxHeight: "400px" }}>
+            <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-1" style={{ maxHeight: "400px" }}>
               {questionFields.map((field, index) => (
                 <div key={field.id} className="p-3 bg-background/50 rounded-lg border border-card-border/50">
                   <div className="flex items-center justify-between mb-2">
@@ -311,44 +309,43 @@ export default function QuestionsPage() {
                       </button>
                     )}
                   </div>
-                  <textarea
-                    className="input-field min-h-16 mb-2 font-sans text-sm"
-                    placeholder="Enter your question..."
-                    value={field.question}
-                    onChange={(e) => updateQuestionField(field.id, "question", e.target.value)}
-                    rows={2}
-                  />
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs text-muted">Limit:</label>
+                  {/* Question input and Limit in the same row */}
+                  <div className="flex items-start gap-3">
+                    <textarea
+                      className="input-field flex-1 min-h-12 font-sans text-sm"
+                      placeholder="Enter your question..."
+                      value={field.question}
+                      onChange={(e) => updateQuestionField(field.id, "question", e.target.value)}
+                      rows={2}
+                    />
+                    <div className="flex flex-col gap-2 shrink-0">
                       <select
                         value={field.limitType}
                         onChange={(e) =>
                           updateQuestionField(field.id, "limitType", e.target.value)
                         }
-                        className="input-field text-xs py-1 px-2 w-auto"
+                        className="input-field text-xs py-1.5 px-2 w-28"
                       >
                         <option value="none">No limit</option>
                         <option value="words">Words</option>
                         <option value="characters">Characters</option>
                       </select>
+                      {field.limitType !== "none" && (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            value={field.limitValue}
+                            onChange={(e) =>
+                              updateQuestionField(field.id, "limitValue", parseInt(e.target.value) || 0)
+                            }
+                            className="input-field text-xs py-1 px-2 w-16"
+                            min="1"
+                            placeholder="100"
+                          />
+                          <span className="text-xs text-muted-light">{field.limitType === "words" ? "w" : "ch"}</span>
+                        </div>
+                      )}
                     </div>
-                    {field.limitType !== "none" && (
-                      <div className="flex items-center gap-2">
-                        <label className="text-xs text-muted">Max:</label>
-                        <input
-                          type="number"
-                          value={field.limitValue}
-                          onChange={(e) =>
-                            updateQuestionField(field.id, "limitValue", parseInt(e.target.value) || 0)
-                          }
-                          className="input-field text-xs py-1 px-2 w-20"
-                          min="1"
-                          placeholder="100"
-                        />
-                        <span className="text-xs text-muted-light">{field.limitType}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}
@@ -362,7 +359,7 @@ export default function QuestionsPage() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
                 <path d="M12 5v14M5 12h14" />
               </svg>
-              Add Another Question
+              Add Question
             </Button>
 
             <Button

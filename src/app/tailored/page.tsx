@@ -72,11 +72,6 @@ export default function TailoredPage() {
   };
 
   const handleLogToSheet = async () => {
-    if (!applicationLink.trim()) {
-      setLogError("Application link is required");
-      return;
-    }
-
     setLogError("");
     setIsLogging(true);
 
@@ -87,7 +82,7 @@ export default function TailoredPage() {
         body: JSON.stringify({
           companyName,
           positionTitle,
-          applicationLink,
+          applicationLink: applicationLink.trim() || "N/A",
           notes,
         }),
       });
@@ -199,6 +194,49 @@ export default function TailoredPage() {
       <Navbar currentStep={2} />
 
       <div className="max-w-6xl mx-auto">
+        {/* Top Navigation Bar */}
+        <div className="flex justify-between items-center mb-6 fade-in">
+          <Button
+            onClick={() => router.push("/")}
+            variant="secondary"
+            className="text-sm py-2.5"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+            Back to Inputs
+          </Button>
+
+          <Button
+            onClick={() => setShowLogModal(true)}
+            variant="secondary"
+            className="text-sm py-2.5"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <line x1="3" y1="9" x2="21" y2="9" />
+              <line x1="3" y1="15" x2="21" y2="15" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+            </svg>
+            Log to Sheet
+          </Button>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-10 fade-in">
           <h1 className="text-3xl font-bold text-foreground mb-2">
@@ -397,49 +435,9 @@ export default function TailoredPage() {
 
         {/* Navigation */}
         <div
-          className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center gap-3 fade-in"
+          className="mt-6 sm:mt-8 flex justify-center fade-in"
           style={{ animationDelay: "0.15s" }}
         >
-          <Button
-            onClick={() => router.push("/")}
-            variant="secondary"
-            className="text-sm py-2.5"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
-            </svg>
-            Back to Inputs
-          </Button>
-
-          <Button
-            onClick={() => setShowLogModal(true)}
-            variant="secondary"
-            className="text-sm py-2.5"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <line x1="3" y1="9" x2="21" y2="9" />
-              <line x1="3" y1="15" x2="21" y2="15" />
-              <line x1="9" y1="3" x2="9" y2="21" />
-            </svg>
-            Log to Sheet
-          </Button>
-
           <Button
             onClick={() => router.push("/questions")}
             variant="primary"
@@ -706,11 +704,11 @@ export default function TailoredPage() {
                   />
                 </div>
 
-                {/* Required field */}
+                {/* Application Link field */}
                 <div className="mb-4">
                   <label className="text-sm text-muted mb-1 block">
                     Application Link{" "}
-                    <span className="text-xs text-red-500">*required</span>
+                    <span className="text-xs text-gray-400">(optional - defaults to N/A)</span>
                   </label>
                   <input
                     type="url"
