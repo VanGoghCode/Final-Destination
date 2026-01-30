@@ -19,6 +19,8 @@ export default function TailoredPage() {
     positionTitle,
     personalDetails,
     companyInfo,
+    jobCountry,
+    jobWorkMode,
     setTailoredResume,
     setTailoredCoverLetter,
     setCompanyName,
@@ -43,7 +45,6 @@ export default function TailoredPage() {
   const [logError, setLogError] = useState("");
   const [country, setCountry] = useState("");
   const [workMode, setWorkMode] = useState<"" | "Remote" | "Hybrid" | "On-site">("");
-  const [isExtractingJobInfo, setIsExtractingJobInfo] = useState(false);
   const [editableCompanyName, setEditableCompanyName] = useState("");
   const [editablePositionTitle, setEditablePositionTitle] = useState("");
   const applicationLinkRef = useRef<HTMLInputElement>(null);
@@ -56,17 +57,20 @@ export default function TailoredPage() {
   const [limitValue, setLimitValue] = useState<number>(100);
   const [searchMode, setSearchMode] = useState<"context" | "context+internet" | "internet">("context");
 
-  // Initialize editable fields when modal opens
+  // Initialize editable fields when modal opens - pre-fill with extracted values
   useEffect(() => {
     if (showLogModal) {
       setEditableCompanyName(companyName);
       setEditablePositionTitle(positionTitle);
+      // Pre-fill with extracted location info from context (extracted during tailoring)
+      setCountry(jobCountry || "");
+      setWorkMode(jobWorkMode || "");
       // Focus on application link field after modal opens
       setTimeout(() => {
         applicationLinkRef.current?.focus();
       }, 100);
     }
-  }, [showLogModal, companyName, positionTitle]);
+  }, [showLogModal, companyName, positionTitle, jobCountry, jobWorkMode]);
 
   // Generate formatted filenames
   const formatName = (str: string) =>
@@ -89,37 +93,6 @@ export default function TailoredPage() {
     } else {
       setCopiedCoverLetter(true);
       setTimeout(() => setCopiedCoverLetter(false), 2000);
-    }
-  };
-
-  // Extract country and work mode from job description using AI
-  const extractJobInfo = async () => {
-    if (!jobDescription) return;
-    
-    setIsExtractingJobInfo(true);
-    try {
-      const response = await fetch("/api/data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "extract-job-info",
-          jobDescription,
-          companyName,
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok && data.country) {
-        setCountry(data.country);
-      }
-      if (response.ok && data.workMode) {
-        setWorkMode(data.workMode);
-      }
-    } catch (err) {
-      console.error("Error extracting job info:", err);
-    } finally {
-      setIsExtractingJobInfo(false);
     }
   };
 
@@ -853,26 +826,14 @@ export default function TailoredPage() {
                     <label className="text-sm text-muted">
                       Location & Work Mode
                     </label>
-                    <Button
-                      onClick={extractJobInfo}
-                      disabled={isExtractingJobInfo || !jobDescription}
-                      variant="ghost"
-                      className="text-xs py-1 px-2"
-                    >
-                      {isExtractingJobInfo ? (
-                        <>
-                          <span className="spinner-small" />
-                          Extracting...
-                        </>
-                      ) : (
-                        <>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                          </svg>
-                          Auto-fill
-                        </>
-                      )}
-                    </Button>
+                    {(jobCountry || jobWorkMode) && (
+                      <span className="text-xs text-green-500 flex items-center gap-1">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Auto-filled
+                      </span>
+                    )}
                   </div>
                   <div className="flex gap-3">
                     {/* Country Input */}

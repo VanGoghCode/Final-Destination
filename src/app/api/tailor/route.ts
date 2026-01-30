@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { tailorResume } from "@/lib/gemini";
+import { tailorResume, extractJobLocationInfo } from "@/lib/gemini";
 
 export async function POST(request: Request) {
   try {
@@ -9,6 +9,7 @@ export async function POST(request: Request) {
       jobDescription,
       personalDetails,
       companyInfo,
+      companyName,
     } = body;
 
     if (!resumeLatex || !jobDescription) {
@@ -18,17 +19,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate only the tailored resume
-    // Cover letter is generated on-demand via /api/tailor-cover-letter
-    const tailoredResume = await tailorResume(
-      resumeLatex,
-      jobDescription,
-      personalDetails,
-      companyInfo || ""
-    );
+    // Run resume tailoring and location extraction in parallel
+    const [tailoredResume, locationInfo] = await Promise.all([
+      tailorResume(
+        resumeLatex,
+        jobDescription,
+        personalDetails,
+        companyInfo || ""
+      ),
+      extractJobLocationInfo(jobDescription, companyName || ""),
+    ]);
 
     return NextResponse.json({
       tailoredResume,
+      jobCountry: locationInfo.country,
+      jobWorkMode: locationInfo.workMode,
     });
   } catch (error) {
     console.error("Error tailoring resume:", error);

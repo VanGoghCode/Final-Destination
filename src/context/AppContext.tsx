@@ -21,6 +21,10 @@ interface AppState {
   tailoredResume: string;
   tailoredCoverLetter: string;
 
+  // Job location info (extracted during tailoring)
+  jobCountry: string;
+  jobWorkMode: "" | "Remote" | "Hybrid" | "On-site";
+
   // Step 3
   applicationQuestions: string;
   generatedAnswers: string;
@@ -43,6 +47,8 @@ interface AppContextType extends AppState {
   setIsResearching: (value: boolean) => void;
   setTailoredResume: (value: string) => void;
   setTailoredCoverLetter: (value: string) => void;
+  setJobCountry: (value: string) => void;
+  setJobWorkMode: (value: "" | "Remote" | "Hybrid" | "On-site") => void;
   setApplicationQuestions: (value: string) => void;
   setGeneratedAnswers: (value: string) => void;
   setIsGeneratingTailored: (value: boolean) => void;
@@ -63,6 +69,8 @@ const initialState: AppState = {
   isResearching: false,
   tailoredResume: "",
   tailoredCoverLetter: "",
+  jobCountry: "",
+  jobWorkMode: "",
   applicationQuestions: "",
   generatedAnswers: "",
   isGeneratingTailored: false,
@@ -98,6 +106,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, tailoredResume: value }));
   const setTailoredCoverLetter = (value: string) =>
     setState((prev) => ({ ...prev, tailoredCoverLetter: value }));
+  const setJobCountry = (value: string) =>
+    setState((prev) => ({ ...prev, jobCountry: value }));
+  const setJobWorkMode = (value: "" | "Remote" | "Hybrid" | "On-site") =>
+    setState((prev) => ({ ...prev, jobWorkMode: value }));
   const setApplicationQuestions = (value: string) =>
     setState((prev) => ({ ...prev, applicationQuestions: value }));
   const setGeneratedAnswers = (value: string) =>
@@ -124,6 +136,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setIsResearching,
         setTailoredResume,
         setTailoredCoverLetter,
+        setJobCountry,
+        setJobWorkMode,
         setApplicationQuestions,
         setGeneratedAnswers,
         setIsGeneratingTailored,

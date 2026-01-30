@@ -32,6 +32,8 @@ export default function Home() {
     setIsResearching,
     setTailoredResume,
     setTailoredCoverLetter,
+    setJobCountry,
+    setJobWorkMode,
     tailoredResume,
     tailoredCoverLetter,
     isGeneratingTailored,
@@ -116,6 +118,7 @@ export default function Home() {
           jobDescription,
           personalDetails,
           companyInfo: research ?? companyInfo,
+          companyName,
         }),
       });
 
@@ -127,6 +130,15 @@ export default function Home() {
 
       setTailoredResume(data.tailoredResume);
       setTailoredCoverLetter(""); // Clear any previous cover letter - will be generated on-demand
+      
+      // Store extracted location info for auto-fill in log modal
+      if (data.jobCountry) {
+        setJobCountry(data.jobCountry);
+      }
+      if (data.jobWorkMode) {
+        setJobWorkMode(data.jobWorkMode);
+      }
+      
       router.push("/tailored");
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
