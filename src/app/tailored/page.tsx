@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
@@ -21,6 +21,8 @@ export default function TailoredPage() {
     companyInfo,
     setTailoredResume,
     setTailoredCoverLetter,
+    setCompanyName,
+    setPositionTitle,
   } = useAppContext();
 
   const [copiedResume, setCopiedResume] = useState(false);
@@ -42,6 +44,9 @@ export default function TailoredPage() {
   const [country, setCountry] = useState("");
   const [workMode, setWorkMode] = useState<"" | "Remote" | "Hybrid" | "On-site">("");
   const [isExtractingJobInfo, setIsExtractingJobInfo] = useState(false);
+  const [editableCompanyName, setEditableCompanyName] = useState("");
+  const [editablePositionTitle, setEditablePositionTitle] = useState("");
+  const applicationLinkRef = useRef<HTMLInputElement>(null);
 
   // General Q&A state
   const [generalQuestion, setGeneralQuestion] = useState("");
@@ -50,6 +55,18 @@ export default function TailoredPage() {
   const [limitType, setLimitType] = useState<"none" | "words" | "characters">("none");
   const [limitValue, setLimitValue] = useState<number>(100);
   const [searchMode, setSearchMode] = useState<"context" | "context+internet" | "internet">("context");
+
+  // Initialize editable fields when modal opens
+  useEffect(() => {
+    if (showLogModal) {
+      setEditableCompanyName(companyName);
+      setEditablePositionTitle(positionTitle);
+      // Focus on application link field after modal opens
+      setTimeout(() => {
+        applicationLinkRef.current?.focus();
+      }, 100);
+    }
+  }, [showLogModal, companyName, positionTitle]);
 
   // Generate formatted filenames
   const formatName = (str: string) =>
@@ -117,13 +134,17 @@ export default function TailoredPage() {
     if (notes.trim()) noteParts.push(notes.trim());
     const composedNotes = noteParts.join(" | ");
 
+    // Use editable fields for logging
+    const finalCompanyName = editableCompanyName || companyName;
+    const finalPositionTitle = editablePositionTitle || positionTitle;
+
     try {
       const response = await fetch("/api/sheets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          companyName,
-          positionTitle,
+          companyName: finalCompanyName,
+          positionTitle: finalPositionTitle,
           applicationLink: applicationLink.trim() || "N/A",
           notes: composedNotes,
         }),
@@ -133,6 +154,14 @@ export default function TailoredPage() {
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to log application");
+      }
+
+      // Update context with edited values
+      if (editableCompanyName !== companyName) {
+        setCompanyName(editableCompanyName);
+      }
+      if (editablePositionTitle !== positionTitle) {
+        setPositionTitle(editablePositionTitle);
       }
 
       setLogSuccess(true);
@@ -279,16 +308,6 @@ export default function TailoredPage() {
             </svg>
             Log to Sheet
           </Button>
-        </div>
-
-        {/* Header */}
-        <div className="text-center mb-10 fade-in">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Tailored Documents
-          </h1>
-          <p className="text-muted text-base">
-            Your resume and cover letter customized for this role
-          </p>
         </div>
 
         {/* Filename Copy Buttons */}
@@ -477,31 +496,6 @@ export default function TailoredPage() {
           </div>
         </div>
 
-        {/* Navigation */}
-        <div
-          className="mt-6 sm:mt-8 flex justify-center fade-in"
-          style={{ animationDelay: "0.15s" }}
-        >
-          <Button
-            onClick={() => router.push("/questions")}
-            variant="primary"
-            className="text-sm py-2.5"
-          >
-            Continue to Q&A
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </Button>
-        </div>
-
         {/* General Q&A Section */}
         <div
           className="mt-8 glass-card p-4 sm:p-5 fade-in"
@@ -534,121 +528,121 @@ export default function TailoredPage() {
             />
           </div>
 
-          {/* Limit Options */}
-          <div className="flex flex-wrap items-center gap-3 mb-3 p-3 bg-surface-hover rounded-lg border border-card-border">
-            <span className="text-xs font-medium text-muted">Answer Limit:</span>
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name="limitType"
-                  value="none"
-                  checked={limitType === "none"}
-                  onChange={() => setLimitType("none")}
-                  className="w-3.5 h-3.5 accent-primary"
-                />
-                <span className="text-xs text-foreground">No Limit</span>
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name="limitType"
-                  value="words"
-                  checked={limitType === "words"}
-                  onChange={() => setLimitType("words")}
-                  className="w-3.5 h-3.5 accent-primary"
-                />
-                <span className="text-xs text-foreground">Word Limit</span>
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name="limitType"
-                  value="characters"
-                  checked={limitType === "characters"}
-                  onChange={() => setLimitType("characters")}
-                  className="w-3.5 h-3.5 accent-primary"
-                />
-                <span className="text-xs text-foreground">Character Limit</span>
-              </label>
-            </div>
-            {limitType !== "none" && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  value={limitValue}
-                  onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value) || 1))}
-                  min="1"
-                  className="input-field w-20 text-xs py-1.5 text-center"
-                />
-                <span className="text-xs text-muted">{limitType}</span>
+          {/* Combined Options Row - Modern UI */}
+          <div className="flex flex-col lg:flex-row gap-3 mb-4">
+            {/* Answer Limit */}
+            <div className="flex-1 p-3 bg-gradient-to-r from-surface-hover to-transparent rounded-xl border border-card-border/50">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 shrink-0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">
+                    <path d="M4 7V4h16v3" />
+                    <path d="M9 20h6" />
+                    <path d="M12 4v16" />
+                  </svg>
+                  <span className="text-xs font-semibold text-foreground">Limit</span>
+                </div>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {[
+                    { value: "none", label: "None" },
+                    { value: "words", label: "Words" },
+                    { value: "characters", label: "Chars" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setLimitType(opt.value as typeof limitType)}
+                      className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
+                        limitType === opt.value
+                          ? "bg-primary text-white shadow-sm"
+                          : "text-muted hover:text-foreground hover:bg-surface-hover"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                  {limitType !== "none" && (
+                    <input
+                      type="number"
+                      value={limitValue}
+                      onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value) || 1))}
+                      min="1"
+                      className="w-16 px-2 py-1 text-xs text-center rounded-lg border border-card-border bg-background focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
+                    />
+                  )}
+                </div>
               </div>
-            )}
-          </div>
+            </div>
 
-          {/* Search Mode Options */}
-          <div className="flex flex-wrap items-center gap-3 mb-4 p-3 bg-surface-hover rounded-lg border border-card-border">
-            <span className="text-xs font-medium text-muted">Knowledge Source:</span>
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name="searchMode"
-                  value="context"
-                  checked={searchMode === "context"}
-                  onChange={() => setSearchMode("context")}
-                  className="w-3.5 h-3.5 accent-primary"
-                />
-                <span className="text-xs text-foreground">Context Only</span>
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name="searchMode"
-                  value="context+internet"
-                  checked={searchMode === "context+internet"}
-                  onChange={() => setSearchMode("context+internet")}
-                  className="w-3.5 h-3.5 accent-primary"
-                />
-                <span className="text-xs text-foreground">Context + Internet</span>
-              </label>
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="radio"
-                  name="searchMode"
-                  value="internet"
-                  checked={searchMode === "internet"}
-                  onChange={() => setSearchMode("internet")}
-                  className="w-3.5 h-3.5 accent-primary"
-                />
-                <span className="text-xs text-foreground">Internet Only</span>
-              </label>
+            {/* Knowledge Source */}
+            <div className="flex-1 p-3 bg-gradient-to-r from-surface-hover to-transparent rounded-xl border border-card-border/50">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 shrink-0">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M2 12h20" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                  <span className="text-xs font-semibold text-foreground">Source</span>
+                </div>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {[
+                    { value: "context", label: "Context" },
+                    { value: "context+internet", label: "Context + Web" },
+                    { value: "internet", label: "Web Only" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setSearchMode(opt.value as typeof searchMode)}
+                      className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
+                        searchMode === opt.value
+                          ? "bg-primary text-white shadow-sm"
+                          : "text-muted hover:text-foreground hover:bg-surface-hover"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
+          {/* Quick Actions and Generate Button */}
           <div className="flex flex-col sm:flex-row gap-2 mb-4">
-            <Button
-              onClick={() =>
-                setGeneralQuestion(
-                  "Give me a list of skills from my current tailored resume, separated by commas. no extra text or formatting.",
-                )
-              }
-              variant="secondary"
-              className="text-xs py-2 px-3 shrink-0"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                onClick={() =>
+                  setGeneralQuestion(
+                    "Give me a list of skills from my current tailored resume, separated by commas. no extra text or formatting.",
+                  )
+                }
+                variant="secondary"
+                className="text-xs py-2 px-3"
               >
-                <path d="M12 3v18" />
-                <path d="M5 10l7 7 7-7" />
-              </svg>
-              Quick: List Skills
-            </Button>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+                  <rect x="9" y="3" width="6" height="4" rx="1" />
+                  <path d="M9 12h6" />
+                  <path d="M9 16h6" />
+                </svg>
+                List Skills
+              </Button>
+              <Button
+                onClick={() =>
+                  setGeneralQuestion(
+                    "Based on my resume, what is my expected salary range for this position? Consider my experience level, skills, and the job market. Give me a range in USD.",
+                  )
+                }
+                variant="secondary"
+                className="text-xs py-2 px-3"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="12" y1="1" x2="12" y2="23" />
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+                Salary Range
+              </Button>
+            </div>
+            <div className="flex-1" />
             <Button
               onClick={async () => {
                 if (!generalQuestion.trim()) return;
@@ -732,10 +726,61 @@ export default function TailoredPage() {
         </div>
       </div>
 
+              {/* Navigation */}
+        <div
+          className="mt-6 sm:mt-8 flex justify-center fade-in"
+          style={{ animationDelay: "0.15s" }}
+        >
+          <Button
+            onClick={() => router.push("/questions")}
+            variant="primary"
+            className="text-sm py-2.5"
+          >
+            Continue to Q&A
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <line x1="5" y1="12" x2="19" y2="12" />
+              <polyline points="12 5 19 12 12 19" />
+            </svg>
+          </Button>
+        </div>
+
+
       {/* Log to Sheet Modal */}
       {showLogModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="glass-card p-6 max-w-md w-full fade-in">
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowLogModal(false);
+          }}
+        >
+          <div 
+            className="glass-card p-6 max-w-md w-full fade-in relative"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey && !isLogging) {
+                e.preventDefault();
+                handleLogToSheet();
+              }
+            }}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowLogModal(false)}
+              className="absolute top-4 right-4 p-1 text-muted hover:text-foreground transition-colors rounded-lg hover:bg-surface-hover"
+              aria-label="Close"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
             <h3 className="text-xl font-bold text-foreground mb-4">
               📊 Log Application to Sheet
             </h3>
@@ -758,44 +803,42 @@ export default function TailoredPage() {
               </div>
             ) : (
               <>
-                {/* Auto-filled fields (read-only) */}
-                <div className="mb-4">
-                  <label className="text-sm text-muted mb-1 block">
-                    Company Name{" "}
-                    <span className="text-xs text-green-600">
-                      (auto-filled)
-                    </span>
-                  </label>
-                  <input
-                    type="text"
-                    value={companyName}
-                    readOnly
-                    className="input-field bg-gray-50 cursor-not-allowed"
-                  />
-                </div>
-
-                <div className="mb-4">
-                  <label className="text-sm text-muted mb-1 block">
-                    Position{" "}
-                    <span className="text-xs text-green-600">
-                      (auto-filled)
-                    </span>
-                  </label>
-                  <input
-                    type="text"
-                    value={positionTitle}
-                    readOnly
-                    className="input-field bg-gray-50 cursor-not-allowed"
-                  />
+                {/* Editable Company Name and Position */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div>
+                    <label className="text-sm text-muted mb-1 block">
+                      Company Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editableCompanyName}
+                      onChange={(e) => setEditableCompanyName(e.target.value)}
+                      className="input-field text-sm"
+                      placeholder="Company name..."
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-muted mb-1 block">
+                      Position
+                    </label>
+                    <input
+                      type="text"
+                      value={editablePositionTitle}
+                      onChange={(e) => setEditablePositionTitle(e.target.value)}
+                      className="input-field text-sm"
+                      placeholder="Position title..."
+                    />
+                  </div>
                 </div>
 
                 {/* Application Link field */}
                 <div className="mb-4">
                   <label className="text-sm text-muted mb-1 block">
                     Application Link{" "}
-                    <span className="text-xs text-gray-400">(optional - defaults to N/A)</span>
+                    <span className="text-xs text-gray-400">(optional)</span>
                   </label>
                   <input
+                    ref={applicationLinkRef}
                     type="url"
                     value={applicationLink}
                     onChange={(e) => setApplicationLink(e.target.value)}

@@ -263,16 +263,6 @@ export default function QuestionsPage() {
       <Navbar currentStep={3} />
 
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-10 fade-in">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Application Questions
-          </h1>
-          <p className="text-muted text-base">
-            Get answers aligned with the company&apos;s values and your
-            experience
-          </p>
-        </div>
 
         {/* Main content grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
@@ -312,38 +302,43 @@ export default function QuestionsPage() {
                   {/* Question input and Limit in the same row */}
                   <div className="flex items-start gap-3">
                     <textarea
-                      className="input-field flex-1 min-h-12 font-sans text-sm"
+                      className="input-field flex-1 max-h-14 font-sans text-sm"
                       placeholder="Enter your question..."
                       value={field.question}
                       onChange={(e) => updateQuestionField(field.id, "question", e.target.value)}
                       rows={2}
                     />
-                    <div className="flex flex-col gap-2 shrink-0">
-                      <select
-                        value={field.limitType}
-                        onChange={(e) =>
-                          updateQuestionField(field.id, "limitType", e.target.value)
-                        }
-                        className="input-field text-xs py-1.5 px-2 w-28"
-                      >
-                        <option value="none">No limit</option>
-                        <option value="words">Words</option>
-                        <option value="characters">Characters</option>
-                      </select>
+                    {/* Modern Limit Selector */}
+                    <div className="flex items-center min-h-14 gap-1.5 p-1.5 bg-surface-hover rounded-lg border border-card-border/50 shrink-0">
+                      {[
+                        { value: "none", label: "∞" },
+                        { value: "words", label: "W" },
+                        { value: "characters", label: "C" },
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => updateQuestionField(field.id, "limitType", opt.value)}
+                          className={`w-7 h-7 text-xs font-semibold rounded-md transition-all ${
+                            field.limitType === opt.value
+                              ? "bg-primary text-white shadow-sm"
+                              : "text-muted hover:text-foreground hover:bg-background"
+                          }`}
+                          title={opt.value === "none" ? "No limit" : opt.value === "words" ? "Word limit" : "Character limit"}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
                       {field.limitType !== "none" && (
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="number"
-                            value={field.limitValue}
-                            onChange={(e) =>
-                              updateQuestionField(field.id, "limitValue", parseInt(e.target.value) || 0)
-                            }
-                            className="input-field text-xs py-1 px-2 w-16"
-                            min="1"
-                            placeholder="100"
-                          />
-                          <span className="text-xs text-muted-light">{field.limitType === "words" ? "w" : "ch"}</span>
-                        </div>
+                        <input
+                          type="number"
+                          value={field.limitValue}
+                          onChange={(e) =>
+                            updateQuestionField(field.id, "limitValue", parseInt(e.target.value) || 0)
+                          }
+                          className="w-14 px-2 py-1 text-xs text-center rounded-md border border-card-border bg-background focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
+                          min="1"
+                          placeholder="100"
+                        />
                       )}
                     </div>
                   </div>
@@ -354,12 +349,9 @@ export default function QuestionsPage() {
             <Button
               onClick={addQuestionField}
               variant="ghost"
-              className="w-full mb-3 text-sm border border-dashed border-card-border hover:border-primary/50"
+              className="w-fit mb-3 p-4 text-sm border rounded-2xl border-card-border hover:border-primary/50"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-              Add Question
+              + Add Question
             </Button>
 
             <Button

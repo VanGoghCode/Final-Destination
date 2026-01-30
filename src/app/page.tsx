@@ -275,20 +275,20 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Personal Details */}
+          {/* Additional Comment */}
           <div
             className="glass-card p-5 fade-in"
             style={{ animationDelay: "0.2s" }}
           >
             <label className="section-label">
-              Personal Details{" "}
+              Additional Comment{" "}
               <span className="text-muted-light font-normal normal-case">
-                (optional)
+                (Optional)
               </span>
             </label>
             <textarea
               className="input-field h-32"
-              placeholder="Key achievements, certifications, or specific experience to highlight..."
+              placeholder="Any specific instructions for tailoring (e.g., emphasize leadership, focus on backend skills, highlight specific projects)..."
               value={personalDetails}
               onChange={(e) => setPersonalDetails(e.target.value)}
             />
@@ -424,7 +424,12 @@ export default function Home() {
 
       {/* Template Upload Modal */}
       {showTemplateUpload && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowTemplateUpload(false);
+          }}
+        >
           <div className="glass-card p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-foreground">Upload LaTeX Templates</h2>

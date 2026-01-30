@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Button from "@/components/Button";
 
 interface Company {
@@ -64,6 +64,7 @@ export default function JobsPage() {
   const [editingLinks, setEditingLinks] = useState<string[]>([]);
   const [newLink, setNewLink] = useState("");
   const [savingLinks, setSavingLinks] = useState(false);
+  const newLinkInputRef = useRef<HTMLInputElement>(null);
   
   // Track which companies have POC info revealed
   const [revealedPOC, setRevealedPOC] = useState<Set<string>>(new Set());
@@ -78,6 +79,21 @@ export default function JobsPage() {
   const [newPortalUrl, setNewPortalUrl] = useState("");
   const [newPortalLogo, setNewPortalLogo] = useState("");
   const [editingPortalIndex, setEditingPortalIndex] = useState<number | null>(null);
+  const newPortalNameRef = useRef<HTMLInputElement>(null);
+  
+  // Auto-focus when link modal opens
+  useEffect(() => {
+    if (linkModalOpen) {
+      setTimeout(() => newLinkInputRef.current?.focus(), 100);
+    }
+  }, [linkModalOpen]);
+  
+  // Auto-focus when portal modal opens
+  useEffect(() => {
+    if (portalModalOpen) {
+      setTimeout(() => newPortalNameRef.current?.focus(), 100);
+    }
+  }, [portalModalOpen]);
   
   // Load external portals from localStorage on mount
   useEffect(() => {
@@ -968,7 +984,12 @@ export default function JobsPage() {
 
       {/* Link Management Modal */}
       {linkModalOpen && linkModalCompany && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeLinkModal();
+          }}
+        >
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden">
             {/* Modal Header */}
             <div className="p-5 border-b border-gray-100">
@@ -1038,6 +1059,7 @@ export default function JobsPage() {
                 {/* Add new URL */}
                 <div className="flex gap-2 mt-4">
                   <input
+                    ref={newLinkInputRef}
                     type="url"
                     value={newLink}
                     onChange={(e) => setNewLink(e.target.value)}
@@ -1097,7 +1119,12 @@ export default function JobsPage() {
 
       {/* External Portal Modal */}
       {portalModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPortalModalOpen(false);
+          }}
+        >
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden">
             {/* Modal Header */}
             <div className="p-5 border-b border-gray-100">
@@ -1187,6 +1214,7 @@ export default function JobsPage() {
                 </label>
                 <div className="space-y-2">
                   <input
+                    ref={newPortalNameRef}
                     type="text"
                     value={newPortalName}
                     onChange={(e) => setNewPortalName(e.target.value)}
