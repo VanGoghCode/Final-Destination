@@ -3,6 +3,10 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 
 interface AppState {
+  // Personal details
+  firstName: string;
+  lastName: string;
+
   // Step 1 inputs
   resumeLatex: string;
   coverLetterLatex: string;
@@ -12,6 +16,10 @@ interface AppState {
   companyName: string;
   companyUrl: string;
   positionTitle: string;
+
+  // Selected template IDs
+  selectedResumeTemplateId: string;
+  selectedCoverLetterTemplateId: string;
 
   // Company Research
   companyResearch: string;
@@ -35,6 +43,8 @@ interface AppState {
 }
 
 interface AppContextType extends AppState {
+  setFirstName: (value: string) => void;
+  setLastName: (value: string) => void;
   setResumeLatex: (value: string) => void;
   setCoverLetterLatex: (value: string) => void;
   setJobDescription: (value: string) => void;
@@ -43,6 +53,8 @@ interface AppContextType extends AppState {
   setCompanyName: (value: string) => void;
   setCompanyUrl: (value: string) => void;
   setPositionTitle: (value: string) => void;
+  setSelectedResumeTemplateId: (value: string) => void;
+  setSelectedCoverLetterTemplateId: (value: string) => void;
   setCompanyResearch: (value: string) => void;
   setIsResearching: (value: boolean) => void;
   setTailoredResume: (value: string) => void;
@@ -57,6 +69,8 @@ interface AppContextType extends AppState {
 }
 
 const initialState: AppState = {
+  firstName: "",
+  lastName: "",
   resumeLatex: "",
   coverLetterLatex: "",
   jobDescription: "",
@@ -65,6 +79,8 @@ const initialState: AppState = {
   companyName: "",
   companyUrl: "",
   positionTitle: "",
+  selectedResumeTemplateId: "",
+  selectedCoverLetterTemplateId: "",
   companyResearch: "",
   isResearching: false,
   tailoredResume: "",
@@ -82,6 +98,10 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(initialState);
 
+  const setFirstName = (value: string) =>
+    setState((prev) => ({ ...prev, firstName: value }));
+  const setLastName = (value: string) =>
+    setState((prev) => ({ ...prev, lastName: value }));
   const setResumeLatex = (value: string) =>
     setState((prev) => ({ ...prev, resumeLatex: value }));
   const setCoverLetterLatex = (value: string) =>
@@ -98,6 +118,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, companyUrl: value }));
   const setPositionTitle = (value: string) =>
     setState((prev) => ({ ...prev, positionTitle: value }));
+  const setSelectedResumeTemplateId = (value: string) =>
+    setState((prev) => ({ ...prev, selectedResumeTemplateId: value }));
+  const setSelectedCoverLetterTemplateId = (value: string) =>
+    setState((prev) => ({ ...prev, selectedCoverLetterTemplateId: value }));
   const setCompanyResearch = (value: string) =>
     setState((prev) => ({ ...prev, companyResearch: value }));
   const setIsResearching = (value: boolean) =>
@@ -124,6 +148,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider
       value={{
         ...state,
+        setFirstName,
+        setLastName,
         setResumeLatex,
         setCoverLetterLatex,
         setJobDescription,
@@ -132,6 +158,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setCompanyName,
         setCompanyUrl,
         setPositionTitle,
+        setSelectedResumeTemplateId,
+        setSelectedCoverLetterTemplateId,
         setCompanyResearch,
         setIsResearching,
         setTailoredResume,

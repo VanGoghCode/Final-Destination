@@ -355,7 +355,6 @@ body {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  margin-bottom: 12px;
   display: block;
 }
 

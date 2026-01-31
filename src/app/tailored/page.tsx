@@ -10,6 +10,8 @@ import Button from "@/components/Button";
 export default function TailoredPage() {
   const router = useRouter();
   const {
+    firstName,
+    lastName,
     tailoredResume,
     tailoredCoverLetter,
     resumeLatex,
@@ -29,6 +31,8 @@ export default function TailoredPage() {
 
   const [copiedResume, setCopiedResume] = useState(false);
   const [copiedCoverLetter, setCopiedCoverLetter] = useState(false);
+  const [copiedResumeDetailed, setCopiedResumeDetailed] = useState(false);
+  const [copiedCoverLetterDetailed, setCopiedCoverLetterDetailed] = useState(false);
 
   // Regeneration state
   const [isRegeneratingResume, setIsRegeneratingResume] = useState(false);
@@ -79,20 +83,34 @@ export default function TailoredPage() {
       .replace(/\s+/g, "_")
       .trim();
 
-  const resumeFileName = `Kirtankumar_Thummar_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_Resume`;
-  const coverLetterFileName = `Kirtankumar_Thummar_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_CoverLetter`;
+  // Use firstName and lastName from context, fallback to defaults
+  const fullName = `${firstName || "First"}_${lastName || "Last"}`;
+  
+  // Plain filenames (without company/role)
+  const resumeFileNamePlain = `${fullName}_Resume`;
+  const coverLetterFileNamePlain = `${fullName}_CoverLetter`;
+  
+  // Detailed filenames (with company and role)
+  const resumeFileNameDetailed = `${fullName}_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_Resume`;
+  const coverLetterFileNameDetailed = `${fullName}_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_CoverLetter`;
 
   const copyToClipboard = async (
     text: string,
-    type: "resume" | "coverLetter",
+    type: "resume" | "coverLetter" | "resumeDetailed" | "coverLetterDetailed",
   ) => {
     await navigator.clipboard.writeText(text);
     if (type === "resume") {
       setCopiedResume(true);
       setTimeout(() => setCopiedResume(false), 2000);
-    } else {
+    } else if (type === "coverLetter") {
       setCopiedCoverLetter(true);
       setTimeout(() => setCopiedCoverLetter(false), 2000);
+    } else if (type === "resumeDetailed") {
+      setCopiedResumeDetailed(true);
+      setTimeout(() => setCopiedResumeDetailed(false), 2000);
+    } else {
+      setCopiedCoverLetterDetailed(true);
+      setTimeout(() => setCopiedCoverLetterDetailed(false), 2000);
     }
   };
 
@@ -284,104 +302,72 @@ export default function TailoredPage() {
         </div>
 
         {/* Filename Copy Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 mb-5">
-          <div
-            className="glass-card p-4 fade-in"
-            style={{ animationDelay: "0.02s" }}
-          >
-            <label className="section-label text-sm">Resume Filename</label>
-            <div className="flex items-center gap-2 mt-2">
-              <code className="flex-1 bg-surface-hover px-3 py-2 rounded-lg text-sm font-mono text-foreground truncate">
-                {resumeFileName}
-              </code>
-              <Button
-                onClick={() => copyToClipboard(resumeFileName, "resume")}
-                variant="ghost"
-                className="copy-btn shrink-0"
-              >
-                {copiedResume ? (
-                  <>
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                    >
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </svg>
-                    Copy
-                  </>
-                )}
-              </Button>
+        <div className="glass-card p-4 mb-5 fade-in" style={{ animationDelay: "0.02s" }}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Resume Filenames */}
+            <div>
+              <label className="section-label text-sm mb-2">Resume Filenames</label>
+              {/* Plain filename */}
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-muted w-16 shrink-0">Plain:</span>
+                <code className="flex-1 bg-surface-hover px-3 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
+                  {resumeFileNamePlain}
+                </code>
+                <Button
+                  onClick={() => copyToClipboard(resumeFileNamePlain, "resume")}
+                  variant="ghost"
+                  className="copy-btn shrink-0 text-xs py-1 px-2"
+                >
+                  {copiedResume ? "✓" : "Copy"}
+                </Button>
+              </div>
+              {/* Detailed filename */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted w-16 shrink-0">Detailed:</span>
+                <code className="flex-1 bg-surface-hover px-3 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
+                  {resumeFileNameDetailed}
+                </code>
+                <Button
+                  onClick={() => copyToClipboard(resumeFileNameDetailed, "resumeDetailed")}
+                  variant="ghost"
+                  className="copy-btn shrink-0 text-xs py-1 px-2"
+                >
+                  {copiedResumeDetailed ? "✓" : "Copy"}
+                </Button>
+              </div>
             </div>
-          </div>
 
-          <div
-            className="glass-card p-4 fade-in"
-            style={{ animationDelay: "0.04s" }}
-          >
-            <label className="section-label text-sm">
-              Cover Letter Filename
-            </label>
-            <div className="flex items-center gap-2 mt-2">
-              <code className="flex-1 bg-surface-hover px-3 py-2 rounded-lg text-sm font-mono text-foreground truncate">
-                {coverLetterFileName}
-              </code>
-              <Button
-                onClick={() =>
-                  copyToClipboard(coverLetterFileName, "coverLetter")
-                }
-                variant="ghost"
-                className="copy-btn shrink-0"
-              >
-                {copiedCoverLetter ? (
-                  <>
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                    >
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </svg>
-                    Copy
-                  </>
-                )}
-              </Button>
+            {/* Cover Letter Filenames */}
+            <div>
+              <label className="section-label text-sm mb-2">Cover Letter Filenames</label>
+              {/* Plain filename */}
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-muted w-16 shrink-0">Plain:</span>
+                <code className="flex-1 bg-surface-hover px-3 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
+                  {coverLetterFileNamePlain}
+                </code>
+                <Button
+                  onClick={() => copyToClipboard(coverLetterFileNamePlain, "coverLetter")}
+                  variant="ghost"
+                  className="copy-btn shrink-0 text-xs py-1 px-2"
+                >
+                  {copiedCoverLetter ? "✓" : "Copy"}
+                </Button>
+              </div>
+              {/* Detailed filename */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted w-16 shrink-0">Detailed:</span>
+                <code className="flex-1 bg-surface-hover px-3 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
+                  {coverLetterFileNameDetailed}
+                </code>
+                <Button
+                  onClick={() => copyToClipboard(coverLetterFileNameDetailed, "coverLetterDetailed")}
+                  variant="ghost"
+                  className="copy-btn shrink-0 text-xs py-1 px-2"
+                >
+                  {copiedCoverLetterDetailed ? "✓" : "Copy"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -504,7 +490,7 @@ export default function TailoredPage() {
           {/* Combined Options Row - Modern UI */}
           <div className="flex flex-col lg:flex-row gap-3 mb-4">
             {/* Answer Limit */}
-            <div className="flex-1 p-3 bg-gradient-to-r from-surface-hover to-transparent rounded-xl border border-card-border/50">
+            <div className="flex-1 p-3 bg-linear-to-r from-surface-hover to-transparent rounded-xl border border-card-border/50">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 shrink-0">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">
@@ -546,7 +532,7 @@ export default function TailoredPage() {
             </div>
 
             {/* Knowledge Source */}
-            <div className="flex-1 p-3 bg-gradient-to-r from-surface-hover to-transparent rounded-xl border border-card-border/50">
+            <div className="flex-1 p-3 bg-linear-to-r from-surface-hover to-transparent rounded-xl border border-card-border/50">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 shrink-0">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">

@@ -14,6 +14,17 @@ AI-powered resume and cover letter tailoring + H-1B job alert system.
 - Cold email & referral request generation
 - Google Sheets application tracking
 
+### Template Management (New!)
+
+- **Multiple Resume Templates** - Store and switch between multiple resume versions
+- **Multiple Cover Letter Templates** - Save different cover letter styles
+- **Default Templates** - Set your go-to templates that auto-load on startup
+- **Personal Details Storage** - First name and last name saved locally
+- **Dual Filename Formats** - Export with plain or detailed filenames (Company_Position_Resume)
+- **Template Manager Modal** - Edit, rename, delete, and set defaults for all templates
+- **Visual Field Indicators** - Red dots for required fields, yellow for optional, green for filled
+- **Progress Tracking** - See completion status (X/4 required fields)
+
 ### Job Alert System
 
 - **732 H-1B sponsoring companies** across 4 tiers
@@ -44,9 +55,14 @@ AI-powered resume and cover letter tailoring + H-1B job alert system.
 
 ### UI/UX Improvements
 
+- **Smart Form UI** - Glass-card design with visual progress indicators
+- **Floating Notifications** - Non-intrusive save confirmations
+- **Avatar with Initials** - Personalized header showing your name
+- **Inline Name Editing** - Edit first/last name directly in header
 - **Compact sidebar layout** - Tier filters in 2-column grid
 - **Quick Actions** - Combined Selection, Bulk Actions, and Navigation
 - **Flex button layout** - 1/4 icon, 3/4 text for better alignment
+- **Reusable Components** - Consistent IconButton, FieldStatusDot components
 - Click company name to copy to clipboard
 
 ---
