@@ -270,7 +270,7 @@ export async function tailorResume(
   personalDetails: string,
   companyInfo: string,
 ): Promise<string> {
-  const prompt = `You are an expert resume writer and career consultant specializing in **Semantic Mapping** and **Multidisciplinary Positioning** for modern ATS systems. Your task is to tailor the given LaTeX resume to match the job description while maintaining the EXACT same LaTeX format and structure.
+  const prompt = `You are an human expert resume writer and career consultant specializing in **Semantic Mapping** and **Multidisciplinary Positioning** for modern ATS systems. Your task is to tailor the given LaTeX resume to match the job description while maintaining the EXACT same LaTeX format and structure.
 
 ## THE MULTIDISCIPLINARY ADVANTAGE (CRITICAL):
 In 2026, candidates don't get rejected for bad resumes—they get rejected because another candidate's background is MORE SIMILAR to the work the company is already doing. The secret to standing out is showing MULTIDISCIPLINARY expertise.
@@ -423,7 +423,7 @@ In 2026, candidates don't get rejected for bad cover letters—they get rejected
 13. **AVOID GENERIC:** No clichés. Make it feel written by a real person who genuinely cares.
 14. **WORD COUNT:** Keep the body between 250-350 words. Punchy and impactful.
 15. **CLEAN OUTPUT:** Return ONLY the complete LaTeX code. Do NOT wrap in markdown.
-16. **FORMATTING:** Do NOT use ** (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
+16. **FORMATTING:** Do NOT use ** (double asterisks) to bold text. Do NOT use em dashes (—) or long dashes, use regular hyphens (-) or rewrite instead.
 ## ORIGINAL COVER LETTER (LaTeX):
 ${coverLetterLatex}
 
