@@ -7,7 +7,7 @@ const SHEET_NAME = "tracker";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { companyName, positionTitle, applicationLink, notes } = body;
+    const { companyName, positionTitle, applicationLink, notes, other } = body;
 
     if (!companyName || !positionTitle || !applicationLink) {
       return NextResponse.json(
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
     const sheets = google.sheets({ version: "v4", auth });
 
-    // Row data matching columns: Name, Position, Date Applied, Application Link, Status, Interview Date, Email Link, Notes
+    // Row data matching columns: Name, Position, Date Applied, Application Link, Status, Interview Date, Email Link, Notes, Other
     const rowData = [
       companyName, // Name (Company Name)
       positionTitle, // Position
@@ -56,12 +56,13 @@ export async function POST(request: Request) {
       "", // Interview Date (empty)
       "", // Email Link (empty)
       notes || "", // Notes (optional)
+      other || "", // Other (optional)
     ];
 
     // Append the row to the sheet
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${SHEET_NAME}!A:H`,
+      range: `${SHEET_NAME}!A:I`,
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values: [rowData],

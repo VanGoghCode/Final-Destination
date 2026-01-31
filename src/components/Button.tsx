@@ -12,9 +12,9 @@ const variantClasses: Record<ButtonVariant, string> = {
 };
 
 const variantGlow: Record<ButtonVariant, string> = {
-  primary: "#6366f1",
+  primary: "#000000",
   secondary: "currentColor",
-  regenerate: "#10b981",
+  regenerate: "#000000",
   ghost: "currentColor",
 };
 

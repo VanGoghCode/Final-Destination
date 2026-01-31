@@ -33,7 +33,7 @@ export default function QuestionsPage() {
 
   // Individual question fields state
   const [questionFields, setQuestionFields] = useState<QuestionField[]>([
-    { id: 1, question: "", limitType: "none", limitValue: 100 },
+    { id: 1, question: "", limitType: "none", limitValue: 10 },
   ]);
   const [nextId, setNextId] = useState(2);
 
@@ -72,7 +72,7 @@ export default function QuestionsPage() {
   const addQuestionField = () => {
     setQuestionFields([
       ...questionFields,
-      { id: nextId, question: "", limitType: "none", limitValue: 100 },
+      { id: nextId, question: "", limitType: "none", limitValue: 10 },
     ]);
     setNextId(nextId + 1);
   };
@@ -89,9 +89,19 @@ export default function QuestionsPage() {
     value: string | number
   ) => {
     setQuestionFields(
-      questionFields.map((q) =>
-        q.id === id ? { ...q, [field]: value } : q
-      )
+      questionFields.map((q) => {
+        if (q.id !== id) return q;
+        // Set default values when changing limit type
+        if (field === "limitType") {
+          const limitType = value as QuestionField["limitType"];
+          const newLimitValue = limitType === "words" ? 10 : limitType === "characters" ? 200 : q.limitValue;
+          return { ...q, limitType, limitValue: newLimitValue };
+        }
+        if (field === "limitValue") {
+          return { ...q, limitValue: value as number };
+        }
+        return { ...q, [field]: value };
+      })
     );
   };
 
@@ -136,7 +146,8 @@ export default function QuestionsPage() {
 
       setGeneratedAnswers(data.answers);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(`Failed to generate answers: ${message}. Please check your inputs and try again.`);
     } finally {
       setIsGeneratingAnswers(false);
     }
@@ -175,7 +186,9 @@ export default function QuestionsPage() {
 
       setEmail(data.email);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const emailType = type === "cold" ? "cold email" : "reference email";
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(`Failed to generate ${emailType}: ${message}. Please ensure you have loaded your resume and cover letter.`);
     } finally {
       setLoading(false);
     }
@@ -206,7 +219,8 @@ export default function QuestionsPage() {
       setAnswersComment("");
       setShowAnswersFeedback(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(`Failed to regenerate answers: ${message}. Please try rephrasing your feedback.`);
     } finally {
       setIsRegeneratingAnswers(false);
     }
@@ -252,7 +266,9 @@ export default function QuestionsPage() {
       setComment("");
       setShowFeedback(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const emailType = type === "cold" ? "cold email" : "reference email";
+      const message = err instanceof Error ? err.message : "Unknown error";
+      setError(`Failed to regenerate ${emailType}: ${message}. Please try rephrasing your feedback.`);
     } finally {
       setLoading(false);
     }
@@ -264,11 +280,11 @@ export default function QuestionsPage() {
 
       <div className="max-w-6xl mx-auto">
 
-        {/* Main content grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+        {/* Main content - column layout */}
+        <div className="flex flex-col gap-4 sm:gap-6 mb-6">
           {/* Questions Input */}
           <div
-            className="glass-card p-5 fade-in flex flex-col h-full"
+            className="glass-card p-5 fade-in flex flex-col"
             style={{ animationDelay: "0.05s" }}
           >
             <div className="flex items-center justify-between mb-4">
@@ -309,21 +325,20 @@ export default function QuestionsPage() {
                       rows={2}
                     />
                     {/* Modern Limit Selector */}
-                    <div className="flex items-center min-h-14 gap-1.5 p-1.5 bg-surface-hover rounded-lg border border-card-border/50 shrink-0">
+                    <div className="flex items-center min-h-14 gap-1 flex-wrap p-4 bg-surface-hover rounded-xl border border-card-border/50 shrink-0">
                       {[
-                        { value: "none", label: "∞" },
-                        { value: "words", label: "W" },
-                        { value: "characters", label: "C" },
+                        { value: "none", label: "None" },
+                        { value: "words", label: "Words" },
+                        { value: "characters", label: "Chars" },
                       ].map((opt) => (
                         <button
                           key={opt.value}
                           onClick={() => updateQuestionField(field.id, "limitType", opt.value)}
-                          className={`w-7 h-7 text-xs font-semibold rounded-md transition-all ${
+                          className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
                             field.limitType === opt.value
                               ? "bg-primary text-white shadow-sm"
                               : "text-muted hover:text-foreground hover:bg-background"
                           }`}
-                          title={opt.value === "none" ? "No limit" : opt.value === "words" ? "Word limit" : "Character limit"}
                         >
                           {opt.label}
                         </button>
@@ -333,11 +348,10 @@ export default function QuestionsPage() {
                           type="number"
                           value={field.limitValue}
                           onChange={(e) =>
-                            updateQuestionField(field.id, "limitValue", parseInt(e.target.value) || 0)
+                            updateQuestionField(field.id, "limitValue", Math.max(1, parseInt(e.target.value) || 1))
                           }
-                          className="w-14 px-2 py-1 text-xs text-center rounded-md border border-card-border bg-background focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
+                          className="w-16 px-2 py-1 text-xs text-center rounded-lg border border-card-border bg-background focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
                           min="1"
-                          placeholder="100"
                         />
                       )}
                     </div>
@@ -349,7 +363,7 @@ export default function QuestionsPage() {
             <Button
               onClick={addQuestionField}
               variant="ghost"
-              className="w-fit mb-3 p-4 text-sm border rounded-2xl border-card-border hover:border-primary/50"
+              className="w-fit mx-auto mb-3 p-4 text-sm border rounded-2xl border-card-border hover:border-primary/50"
             >
               + Add Question
             </Button>
@@ -373,7 +387,7 @@ export default function QuestionsPage() {
 
           {/* Generated Answers */}
           <div
-            className="glass-card p-4 sm:p-5 fade-in flex flex-col h-full"
+            className="glass-card p-4 sm:p-5 fade-in flex flex-col"
             style={{ animationDelay: "0.1s" }}
           >
             <div className="flex items-center justify-between mb-4 gap-2">
@@ -408,10 +422,59 @@ export default function QuestionsPage() {
               </div>
             </div>
 
-            <div className="flex-1 output-panel p-4 sm:p-5 overflow-y-auto whitespace-pre-wrap min-h-64 sm:min-h-80">
+            <div className="flex-1 output-panel p-4 sm:p-5 overflow-y-auto min-h-64 sm:min-h-80">
               {generatedAnswers ? (
-                <div className="prose max-w-none text-sm font-sans">
-                  {generatedAnswers}
+                <div className="space-y-4">
+                  {(() => {
+                    // Parse answers by splitting on "Answer X:" or similar patterns
+                    const answerBlocks = generatedAnswers.split(/(?=Answer\s*\d+[:\.])/i).filter(block => block.trim());
+                    
+                    if (answerBlocks.length <= 1) {
+                      // If no clear separation found, try splitting by double newlines or numbered patterns
+                      const altBlocks = generatedAnswers.split(/\n\n(?=\d+[\.\):]|\*\*)/);
+                      if (altBlocks.length > 1) {
+                        return altBlocks.map((block, index) => (
+                          <div key={index} className="p-4 bg-background/50 rounded-lg border border-card-border/50">
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <span className="text-xs font-semibold text-primary">Answer {index + 1}</span>
+                              <CopyButton text={block.trim()} label="Copy" />
+                            </div>
+                            <div className="prose max-w-none text-sm font-sans whitespace-pre-wrap">
+                              {block.trim()}
+                            </div>
+                          </div>
+                        ));
+                      }
+                      // Fallback: show as single block
+                      return (
+                        <div className="p-4 bg-background/50 rounded-lg border border-card-border/50">
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <span className="text-xs font-semibold text-primary">Answer</span>
+                            <CopyButton text={generatedAnswers.trim()} label="Copy" />
+                          </div>
+                          <div className="prose max-w-none text-sm font-sans whitespace-pre-wrap">
+                            {generatedAnswers}
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    return answerBlocks.map((block, index) => {
+                      // Remove "Answer X:" prefix for cleaner display
+                      const cleanBlock = block.replace(/^Answer\s*\d+[:\.]?\s*/i, '').trim();
+                      return (
+                        <div key={index} className="p-4 bg-background/50 rounded-lg border border-card-border/50">
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <span className="text-xs font-semibold text-primary">Answer {index + 1}</span>
+                            <CopyButton text={cleanBlock} label="Copy" />
+                          </div>
+                          <div className="prose max-w-none text-sm font-sans whitespace-pre-wrap">
+                            {cleanBlock}
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               ) : (
                 <p className="text-muted-light italic">
@@ -759,10 +822,31 @@ export default function QuestionsPage() {
         </div>
       </div>
 
-      {/* Simplified Error Notification */}
+      {/* Error Notification */}
       {error && (
-        <div className="fixed bottom-6 right-6 max-w-xs glass-card p-4 border-red-200 bg-red-50 shadow-lg fade-in z-50">
-          <p className="text-xs text-red-600 font-medium">{error}</p>
+        <div className="fixed bottom-6 right-6 max-w-sm glass-card p-4 border-2 border-red-300 bg-red-50 shadow-xl fade-in z-50">
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-red-700 mb-1">Error</p>
+              <p className="text-xs text-red-600 leading-relaxed">{error}</p>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="shrink-0 p-1 text-red-400 hover:text-red-600 hover:bg-red-100 rounded transition-colors"
+              title="Dismiss"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
       )}
     </main>

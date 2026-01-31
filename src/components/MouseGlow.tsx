@@ -20,7 +20,7 @@ export default function MouseGlow() {
       <div 
         className="fixed inset-0 pointer-events-none z-0"
         style={{
-          background: `radial-gradient(600px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(255, 153, 51, 0.06), transparent 80%)`,
+          background: `radial-gradient(600px circle at var(--mouse-x, 0) var(--mouse-y, 0), rgba(0, 0, 0, 0.02), transparent 80%)`,
         }}
       />
       
@@ -28,7 +28,7 @@ export default function MouseGlow() {
       <div 
         className="fixed inset-0 pointer-events-none z-0"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M40 0H0v40' fill='none' stroke='rgba(255, 153, 51, 0.64)' stroke-width='1.5'/%3E%3C/svg%3E")`,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M40 0H0v40' fill='none' stroke='rgba(0, 0, 0, 0.15)' stroke-width='1'/%3E%3C/svg%3E")`,
           backgroundRepeat: 'repeat',
           backgroundSize: '40px 40px',
           maskImage: `radial-gradient(300px circle at var(--mouse-x, 0) var(--mouse-y, 0), black 20%, transparent 100%)`,

@@ -44,6 +44,7 @@ export default function TailoredPage() {
   const [showLogModal, setShowLogModal] = useState(false);
   const [applicationLink, setApplicationLink] = useState("");
   const [notes, setNotes] = useState("");
+  const [other, setOther] = useState("");
   const [isLogging, setIsLogging] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
   const [logError, setLogError] = useState("");
@@ -58,8 +59,15 @@ export default function TailoredPage() {
   const [generalAnswer, setGeneralAnswer] = useState("");
   const [isAskingQuestion, setIsAskingQuestion] = useState(false);
   const [limitType, setLimitType] = useState<"none" | "words" | "characters">("none");
-  const [limitValue, setLimitValue] = useState<number>(100);
+  const [limitValue, setLimitValue] = useState<number>(10);
   const [searchMode, setSearchMode] = useState<"context" | "context+internet" | "internet">("context");
+
+  // Update limit value when limit type changes to set appropriate defaults
+  const handleLimitTypeChange = (newType: "none" | "words" | "characters") => {
+    setLimitType(newType);
+    if (newType === "words") setLimitValue(10);
+    else if (newType === "characters") setLimitValue(200);
+  };
 
   // Initialize editable fields when modal opens - pre-fill with extracted values
   useEffect(() => {
@@ -138,6 +146,7 @@ export default function TailoredPage() {
           positionTitle: finalPositionTitle,
           applicationLink: applicationLink.trim() || "N/A",
           notes: composedNotes,
+          other: other.trim() || "",
         }),
       });
 
@@ -161,6 +170,7 @@ export default function TailoredPage() {
         setLogSuccess(false);
         setApplicationLink("");
         setNotes("");
+        setOther("");
         setCountry("");
         setWorkMode("");
       }, 2000);
@@ -508,7 +518,7 @@ export default function TailoredPage() {
                   ].map((opt) => (
                     <button
                       key={opt.value}
-                      onClick={() => setLimitType(opt.value as typeof limitType)}
+                      onClick={() => handleLimitTypeChange(opt.value as typeof limitType)}
                       className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
                         limitType === opt.value
                           ? "bg-primary text-white shadow-sm"
@@ -741,7 +751,7 @@ export default function TailoredPage() {
             </button>
 
             <h3 className="text-xl font-bold text-foreground mb-4">
-              📊 Log Application to Sheet
+              Log Application to Sheet
             </h3>
 
             {logSuccess ? (
@@ -838,7 +848,7 @@ export default function TailoredPage() {
                         <button
                           key={mode}
                           onClick={() => setWorkMode(workMode === mode ? "" : mode)}
-                          className={`px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${
+                          className={`px-3 py-2 text-xs font-medium rounded-xl border transition-colors ${
                             workMode === mode
                               ? "bg-primary text-white border-primary"
                               : "bg-surface-hover text-muted border-card-border hover:border-primary/50"
@@ -851,7 +861,7 @@ export default function TailoredPage() {
                   </div>
                 </div>
 
-                {/* Optional field */}
+                {/* Notes field */}
                 <div className="mb-4">
                   <label className="text-sm text-muted mb-1 block">
                     Notes{" "}
@@ -862,6 +872,21 @@ export default function TailoredPage() {
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Any notes about this application..."
                     className="input-field h-20"
+                  />
+                </div>
+
+                {/* Other field */}
+                <div className="mb-4">
+                  <label className="text-sm text-muted mb-1 block">
+                    Other{" "}
+                    <span className="text-xs text-gray-400">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={other}
+                    onChange={(e) => setOther(e.target.value)}
+                    placeholder="Any additional info..."
+                    className="input-field"
                   />
                 </div>
 
