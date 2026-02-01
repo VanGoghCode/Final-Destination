@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
-import Navbar from "@/components/Navbar";
+import Sidebar from "@/components/Sidebar";
 import CopyButton from "@/components/CopyButton";
 import Button from "@/components/Button";
 
@@ -275,30 +275,205 @@ export default function QuestionsPage() {
   };
 
   return (
-    <main className="min-h-screen p-4 sm:p-6">
-      <Navbar currentStep={3} />
+    <div className="h-screen flex overflow-hidden">
+      {/* Sidebar */}
+      <Sidebar title="Step 3: Q&A">
+        {/* Step Navigation */}
+        <div className="p-3 border-b border-gray-100">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => router.push("/")}
+              className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
+            >
+              <span className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+              Input
+            </button>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted shrink-0">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+            <button
+              onClick={() => router.push("/tailored")}
+              className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
+            >
+              <span className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+              Review
+            </button>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted shrink-0">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+            <div className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-primary/10 border border-primary text-primary text-xs font-medium">
+              <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold">3</span>
+              Q&A
+            </div>
+          </div>
+        </div>
 
-      <div className="max-w-6xl mx-auto">
-
-        {/* Main content - column layout */}
-        <div className="flex flex-col gap-4 sm:gap-6 mb-6">
-          {/* Questions Input */}
-          <div
-            className="glass-card p-5 fade-in flex flex-col"
-            style={{ animationDelay: "0.05s" }}
+        {/* Navigation Actions */}
+        <div className="p-4 border-b border-gray-100 space-y-3">
+          <Button
+            onClick={() => router.push("/jobs")}
+            variant="secondary"
+            className="w-full text-xs py-2"
           >
-            <div className="flex items-center justify-between mb-4">
-              <label className="section-label m-0">Your Questions</label>
-              <Button
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M20 7h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM10 4h4v3h-4V4z" />
+            </svg>
+            View Companies
+          </Button>
+        </div>
+
+        {/* Sidebar Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-5">
+          {/* Context Status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Context Loaded</label>
+            <div className="flex flex-wrap gap-2">
+              {tailoredResume && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 font-medium">
+                  Resume
+                </span>
+              )}
+              {tailoredCoverLetter && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 font-medium">
+                  Cover Letter
+                </span>
+              )}
+              {jobDescription && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 font-medium">
+                  Job Desc
+                </span>
+              )}
+              {(companyInfo || questionsCompanyInfo) && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 font-medium">
+                  Company Info
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Company Info Config */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-gray-700">Company Info</label>
+              <button
                 onClick={() => setShowConfig(!showConfig)}
-                variant="ghost"
-                className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+                className="text-xs text-primary hover:underline"
               >
-                {showConfig ? "Hide Config" : "Show Config"}
+                {showConfig ? "Hide" : "Edit"}
+              </button>
+            </div>
+            {showConfig && (
+              <textarea
+                className="input-field text-sm"
+                placeholder="Add company info, mission, values..."
+                value={questionsCompanyInfo}
+                onChange={(e) => setQuestionsCompanyInfo(e.target.value)}
+                rows={3}
+              />
+            )}
+          </div>
+
+          {/* Email Generation */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Outreach Emails</label>
+            <div className="space-y-2">
+              <Button
+                onClick={() => handleGenerateEmail("cold")}
+                disabled={isGeneratingColdEmail}
+                variant={coldEmail ? "secondary" : "primary"}
+                className="w-full text-xs py-2"
+              >
+                {isGeneratingColdEmail ? (
+                  <>
+                    <span className="spinner-small" />
+                    Generating...
+                  </>
+                ) : coldEmail ? (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                      <path d="M3 3v5h5" />
+                    </svg>
+                    Regenerate Cold Email
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                    Generate Cold Email
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => handleGenerateEmail("reference")}
+                disabled={isGeneratingReferenceEmail}
+                variant={referenceEmail ? "secondary" : "primary"}
+                className="w-full text-xs py-2"
+              >
+                {isGeneratingReferenceEmail ? (
+                  <>
+                    <span className="spinner-small" />
+                    Generating...
+                  </>
+                ) : referenceEmail ? (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                      <path d="M3 3v5h5" />
+                    </svg>
+                    Regenerate Reference Ask
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                    Generate Reference Ask
+                  </>
+                )}
               </Button>
             </div>
+          </div>
 
-            <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-1" style={{ maxHeight: "400px" }}>
+          {/* Generated Emails Preview */}
+          {(coldEmail || referenceEmail) && (
+            <div className="space-y-3">
+              {coldEmail && (
+                <div className="p-3 bg-surface-hover rounded-lg border border-card-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-muted">Cold Email</span>
+                    <CopyButton text={coldEmail} label="Copy" />
+                  </div>
+                  <p className="text-xs text-foreground line-clamp-3">{coldEmail.slice(0, 150)}...</p>
+                </div>
+              )}
+              {referenceEmail && (
+                <div className="p-3 bg-surface-hover rounded-lg border border-card-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-muted">Reference Ask</span>
+                    <CopyButton text={referenceEmail} label="Copy" />
+                  </div>
+                  <p className="text-xs text-foreground line-clamp-3">{referenceEmail.slice(0, 150)}...</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </Sidebar>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Panel - Questions */}
+          <div className="w-1/2 flex flex-col overflow-hidden border-r border-card-border">
+            <div className="p-4 border-b border-card-border bg-surface-hover/30">
+              <div className="flex items-center justify-between">
+                <label className="section-label m-0">Your Questions</label>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {questionFields.map((field, index) => (
                 <div key={field.id} className="p-3 bg-background/50 rounded-lg border border-card-border/50">
                   <div className="flex items-center justify-between mb-2">
@@ -315,122 +490,112 @@ export default function QuestionsPage() {
                       </button>
                     )}
                   </div>
-                  {/* Question input and Limit in the same row */}
                   <div className="flex items-start gap-3">
                     <textarea
-                      className="input-field flex-1 max-h-14 font-sans text-sm"
+                      className="input-field flex-1 font-sans text-sm"
                       placeholder="Enter your question..."
                       value={field.question}
                       onChange={(e) => updateQuestionField(field.id, "question", e.target.value)}
                       rows={2}
                     />
-                    {/* Modern Limit Selector */}
-                    <div className="flex items-center min-h-14 gap-1 flex-wrap p-4 bg-surface-hover rounded-xl border border-card-border/50 shrink-0">
-                      {[
-                        { value: "none", label: "None" },
-                        { value: "words", label: "Words" },
-                        { value: "characters", label: "Chars" },
-                      ].map((opt) => (
-                        <button
-                          key={opt.value}
-                          onClick={() => updateQuestionField(field.id, "limitType", opt.value)}
-                          className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
-                            field.limitType === opt.value
-                              ? "bg-primary text-white shadow-sm"
-                              : "text-muted hover:text-foreground hover:bg-background"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                      {field.limitType !== "none" && (
-                        <input
-                          type="number"
-                          value={field.limitValue}
-                          onChange={(e) =>
-                            updateQuestionField(field.id, "limitValue", Math.max(1, parseInt(e.target.value) || 1))
-                          }
-                          className="w-16 px-2 py-1 text-xs text-center rounded-lg border border-card-border bg-background focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
-                          min="1"
-                        />
-                      )}
-                    </div>
                   </div>
+                  <div className="flex gap-2 mt-2">
+                    {[
+                      { value: "none", label: "No Limit" },
+                      { value: "words", label: "Words" },
+                      { value: "characters", label: "Chars" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => updateQuestionField(field.id, "limitType", opt.value)}
+                        className={`flex-1 px-2 py-1 text-xs font-medium rounded-lg transition-all ${
+                          field.limitType === opt.value
+                            ? "bg-primary text-white"
+                            : "bg-surface-hover text-muted hover:bg-gray-200"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  {field.limitType !== "none" && (
+                    <input
+                      type="number"
+                      value={field.limitValue}
+                      onChange={(e) =>
+                        updateQuestionField(field.id, "limitValue", Math.max(1, parseInt(e.target.value) || 1))
+                      }
+                      className="w-full mt-2 px-3 py-1.5 text-sm rounded-lg border border-card-border focus:border-primary outline-none"
+                      min="1"
+                    />
+                  )}
                 </div>
               ))}
-            </div>
-
-            <Button
-              onClick={addQuestionField}
-              variant="ghost"
-              className="w-fit mx-auto mb-3 p-4 text-sm border rounded-2xl border-card-border hover:border-primary/50"
-            >
-              + Add Question
-            </Button>
-
-            <Button
-              onClick={handleGenerateAnswers}
-              disabled={!questionFields.some((q) => q.question.trim()) || isGeneratingAnswers}
-              variant="primary"
-              className="w-full"
-            >
-              {isGeneratingAnswers ? (
-                <>
-                  <span className="spinner" />
-                  Generating...
-                </>
-              ) : (
-                "Generate Answers"
-              )}
-            </Button>
-          </div>
-
-          {/* Generated Answers */}
-          <div
-            className="glass-card p-4 sm:p-5 fade-in flex flex-col"
-            style={{ animationDelay: "0.1s" }}
-          >
-            <div className="flex items-center justify-between mb-4 gap-2">
-              <label className="section-label m-0">Generated Answers</label>
-              <div className="flex items-center gap-2">
-                {generatedAnswers && (
-                  <>
-                    <CopyButton text={generatedAnswers} label="Copy All" />
-                    <Button
-                      onClick={() =>
-                        setShowAnswersFeedback(!showAnswersFeedback)
-                      }
-                      variant="ghost"
-                      className="copy-btn"
-                      title="Regenerate with feedback"
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1"
-                      >
-                        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                        <path d="M3 3v5h5" />
-                      </svg>
-                      <span className="hidden sm:inline">Regenerate</span>
-                    </Button>
-                  </>
-                )}
+              
+              {/* Add Question Button - Centered */}
+              <div className="flex justify-center pt-2">
+                <Button
+                  onClick={addQuestionField}
+                  variant="ghost"
+                  className="text-xs py-4 px-4 border-2 border-card-border hover:border-primary/50 text-muted hover:text-primary rounded-xl"
+                >
+                  + Add Question
+                </Button>
               </div>
             </div>
 
-            <div className="flex-1 output-panel p-4 sm:p-5 overflow-y-auto min-h-64 sm:min-h-80">
+            <div className="p-4 border-t border-card-border bg-surface-hover/30">
+              <Button
+                onClick={handleGenerateAnswers}
+                disabled={!questionFields.some((q) => q.question.trim()) || isGeneratingAnswers}
+                variant="primary"
+                className="w-full"
+              >
+                {isGeneratingAnswers ? (
+                  <>
+                    <span className="spinner" />
+                    Generating...
+                  </>
+                ) : (
+                  "Generate Answers"
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Right Panel - Answers */}
+          <div className="w-1/2 flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-card-border bg-surface-hover/30">
+              <div className="flex items-center justify-between">
+                <label className="section-label m-0">Generated Answers</label>
+                <div className="flex items-center gap-2">
+                  {generatedAnswers && (
+                    <>
+                      <CopyButton text={generatedAnswers} label="Copy All" />
+                      <Button
+                        onClick={() => setShowAnswersFeedback(!showAnswersFeedback)}
+                        variant="ghost"
+                        className="copy-btn"
+                        title="Regenerate with feedback"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                          <path d="M3 3v5h5" />
+                        </svg>
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
               {generatedAnswers ? (
                 <div className="space-y-4">
                   {(() => {
-                    // Parse answers by splitting on "Answer X:" or similar patterns
                     const answerBlocks = generatedAnswers.split(/(?=Answer\s*\d+[:\.])/i).filter(block => block.trim());
                     
                     if (answerBlocks.length <= 1) {
-                      // If no clear separation found, try splitting by double newlines or numbered patterns
                       const altBlocks = generatedAnswers.split(/\n\n(?=\d+[\.\):]|\*\*)/);
                       if (altBlocks.length > 1) {
                         return altBlocks.map((block, index) => (
@@ -445,7 +610,6 @@ export default function QuestionsPage() {
                           </div>
                         ));
                       }
-                      // Fallback: show as single block
                       return (
                         <div className="p-4 bg-background/50 rounded-lg border border-card-border/50">
                           <div className="flex items-start justify-between gap-3 mb-2">
@@ -460,7 +624,6 @@ export default function QuestionsPage() {
                     }
                     
                     return answerBlocks.map((block, index) => {
-                      // Remove "Answer X:" prefix for cleaner display
                       const cleanBlock = block.replace(/^Answer\s*\d+[:\.]?\s*/i, '').trim();
                       return (
                         <div key={index} className="p-4 bg-background/50 rounded-lg border border-card-border/50">
@@ -477,22 +640,27 @@ export default function QuestionsPage() {
                   })()}
                 </div>
               ) : (
-                <p className="text-muted-light italic">
-                  Your answers will appear here...
-                </p>
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted mb-4">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  <p className="text-muted-light italic">
+                    Your answers will appear here...
+                  </p>
+                </div>
               )}
             </div>
 
             {/* Answers Regenerate Feedback */}
             {showAnswersFeedback && generatedAnswers && (
-              <div className="regenerate-section fade-in">
+              <div className="p-4 border-t border-card-border bg-surface-hover/30">
                 <label className="text-xs font-medium text-muted mb-2 block">
                   What changes would you like?
                 </label>
                 <textarea
                   value={answersComment}
                   onChange={(e) => setAnswersComment(e.target.value)}
-                  placeholder="e.g., Make the answers more concise, add more specific examples..."
+                  placeholder="e.g., Make the answers more concise..."
                   className="regenerate-input mb-3"
                   rows={2}
                 />
@@ -525,302 +693,7 @@ export default function QuestionsPage() {
             )}
           </div>
         </div>
-
-        {/* Optional Context Config (Collapsible) */}
-        {showConfig && (
-          <div className="glass-card p-5 mb-6 fade-in border-dashed">
-            <label className="section-label">
-              Company Info for Q&A{" "}
-              <span className="text-muted-light font-normal normal-case">
-                (optional)
-              </span>
-            </label>
-            <textarea
-              className="input-field h-24 mt-2"
-              placeholder="Add specific company info, mission, or values..."
-              value={questionsCompanyInfo}
-              onChange={(e) => setQuestionsCompanyInfo(e.target.value)}
-            />
-          </div>
-        )}
-
-        {/* Outreach Section */}
-        <div className="space-y-6 mb-10">
-          <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold text-foreground">
-              Outreach Emails
-            </h2>
-            <div className="flex-1 h-px bg-card-border" />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-            {/* Cold Email */}
-            <div
-              className="glass-card p-4 sm:p-5 flex flex-col fade-in shadow-sm hover:shadow-md"
-              style={{ animationDelay: "0.15s" }}
-            >
-              <div className="flex items-center justify-between mb-4 gap-2">
-                <h3 className="font-bold text-foreground">Cold Email</h3>
-                <Button
-                  onClick={() => handleGenerateEmail("cold")}
-                  disabled={isGeneratingColdEmail}
-                  variant="secondary"
-                  className="text-xs px-3 sm:px-4 py-1.5"
-                >
-                  {isGeneratingColdEmail ? (
-                    <span className="spinner scale-75" />
-                  ) : (
-                    "Generate"
-                  )}
-                </Button>
-              </div>
-              <div className="flex-1 output-panel p-3 sm:p-4 text-sm text-muted min-h-40 sm:min-h-44">
-                {coldEmail ? (
-                  <>
-                    <div className="whitespace-pre-wrap">{coldEmail}</div>
-                    <div className="mt-4 pt-4 border-t border-card-border flex justify-end gap-2">
-                      <CopyButton text={coldEmail} label="Copy" />
-                      <Button
-                        onClick={() =>
-                          setShowColdEmailFeedback(!showColdEmailFeedback)
-                        }
-                        variant="ghost"
-                        className="copy-btn"
-                        title="Regenerate with feedback"
-                      >
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                          <path d="M3 3v5h5" />
-                        </svg>
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-muted-light italic">
-                    Awaiting generation...
-                  </p>
-                )}
-              </div>
-              {/* Cold Email Regenerate Feedback */}
-              {showColdEmailFeedback && coldEmail && (
-                <div className="regenerate-section fade-in">
-                  <textarea
-                    value={coldEmailComment}
-                    onChange={(e) => setColdEmailComment(e.target.value)}
-                    placeholder="What changes would you like?"
-                    className="regenerate-input mb-3"
-                    rows={2}
-                  />
-                  <div className="flex gap-2 justify-end">
-                    <Button
-                      onClick={() => {
-                        setShowColdEmailFeedback(false);
-                        setColdEmailComment("");
-                      }}
-                      variant="secondary"
-                      className="text-xs py-2 px-3"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={() => handleRegenerateEmailContent("cold")}
-                      disabled={
-                        !coldEmailComment.trim() || isRegeneratingColdEmail
-                      }
-                      variant="regenerate"
-                    >
-                      {isRegeneratingColdEmail ? (
-                        <>
-                          <span className="spinner-small" /> Regenerating...
-                        </>
-                      ) : (
-                        <>Apply</>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Reference Email */}
-            <div
-              className="glass-card p-4 sm:p-5 flex flex-col fade-in shadow-sm hover:shadow-md"
-              style={{ animationDelay: "0.2s" }}
-            >
-              <div className="flex items-center justify-between mb-4 gap-2">
-                <h3 className="font-bold text-foreground">Reference Ask</h3>
-                <Button
-                  onClick={() => handleGenerateEmail("reference")}
-                  disabled={isGeneratingReferenceEmail}
-                  variant="secondary"
-                  className="text-xs px-3 sm:px-4 py-1.5"
-                >
-                  {isGeneratingReferenceEmail ? (
-                    <span className="spinner scale-75" />
-                  ) : (
-                    "Generate"
-                  )}
-                </Button>
-              </div>
-              <div className="flex-1 output-panel p-3 sm:p-4 text-sm text-muted min-h-40 sm:min-h-44">
-                {referenceEmail ? (
-                  <>
-                    <div className="whitespace-pre-wrap">{referenceEmail}</div>
-                    <div className="mt-4 pt-4 border-t border-card-border flex justify-end gap-2">
-                      <CopyButton text={referenceEmail} label="Copy" />
-                      <Button
-                        onClick={() =>
-                          setShowReferenceEmailFeedback(
-                            !showReferenceEmailFeedback,
-                          )
-                        }
-                        variant="ghost"
-                        className="copy-btn"
-                        title="Regenerate with feedback"
-                      >
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                          <path d="M3 3v5h5" />
-                        </svg>
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-muted-light italic">
-                    Awaiting generation...
-                  </p>
-                )}
-              </div>
-              {/* Reference Email Regenerate Feedback */}
-              {showReferenceEmailFeedback && referenceEmail && (
-                <div className="regenerate-section fade-in">
-                  <textarea
-                    value={referenceEmailComment}
-                    onChange={(e) => setReferenceEmailComment(e.target.value)}
-                    placeholder="What changes would you like?"
-                    className="regenerate-input mb-3"
-                    rows={2}
-                  />
-                  <div className="flex gap-2 justify-end">
-                    <Button
-                      onClick={() => {
-                        setShowReferenceEmailFeedback(false);
-                        setReferenceEmailComment("");
-                      }}
-                      variant="secondary"
-                      className="text-xs py-2 px-3"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={() => handleRegenerateEmailContent("reference")}
-                      disabled={
-                        !referenceEmailComment.trim() ||
-                        isRegeneratingReferenceEmail
-                      }
-                      variant="regenerate"
-                    >
-                      {isRegeneratingReferenceEmail ? (
-                        <>
-                          <span className="spinner-small" /> Regenerating...
-                        </>
-                      ) : (
-                        <>Apply</>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Actions */}
-        <div
-          className="flex flex-col md:flex-row items-center justify-between gap-4 pt-6 border-t border-card-border fade-in"
-          style={{ animationDelay: "0.25s" }}
-        >
-          <div className="flex gap-3">
-            <Button
-              onClick={() => router.push("/tailored")}
-              variant="secondary"
-              className="py-2.5 px-5 text-sm"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <line x1="19" y1="12" x2="5" y2="12" />
-                <polyline points="12 19 5 12 12 5" />
-              </svg>
-              Back to Documents
-            </Button>
-            <Button
-              onClick={() => router.push("/")}
-              variant="secondary"
-              className="py-2.5 px-5 text-sm"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                <polyline points="9 22 9 12 15 12 15 22" />
-              </svg>
-              Start New
-            </Button>
-          </div>
-          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
-            <span className="text-xs font-medium text-muted-light">
-              Context Loaded:
-            </span>
-            <div className="flex flex-wrap justify-end gap-2">
-              {tailoredResume && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 font-medium">
-                  Resume
-                </span>
-              )}
-              {tailoredCoverLetter && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 font-medium">
-                  Cover Letter
-                </span>
-              )}
-              {jobDescription && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200 font-medium">
-                  Job Desc
-                </span>
-              )}
-              {(companyInfo || questionsCompanyInfo) && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 font-medium">
-                  Company Info
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      </main>
 
       {/* Error Notification */}
       {error && (
@@ -849,6 +722,6 @@ export default function QuestionsPage() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

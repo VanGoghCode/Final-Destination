@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
-import Navbar from "@/components/Navbar";
-import CodeBlock from "@/components/CodeBlock";
+import LaTeXEditor from "@/components/LaTeXEditor";
+import Sidebar from "@/components/Sidebar";
 import Button from "@/components/Button";
 
 export default function TailoredPage() {
@@ -264,63 +264,150 @@ export default function TailoredPage() {
   };
 
   return (
-    <main className="min-h-screen p-4 sm:p-6">
-      <Navbar currentStep={2} />
-
-      <div className="max-w-6xl mx-auto">
-        {/* Top Navigation Bar */}
-        <div className="flex justify-between items-center mb-6 fade-in">
-          <Button
-            onClick={() => router.push("/")}
-            variant="secondary"
-            className="text-sm py-2.5"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
+    <div className="h-screen flex overflow-hidden">
+      {/* Collapsible Sidebar */}
+      <Sidebar title="Step 2: Review">
+        {/* Step Navigation */}
+        <div className="p-3 border-b border-gray-100">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => router.push("/")}
+              className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
             >
-              <line x1="19" y1="12" x2="5" y2="12" />
-              <polyline points="12 19 5 12 12 5" />
+              <span className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+              Input
+            </button>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted shrink-0">
+              <polyline points="9 18 15 12 9 6" />
             </svg>
-            Back to Inputs
-          </Button>
-
-          <Button
-            onClick={() => setShowLogModal(true)}
-            variant="secondary"
-            className="text-sm py-2.5"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
+            <div className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-primary/10 border border-primary text-primary text-xs font-medium">
+              <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold">2</span>
+              Review
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted shrink-0">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+            <button
+              onClick={() => router.push("/questions")}
+              className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
             >
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <line x1="3" y1="9" x2="21" y2="9" />
-              <line x1="3" y1="15" x2="21" y2="15" />
-              <line x1="9" y1="3" x2="9" y2="21" />
-            </svg>
-            Log to Sheet
-          </Button>
+              <span className="w-5 h-5 rounded-full bg-card-border text-muted flex items-center justify-center text-[10px] font-bold">3</span>
+              Q&A
+            </button>
+          </div>
         </div>
 
-        {/* Filename Copy Buttons */}
-        <div className="glass-card p-4 mb-5 fade-in" style={{ animationDelay: "0.02s" }}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Resume Filenames */}
-            <div>
-              <label className="section-label text-sm mb-2">Resume Filenames</label>
-              {/* Plain filename */}
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs text-muted w-16 shrink-0">Plain:</span>
-                <code className="flex-1 bg-surface-hover px-3 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
+        {/* Sidebar Header with Actions */}
+        <div className="p-4 border-b border-gray-100 space-y-3">
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowLogModal(true)}
+              variant="secondary"
+              className="flex-1 text-xs py-2"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <line x1="3" y1="9" x2="21" y2="9" />
+                <line x1="9" y1="3" x2="9" y2="21" />
+              </svg>
+              Log to Sheet
+            </Button>
+            <Button
+              onClick={() => router.push("/jobs")}
+              variant="secondary"
+              className="flex-1 text-xs py-2"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 7h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM10 4h4v3h-4V4z" />
+              </svg>
+              Companies
+            </Button>
+          </div>
+        </div>
+
+        {/* Sidebar Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-5 border-b border-gray-200 pb-4 mb-4">
+          {/* Generate Cover Letter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Cover Letter</label>
+            {tailoredCoverLetter ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-200">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span className="text-xs text-green-700 font-medium">Generated</span>
+                </div>
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(tailoredCoverLetter);
+                  }}
+                  variant="secondary"
+                  className="w-full text-xs py-2 border-b border-gray-200 pb-4 mb-4"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                  Copy Cover Letter
+                </Button>
+                <Button
+                  onClick={handleRegenerateCoverLetter.bind(null, "Improve it")}
+                  disabled={isRegeneratingCoverLetter}
+                  variant="ghost"
+                  className="w-full text-xs py-2 border border-card-border"
+                >
+                  {isRegeneratingCoverLetter ? (
+                    <>
+                      <span className="spinner-small" />
+                      Regenerating...
+                    </>
+                  ) : (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                      </svg>
+                      Regenerate
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={handleGenerateCoverLetter}
+                disabled={isGeneratingCoverLetter || !coverLetterLatex}
+                variant="primary"
+                className="w-full text-sm py-2.5"
+              >
+                {isGeneratingCoverLetter ? (
+                  <>
+                    <span className="spinner" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                    Generate Cover Letter
+                  </>
+                )}
+              </Button>
+            )}
+            {!coverLetterLatex && !tailoredCoverLetter && (
+              <p className="text-xs text-red-400 mt-2 border-b border-gray-200 pb-4 mb-4">
+                Add a cover letter template first.
+              </p>
+            )}
+          </div>
+
+          {/* Resume Filenames */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Resume Filenames</label>
+            <div className="space-y-2 border-b border-gray-200 pb-4 mb-4">
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
                   {resumeFileNamePlain}
                 </code>
                 <Button
@@ -331,10 +418,8 @@ export default function TailoredPage() {
                   {copiedResume ? "✓" : "Copy"}
                 </Button>
               </div>
-              {/* Detailed filename */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted w-16 shrink-0">Detailed:</span>
-                <code className="flex-1 bg-surface-hover px-3 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
+                <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
                   {resumeFileNameDetailed}
                 </code>
                 <Button
@@ -346,14 +431,14 @@ export default function TailoredPage() {
                 </Button>
               </div>
             </div>
+          </div>
 
-            {/* Cover Letter Filenames */}
-            <div>
-              <label className="section-label text-sm mb-2">Cover Letter Filenames</label>
-              {/* Plain filename */}
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs text-muted w-16 shrink-0">Plain:</span>
-                <code className="flex-1 bg-surface-hover px-3 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
+          {/* Cover Letter Filenames */}
+          <div className="border-b border-gray-200 pb-4 mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Cover Letter Filenames</label>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
                   {coverLetterFileNamePlain}
                 </code>
                 <Button
@@ -364,10 +449,8 @@ export default function TailoredPage() {
                   {copiedCoverLetter ? "✓" : "Copy"}
                 </Button>
               </div>
-              {/* Detailed filename */}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted w-16 shrink-0">Detailed:</span>
-                <code className="flex-1 bg-surface-hover px-3 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
+                <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
                   {coverLetterFileNameDetailed}
                 </code>
                 <Button
@@ -380,243 +463,49 @@ export default function TailoredPage() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Documents */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-          <div className="fade-in" style={{ animationDelay: "0.05s" }}>
-            <CodeBlock
-              title="Tailored Resume"
-              code={tailoredResume}
-              onRegenerate={handleRegenerateResume}
-              isRegenerating={isRegeneratingResume}
-            />
-          </div>
-
-          <div className="fade-in" style={{ animationDelay: "0.1s" }}>
-            {tailoredCoverLetter ? (
-              <CodeBlock
-                title="Tailored Cover Letter"
-                code={tailoredCoverLetter}
-                onRegenerate={handleRegenerateCoverLetter}
-                isRegenerating={isRegeneratingCoverLetter}
-              />
-            ) : (
-              <div className="glass-card p-5 h-full flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Tailored Cover Letter
-                  </h3>
-                </div>
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-                  <svg
-                    width="48"
-                    height="48"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    className="text-muted mb-4"
-                  >
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                    <line x1="16" y1="13" x2="8" y2="13" />
-                    <line x1="16" y1="17" x2="8" y2="17" />
-                    <polyline points="10 9 9 9 8 9" />
-                  </svg>
-                  <p className="text-muted text-sm mb-4">
-                    Cover letter not generated yet.
-                  </p>
-                  <Button
-                    onClick={handleGenerateCoverLetter}
-                    disabled={isGeneratingCoverLetter || !coverLetterLatex}
-                    variant="primary"
-                    className="text-sm py-2.5 px-5"
-                  >
-                    {isGeneratingCoverLetter ? (
-                      <>
-                        <span className="spinner" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                        </svg>
-                        Generate Cover Letter
-                      </>
-                    )}
-                  </Button>
-                  {!coverLetterLatex && (
-                    <p className="text-xs text-red-400 mt-2">
-                      Please add a cover letter template on the home page first.
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* General Q&A Section */}
-        <div
-          className="mt-8 glass-card p-4 sm:p-5 fade-in"
-          style={{ animationDelay: "0.2s" }}
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-primary"
-            >
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            <h3 className="text-base font-semibold text-foreground">
-              Ask About Your Application
-            </h3>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2 mb-3">
+          {/* Quick Q&A */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Quick Question</label>
             <textarea
               value={generalQuestion}
               onChange={(e) => setGeneralQuestion(e.target.value)}
-              placeholder="Ask any question about your tailored documents..."
-              className="input-field flex-1 min-h-15 text-sm"
+              placeholder="Ask about salary range, required skills..."
+              className="input-field text-sm mb-2"
               rows={2}
             />
-          </div>
-
-          {/* Combined Options Row - Modern UI */}
-          <div className="flex flex-col lg:flex-row gap-3 mb-4">
-            {/* Answer Limit */}
-            <div className="flex-1 p-3 bg-linear-to-r from-surface-hover to-transparent rounded-xl border border-card-border/50">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 shrink-0">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">
-                    <path d="M4 7V4h16v3" />
-                    <path d="M9 20h6" />
-                    <path d="M12 4v16" />
-                  </svg>
-                  <span className="text-xs font-semibold text-foreground">Limit</span>
-                </div>
-                <div className="flex items-center gap-1 flex-wrap">
-                  {[
-                    { value: "none", label: "None" },
-                    { value: "words", label: "Words" },
-                    { value: "characters", label: "Chars" },
-                  ].map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => handleLimitTypeChange(opt.value as typeof limitType)}
-                      className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
-                        limitType === opt.value
-                          ? "bg-primary text-white shadow-sm"
-                          : "text-muted hover:text-foreground hover:bg-surface-hover"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                  {limitType !== "none" && (
-                    <input
-                      type="number"
-                      value={limitValue}
-                      onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value) || 1))}
-                      min="1"
-                      className="w-16 px-2 py-1 text-xs text-center rounded-lg border border-card-border bg-background focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none"
-                    />
-                  )}
-                </div>
-              </div>
+            <div className="flex gap-2 mb-2">
+              {[
+                { value: "none", label: "No Limit" },
+                { value: "words", label: "Words" },
+                { value: "characters", label: "Chars" },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => handleLimitTypeChange(opt.value as "none" | "words" | "characters")}
+                  className={`flex-1 px-2 py-1 text-xs font-medium rounded-lg transition-all ${
+                    limitType === opt.value
+                      ? "bg-primary text-white"
+                      : "bg-surface-hover text-muted hover:bg-gray-200"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
-
-            {/* Knowledge Source */}
-            <div className="flex-1 p-3 bg-linear-to-r from-surface-hover to-transparent rounded-xl border border-card-border/50">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 shrink-0">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M2 12h20" />
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                  </svg>
-                  <span className="text-xs font-semibold text-foreground">Source</span>
-                </div>
-                <div className="flex items-center gap-1 flex-wrap">
-                  {[
-                    { value: "context", label: "Context" },
-                    { value: "context+internet", label: "Context + Web" },
-                    { value: "internet", label: "Web Only" },
-                  ].map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setSearchMode(opt.value as typeof searchMode)}
-                      className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
-                        searchMode === opt.value
-                          ? "bg-primary text-white shadow-sm"
-                          : "text-muted hover:text-foreground hover:bg-surface-hover"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Actions and Generate Button */}
-          <div className="flex flex-col sm:flex-row gap-2 mb-4">
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                onClick={() =>
-                  setGeneralQuestion(
-                    "Give me a list of skills from my current tailored resume, separated by commas. no extra text or formatting.",
-                  )
-                }
-                variant="secondary"
-                className="text-xs py-2 px-3"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
-                  <rect x="9" y="3" width="6" height="4" rx="1" />
-                  <path d="M9 12h6" />
-                  <path d="M9 16h6" />
-                </svg>
-                List Skills
-              </Button>
-              <Button
-                onClick={() =>
-                  setGeneralQuestion(
-                    "Based on my resume, what is my expected salary range for this position? Consider my experience level, skills, and the job market. Give me a range in USD.",
-                  )
-                }
-                variant="secondary"
-                className="text-xs py-2 px-3"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="12" y1="1" x2="12" y2="23" />
-                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                </svg>
-                Salary Range
-              </Button>
-            </div>
-            <div className="flex-1" />
+            {limitType !== "none" && (
+              <input
+                type="number"
+                value={limitValue}
+                onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-full px-3 py-1.5 text-sm rounded-lg border border-card-border mb-2"
+                min="1"
+              />
+            )}
             <Button
               onClick={async () => {
                 if (!generalQuestion.trim()) return;
                 setIsAskingQuestion(true);
-                setGeneralAnswer("");
                 try {
                   const response = await fetch("/api/ask", {
                     method: "POST",
@@ -627,8 +516,6 @@ export default function TailoredPage() {
                       tailoredCoverLetter,
                       jobDescription,
                       companyInfo,
-                      companyName,
-                      positionTitle,
                       limitType: limitType !== "none" ? limitType : undefined,
                       limitValue: limitType !== "none" ? limitValue : undefined,
                       searchMode,
@@ -638,90 +525,75 @@ export default function TailoredPage() {
                   if (!response.ok) throw new Error(data.error);
                   setGeneralAnswer(data.answer);
                 } catch (err) {
-                  setGeneralAnswer(
-                    "Error: " +
-                      (err instanceof Error
-                        ? err.message
-                        : "Failed to get answer"),
-                  );
+                  setGeneralAnswer("Error: " + (err instanceof Error ? err.message : "Failed to get answer"));
                 } finally {
                   setIsAskingQuestion(false);
                 }
               }}
               disabled={!generalQuestion.trim() || isAskingQuestion}
               variant="primary"
-              className="text-sm py-2 px-4"
+              className="w-full text-sm py-2"
             >
               {isAskingQuestion ? (
                 <>
-                  <span className="spinner" />
+                  <span className="spinner-small" />
                   Thinking...
                 </>
               ) : (
-                <>
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                  </svg>
-                  Generate Answer
-                </>
+                "Ask"
               )}
             </Button>
-          </div>
 
-          {generalAnswer && (
-            <div className="bg-surface-hover rounded-lg p-4 border border-card-border">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-muted">Answer</span>
-                <Button
-                  onClick={() => navigator.clipboard.writeText(generalAnswer)}
-                  variant="ghost"
-                  className="copy-btn text-xs py-1 px-2"
-                >
-                  Copy
-                </Button>
-              </div>
-              <div className="prose max-w-none text-sm whitespace-pre-wrap">
-                {generalAnswer}
-              </div>
+            {/* Quick Question Shortcuts */}
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => setGeneralQuestion("What is the salary range for this position?")}
+                className="flex-1 px-2 py-1.5 text-xs font-medium text-muted bg-surface-hover hover:bg-gray-200 rounded-lg transition-colors border border-card-border/50"
+              >
+                💰 Salary Range
+              </button>
+              <button
+                onClick={() => setGeneralQuestion("What are the key skills required for this role?")}
+                className="flex-1 px-2 py-1.5 text-xs font-medium text-muted bg-surface-hover hover:bg-gray-200 rounded-lg transition-colors border border-card-border/50"
+              >
+                🎯 Key Skills
+              </button>
             </div>
-          )}
+
+            {generalAnswer && (
+              <div className="mt-3 p-3 bg-surface-hover rounded-lg border border-card-border">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-muted">Answer</span>
+                  <Button
+                    onClick={() => navigator.clipboard.writeText(generalAnswer)}
+                    variant="ghost"
+                    className="copy-btn text-xs py-0.5 px-1.5"
+                  >
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-xs text-foreground whitespace-pre-wrap">{generalAnswer}</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </Sidebar>
 
-              {/* Navigation */}
-        <div
-          className="mt-6 sm:mt-8 flex justify-center fade-in"
-          style={{ animationDelay: "0.15s" }}
-        >
-          <Button
-            onClick={() => router.push("/questions")}
-            variant="primary"
-            className="text-sm py-2.5"
-          >
-            Continue to Q&A
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
-            </svg>
-          </Button>
-        </div>
+      {/* Main Content - Full Screen LaTeX Editor */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <LaTeXEditor
+          title="Tailored Resume"
+          code={tailoredResume}
+          onCodeChange={setTailoredResume}
+          onRegenerate={handleRegenerateResume}
+          isRegenerating={isRegeneratingResume}
+          showPreview={true}
+          fullHeight={true}
+          downloadFileNames={[resumeFileNamePlain, resumeFileNameDetailed]}
+        />
+      </main>
 
-
-      {/* Log to Sheet Modal */}
+        {/* Log to Sheet Modal */}
       {showLogModal && (
         <div 
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
@@ -923,6 +795,6 @@ export default function TailoredPage() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

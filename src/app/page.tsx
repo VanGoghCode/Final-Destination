@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
-import Navbar from "@/components/Navbar";
+import Sidebar from "@/components/Sidebar";
 import Button from "@/components/Button";
 import {
   getPersonalDetails,
@@ -23,6 +23,16 @@ import {
   getDefaultResumeTemplate,
   getDefaultCoverLetterTemplate,
   Template,
+  // Profile imports
+  Profile,
+  getProfiles,
+  addProfile,
+  updateProfile,
+  deleteProfile,
+  getActiveProfileId,
+  setActiveProfileId,
+  getActiveProfile,
+  getNextProfileColor,
 } from "@/lib/storage";
 
 // Reusable status dot component for field indicators
@@ -138,6 +148,25 @@ export default function Home() {
   const [editTemplateName, setEditTemplateName] = useState("");
   const [editTemplateContent, setEditTemplateContent] = useState("");
 
+  // Profile management state
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [activeProfileId, setActiveProfileIdState] = useState<string | null>(null);
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
+  const [profileFormName, setProfileFormName] = useState("");
+  const [profileFormFirstName, setProfileFormFirstName] = useState("");
+  const [profileFormLastName, setProfileFormLastName] = useState("");
+  const [profileFormResumeId, setProfileFormResumeId] = useState<string | null>(null);
+  const [profileFormCoverLetterId, setProfileFormCoverLetterId] = useState<string | null>(null);
+  
+  // Inline template creation in profile modal
+  const [showNewResumeInProfile, setShowNewResumeInProfile] = useState(false);
+  const [showNewCoverLetterInProfile, setShowNewCoverLetterInProfile] = useState(false);
+  const [newResumeNameInProfile, setNewResumeNameInProfile] = useState("");
+  const [newResumeContentInProfile, setNewResumeContentInProfile] = useState("");
+  const [newCoverLetterNameInProfile, setNewCoverLetterNameInProfile] = useState("");
+  const [newCoverLetterContentInProfile, setNewCoverLetterContentInProfile] = useState("");
+
   // Show notification helper
   const showNotification = (message: string) => {
     setSavedNotification(message);
@@ -146,14 +175,13 @@ export default function Home() {
 
   // Load data from localStorage on mount
   useEffect(() => {
-    const savedDetails = getPersonalDetails();
-    if (savedDetails) {
-      setFirstName(savedDetails.firstName);
-      setLastName(savedDetails.lastName);
-    } else {
-      setShowPersonalDetailsModal(true);
-    }
+    // Load profiles first
+    const loadedProfiles = getProfiles();
+    setProfiles(loadedProfiles);
+    const activeId = getActiveProfileId();
+    setActiveProfileIdState(activeId);
 
+    // Load templates
     const resumes = getResumeTemplates();
     const coverLetters = getCoverLetterTemplates();
     setResumeTemplates(resumes);
@@ -161,18 +189,50 @@ export default function Home() {
     setDefaultResumeIdState(getDefaultResumeId());
     setDefaultCoverLetterIdState(getDefaultCoverLetterId());
 
-    if (!resumeLatex) {
-      const defaultResume = getDefaultResumeTemplate();
-      if (defaultResume) {
-        setResumeLatex(defaultResume.content);
-        setSelectedResumeTemplateId(defaultResume.id);
+    // If we have an active profile, use its data
+    const activeProfile = loadedProfiles.find(p => p.id === activeId);
+    if (activeProfile) {
+      setFirstName(activeProfile.firstName);
+      setLastName(activeProfile.lastName);
+      // Load profile's default resume
+      if (activeProfile.defaultResumeId) {
+        const profileResume = resumes.find(t => t.id === activeProfile.defaultResumeId);
+        if (profileResume) {
+          setResumeLatex(profileResume.content);
+          setSelectedResumeTemplateId(profileResume.id);
+        }
       }
-    }
-    if (!coverLetterLatex) {
-      const defaultCoverLetter = getDefaultCoverLetterTemplate();
-      if (defaultCoverLetter) {
-        setCoverLetterLatex(defaultCoverLetter.content);
-        setSelectedCoverLetterTemplateId(defaultCoverLetter.id);
+      // Load profile's default cover letter
+      if (activeProfile.defaultCoverLetterId) {
+        const profileCoverLetter = coverLetters.find(t => t.id === activeProfile.defaultCoverLetterId);
+        if (profileCoverLetter) {
+          setCoverLetterLatex(profileCoverLetter.content);
+          setSelectedCoverLetterTemplateId(profileCoverLetter.id);
+        }
+      }
+    } else if (loadedProfiles.length === 0) {
+      // No profiles exist - check legacy personal details
+      const savedDetails = getPersonalDetails();
+      if (savedDetails) {
+        setFirstName(savedDetails.firstName);
+        setLastName(savedDetails.lastName);
+      } else {
+        setShowPersonalDetailsModal(true);
+      }
+      // Load default templates
+      if (!resumeLatex) {
+        const defaultResume = getDefaultResumeTemplate();
+        if (defaultResume) {
+          setResumeLatex(defaultResume.content);
+          setSelectedResumeTemplateId(defaultResume.id);
+        }
+      }
+      if (!coverLetterLatex) {
+        const defaultCoverLetter = getDefaultCoverLetterTemplate();
+        if (defaultCoverLetter) {
+          setCoverLetterLatex(defaultCoverLetter.content);
+          setSelectedCoverLetterTemplateId(defaultCoverLetter.id);
+        }
       }
     }
   }, []);
@@ -186,6 +246,153 @@ export default function Home() {
     setFirstName(tempFirstName.trim());
     setLastName(tempLastName.trim());
     setShowPersonalDetailsModal(false);
+    
+    // Also create a default profile if none exist
+    if (profiles.length === 0) {
+      const newProfile = addProfile(
+        "Default",
+        tempFirstName.trim(),
+        tempLastName.trim(),
+        getDefaultResumeId(),
+        getDefaultCoverLetterId()
+      );
+      setProfiles([newProfile]);
+      setActiveProfileIdState(newProfile.id);
+    }
+  };
+
+  // Profile handlers
+  const handleSelectProfile = (profile: Profile) => {
+    setActiveProfileId(profile.id);
+    setActiveProfileIdState(profile.id);
+    setFirstName(profile.firstName);
+    setLastName(profile.lastName);
+    
+    // Load profile's templates
+    if (profile.defaultResumeId) {
+      const profileResume = resumeTemplates.find(t => t.id === profile.defaultResumeId);
+      if (profileResume) {
+        setResumeLatex(profileResume.content);
+        setSelectedResumeTemplateId(profileResume.id);
+      }
+    }
+    if (profile.defaultCoverLetterId) {
+      const profileCoverLetter = coverLetterTemplates.find(t => t.id === profile.defaultCoverLetterId);
+      if (profileCoverLetter) {
+        setCoverLetterLatex(profileCoverLetter.content);
+        setSelectedCoverLetterTemplateId(profileCoverLetter.id);
+      }
+    }
+    showNotification(`Switched to ${profile.name}`);
+  };
+
+  const handleOpenNewProfile = () => {
+    setEditingProfile(null);
+    setProfileFormName("");
+    setProfileFormFirstName("");
+    setProfileFormLastName("");
+    setProfileFormResumeId(null);
+    setProfileFormCoverLetterId(null);
+    // Reset inline template creation
+    setShowNewResumeInProfile(false);
+    setShowNewCoverLetterInProfile(false);
+    setNewResumeNameInProfile("");
+    setNewResumeContentInProfile("");
+    setNewCoverLetterNameInProfile("");
+    setNewCoverLetterContentInProfile("");
+    setShowProfileEditor(true);
+  };
+
+  const handleOpenEditProfile = (profile: Profile) => {
+    setEditingProfile(profile);
+    setProfileFormName(profile.name);
+    setProfileFormFirstName(profile.firstName);
+    setProfileFormLastName(profile.lastName);
+    setProfileFormResumeId(profile.defaultResumeId);
+    setProfileFormCoverLetterId(profile.defaultCoverLetterId);
+    // Reset inline template creation
+    setShowNewResumeInProfile(false);
+    setShowNewCoverLetterInProfile(false);
+    setNewResumeNameInProfile("");
+    setNewResumeContentInProfile("");
+    setNewCoverLetterNameInProfile("");
+    setNewCoverLetterContentInProfile("");
+    setShowProfileEditor(true);
+  };
+
+  const handleAddResumeInProfile = () => {
+    if (!newResumeNameInProfile.trim() || !newResumeContentInProfile.trim()) return;
+    const newTemplate = addResumeTemplate(newResumeNameInProfile.trim(), newResumeContentInProfile.trim());
+    setResumeTemplates(getResumeTemplates());
+    setProfileFormResumeId(newTemplate.id);
+    setShowNewResumeInProfile(false);
+    setNewResumeNameInProfile("");
+    setNewResumeContentInProfile("");
+    showNotification("Resume template created!");
+  };
+
+  const handleAddCoverLetterInProfile = () => {
+    if (!newCoverLetterNameInProfile.trim() || !newCoverLetterContentInProfile.trim()) return;
+    const newTemplate = addCoverLetterTemplate(newCoverLetterNameInProfile.trim(), newCoverLetterContentInProfile.trim());
+    setCoverLetterTemplates(getCoverLetterTemplates());
+    setProfileFormCoverLetterId(newTemplate.id);
+    setShowNewCoverLetterInProfile(false);
+    setNewCoverLetterNameInProfile("");
+    setNewCoverLetterContentInProfile("");
+    showNotification("Cover letter template created!");
+  };
+
+  const handleSaveProfile = () => {
+    if (!profileFormName.trim() || !profileFormFirstName.trim() || !profileFormLastName.trim()) {
+      alert("Please fill in profile name, first name, and last name.");
+      return;
+    }
+
+    if (editingProfile) {
+      // Update existing profile
+      updateProfile(editingProfile.id, {
+        name: profileFormName.trim(),
+        firstName: profileFormFirstName.trim(),
+        lastName: profileFormLastName.trim(),
+        defaultResumeId: profileFormResumeId,
+        defaultCoverLetterId: profileFormCoverLetterId,
+      });
+      // Update local state
+      if (activeProfileId === editingProfile.id) {
+        setFirstName(profileFormFirstName.trim());
+        setLastName(profileFormLastName.trim());
+      }
+    } else {
+      // Create new profile
+      const newProfile = addProfile(
+        profileFormName.trim(),
+        profileFormFirstName.trim(),
+        profileFormLastName.trim(),
+        profileFormResumeId,
+        profileFormCoverLetterId
+      );
+      // Select the new profile
+      handleSelectProfile(newProfile);
+    }
+    setProfiles(getProfiles());
+    setShowProfileEditor(false);
+    showNotification(editingProfile ? "Profile updated!" : "Profile created!");
+  };
+
+  const handleDeleteProfile = (id: string) => {
+    if (!confirm("Are you sure you want to delete this profile?")) return;
+    deleteProfile(id);
+    setProfiles(getProfiles());
+    // If deleted profile was active, switch to first available
+    if (activeProfileId === id) {
+      const remainingProfiles = getProfiles();
+      if (remainingProfiles.length > 0) {
+        handleSelectProfile(remainingProfiles[0]);
+      } else {
+        setActiveProfileIdState(null);
+      }
+    }
+    showNotification("Profile deleted!");
   };
 
   const handleResearch = async () => {
@@ -400,10 +607,156 @@ export default function Home() {
   const selectedCoverLetterName = coverLetterTemplates.find((t) => t.id === selectedCoverLetterTemplateId)?.name;
 
   return (
-    <main className="min-h-screen p-4 sm:p-6">
-      <Navbar currentStep={1} />
+    <div className="h-screen flex overflow-hidden">
+      {/* Sidebar */}
+      <Sidebar title="Step 1: Input">
+        {/* Step Navigation */}
+        <div className="p-3 border-b border-gray-100">
+          <div className="flex items-center gap-1">
+            <div className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-primary/10 border border-primary text-primary text-xs font-medium">
+              <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold">1</span>
+              Input
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted shrink-0">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+            <button
+              onClick={() => router.push("/tailored")}
+              className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
+            >
+              <span className="w-5 h-5 rounded-full bg-card-border text-muted flex items-center justify-center text-[10px] font-bold">2</span>
+              Review
+            </button>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted shrink-0">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+            <button
+              onClick={() => router.push("/questions")}
+              className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
+            >
+              <span className="w-5 h-5 rounded-full bg-card-border text-muted flex items-center justify-center text-[10px] font-bold">3</span>
+              Q&A
+            </button>
+          </div>
+        </div>
 
-      <div className="max-w-6xl mx-auto">
+        {/* Navigation Actions */}
+        <div className="p-4 border-b border-gray-100 space-y-3">
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowTemplateManager(true)}
+              variant="secondary"
+              className="flex-1 text-xs py-2"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              Templates
+            </Button>
+            <Button
+              onClick={() => router.push("/jobs")}
+              variant="secondary"
+              className="flex-1 text-xs py-2"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 7h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM10 4h4v3h-4V4z" />
+              </svg>
+              Companies
+            </Button>
+          </div>
+        </div>
+
+        {/* Sidebar Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-5">
+          {/* Profiles */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-gray-700">Profiles</label>
+              <button
+                onClick={handleOpenNewProfile}
+                className="w-6 h-6 flex items-center justify-center rounded-full border border-dashed border-card-border hover:border-primary text-muted hover:text-primary transition-colors"
+                title="Add profile"
+              >
+                <PlusIcon size={10} />
+              </button>
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              {profiles.map((profile) => (
+                <div key={profile.id} className="relative group flex flex-col items-center">
+                  <div className={`p-0.5 rounded-full transition-all duration-300 ease-out ${
+                    activeProfileId === profile.id
+                      ? "bg-linear-to-br from-primary via-primary/80 to-primary/60 shadow-md shadow-primary/30 scale-110"
+                      : "bg-transparent hover:scale-105"
+                  }`}>
+                    <button
+                      onClick={() => handleSelectProfile(profile)}
+                      className={`w-10 h-10 rounded-full bg-linear-to-br ${profile.color} flex items-center justify-center text-white font-bold text-sm shadow-lg transition-all duration-300 ${
+                        activeProfileId === profile.id
+                          ? "ring-2 ring-white"
+                          : "opacity-70 hover:opacity-100"
+                      }`}
+                      title={profile.name}
+                    >
+                      {profile.firstName?.[0]?.toUpperCase() || "?"}{profile.lastName?.[0]?.toUpperCase() || ""}
+                    </button>
+                  </div>
+                  {/* Edit button on hover */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenEditProfile(profile);
+                    }}
+                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white border border-card-border flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-surface-hover"
+                    title="Edit profile"
+                  >
+                    <EditIcon size={8} />
+                  </button>
+                  {/* Profile name below */}
+                  <span className={`mt-1 text-[10px] max-w-12.5 truncate text-center transition-colors duration-300 ${
+                    activeProfileId === profile.id ? "text-primary font-medium" : "text-muted"
+                  }`}>
+                    {profile.name}
+                  </span>
+                </div>
+              ))}
+              {profiles.length === 0 && (
+                <div className="flex flex-col items-center">
+                  <button
+                    onClick={handleOpenNewProfile}
+                    className="w-10 h-10 rounded-full border-2 border-dashed border-card-border flex items-center justify-center text-muted hover:border-primary hover:text-primary transition-colors"
+                    title="Add your first profile"
+                  >
+                    <PlusIcon size={14} />
+                  </button>
+                  <span className="mt-1 text-[10px] text-muted">Add</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Progress */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Progress</label>
+            <div className="flex items-center gap-2 p-3 bg-surface-hover/50 rounded-lg">
+              <div className="flex gap-1">
+                {[...Array(4)].map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-3 h-3 rounded-full transition-colors ${
+                      i < progress.completed ? "bg-primary" : "bg-card-border"
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="text-sm text-muted">{progress.completed}/4 required fields</span>
+            </div>
+          </div>
+        </div>
+      </Sidebar>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col overflow-hidden">
         {/* Floating Notification */}
         {savedNotification && (
           <div className="fixed top-4 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 fade-in">
@@ -414,355 +767,292 @@ export default function Home() {
           </div>
         )}
 
-        {/* Header Section */}
-        <div className="glass-card p-4 sm:p-5 mb-6 fade-in">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            {/* User Info */}
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-linear-to-br from-primary to-primary/60 flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                {firstName?.[0]?.toUpperCase() || "?"}{lastName?.[0]?.toUpperCase() || ""}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="First"
-                    className="bg-transparent border-b border-transparent hover:border-card-border focus:border-primary outline-none text-foreground font-medium w-24 transition-colors"
-                  />
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Last"
-                    className="bg-transparent border-b border-transparent hover:border-card-border focus:border-primary outline-none text-foreground font-medium w-24 transition-colors"
-                  />
-                  <IconButton onClick={handleUpdatePersonalDetails} title="Save name">
-                    <SaveIcon />
-                  </IconButton>
+        {/* Form Area */}
+        <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+          <div className="space-y-3 lg:space-y-5">
+            {/* Resume and Cover Letter - Side by Side */}
+            <div className="grid lg:grid-cols-2 gap-3 lg:gap-5">
+              {/* Resume LaTeX */}
+              <div className="glass-card p-3 lg:p-5 fade-in group flex flex-col">
+                <div className="flex items-center justify-between mb-2 lg:mb-3">
+                  <div className="flex items-center gap-2">
+                    <FieldStatusDot filled={!!resumeLatex} required />
+                    <label className="section-label mb-0 text-sm lg:text-base">Resume</label>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                    {resumeTemplates.length > 0 && (
+                      <select
+                        value={selectedResumeTemplateId}
+                        onChange={(e) => handleSelectResumeTemplate(e.target.value)}
+                        className="text-xs py-1 px-2 rounded-lg border border-card-border bg-background text-foreground focus:border-primary focus:outline-none cursor-pointer"
+                      >
+                        <option value="">Switch template...</option>
+                        {resumeTemplates.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name} {t.id === defaultResumeId ? "⭐" : ""}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {selectedResumeTemplateId && resumeLatex && (
+                      <>
+                        <IconButton onClick={handleSaveCurrentResumeToTemplate} title="Save to template">
+                          <SaveIcon size={12} />
+                        </IconButton>
+                        <IconButton 
+                          onClick={() => {
+                            const template = resumeTemplates.find(t => t.id === selectedResumeTemplateId);
+                            if (template) handleOpenEditTemplate("resume", template);
+                          }} 
+                          title="Edit template"
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton 
+                          onClick={() => handleDeleteTemplate("resume", selectedResumeTemplateId)} 
+                          title="Delete template"
+                        >
+                          <TrashIcon />
+                        </IconButton>
+                      </>
+                    )}
+                    <IconButton onClick={() => handleOpenNewTemplate("resume")} title="New template">
+                      <PlusIcon />
+                    </IconButton>
+                  </div>
                 </div>
-                <p className="text-xs text-muted mt-0.5">
-                  {resumeTemplates.length} resume{resumeTemplates.length !== 1 ? "s" : ""} • {coverLetterTemplates.length} cover letter{coverLetterTemplates.length !== 1 ? "s" : ""}
-                </p>
+                <textarea
+                  className="input-field h-48 lg:h-64 font-mono text-xs resize-none overflow-y-auto"
+                  placeholder="Paste your resume LaTeX code here..."
+                  value={resumeLatex}
+                  onChange={(e) => setResumeLatex(e.target.value)}
+                />
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-xs text-muted">{resumeLatex.length.toLocaleString()} chars</span>
+                  {resumeLatex && <span className="text-xs text-green-500">✓ Ready</span>}
+                </div>
+              </div>
+
+              {/* Cover Letter LaTeX */}
+              <div className="glass-card p-3 lg:p-5 fade-in group flex flex-col">
+                <div className="flex items-center justify-between mb-2 lg:mb-3">
+                  <div className="flex items-center gap-2">
+                    <FieldStatusDot filled={!!coverLetterLatex} required={false} />
+                    <label className="section-label mb-0 text-sm lg:text-base">Cover Letter</label>
+                    <span className="text-xs text-muted">(optional)</span>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                    {coverLetterTemplates.length > 0 && (
+                      <select
+                        value={selectedCoverLetterTemplateId}
+                        onChange={(e) => handleSelectCoverLetterTemplate(e.target.value)}
+                        className="text-xs py-1 px-2 rounded-lg border border-card-border bg-background text-foreground focus:border-primary focus:outline-none cursor-pointer"
+                      >
+                        <option value="">Switch template...</option>
+                        {coverLetterTemplates.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.name} {t.id === defaultCoverLetterId ? "⭐" : ""}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {selectedCoverLetterTemplateId && coverLetterLatex && (
+                      <>
+                        <IconButton onClick={handleSaveCurrentCoverLetterToTemplate} title="Save to template">
+                          <SaveIcon size={12} />
+                        </IconButton>
+                        <IconButton 
+                          onClick={() => {
+                            const template = coverLetterTemplates.find(t => t.id === selectedCoverLetterTemplateId);
+                            if (template) handleOpenEditTemplate("coverLetter", template);
+                          }} 
+                          title="Edit template"
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton 
+                          onClick={() => handleDeleteTemplate("coverLetter", selectedCoverLetterTemplateId)} 
+                          title="Delete template"
+                        >
+                          <TrashIcon />
+                        </IconButton>
+                      </>
+                    )}
+                    <IconButton onClick={() => handleOpenNewTemplate("coverLetter")} title="New template">
+                      <PlusIcon />
+                    </IconButton>
+                  </div>
+                </div>
+                <textarea
+                  className="input-field h-48 lg:h-64 font-mono text-xs resize-none overflow-y-auto"
+                  placeholder="Paste your cover letter LaTeX code here..."
+                  value={coverLetterLatex}
+                  onChange={(e) => setCoverLetterLatex(e.target.value)}
+                />
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-xs text-muted">{coverLetterLatex.length.toLocaleString()} chars</span>
+                  {coverLetterLatex && <span className="text-xs text-green-500">✓ Ready</span>}
+                </div>
               </div>
             </div>
 
-            {/* Progress & Actions */}
-            <div className="flex items-center gap-4">
-              {/* Progress Indicator */}
-              <div className="hidden sm:flex items-center gap-2">
-                <div className="flex gap-1">
-                  {[...Array(4)].map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-2 h-2 rounded-full transition-colors ${
-                        i < progress.completed ? "bg-primary" : "bg-card-border"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs text-muted">{progress.completed}/4</span>
+            {/* Company Details */}
+            <div className="glass-card p-3 lg:p-5 fade-in">
+                <div className="flex items-center gap-2 mb-3 lg:mb-4">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+                <label className="section-label mb-0 text-sm lg:text-base">Company Details</label>
               </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <FieldStatusDot filled={!!companyName} required />
+                    <label className="text-xs font-medium text-muted uppercase tracking-wide">Company Name</label>
+                  </div>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="e.g., Google, Microsoft..."
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <FieldStatusDot filled={!!companyUrl} required={false} />
+                    <label className="text-xs font-medium text-muted uppercase tracking-wide">Company URL <span className="normal-case font-normal">(optional)</span></label>
+                  </div>
+                  <input
+                    type="url"
+                    className="input-field"
+                    placeholder="https://..."
+                    value={companyUrl}
+                    onChange={(e) => setCompanyUrl(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <FieldStatusDot filled={!!positionTitle} required />
+                    <label className="text-xs font-medium text-muted uppercase tracking-wide">Position Title</label>
+                  </div>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="e.g., Software Engineer..."
+                    value={positionTitle}
+                    onChange={(e) => setPositionTitle(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
 
-              {tailoredResume && (
-                <Button onClick={() => router.push("/tailored")} variant="ghost" className="text-xs py-1.5 px-3">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
+            {/* Job Description */}
+            <div className="glass-card p-3 lg:p-5 fade-in">
+              <div className="flex items-center gap-2 mb-2 lg:mb-3">
+                <FieldStatusDot filled={!!jobDescription} required />
+                <label className="section-label mb-0 text-sm lg:text-base">Job Description</label>
+                {jobDescription && <span className="text-xs text-muted ml-auto">{jobDescription.split(/\s+/).length} words</span>}
+              </div>
+              <textarea
+                className="input-field h-76 lg:h-102 resize-none overflow-y-auto"
+                placeholder="Paste the full job description including title, responsibilities, and requirements..."
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+              />
+            </div>
+
+            {/* Custom Instructions and Company Info - Side by Side */}
+            <div className="grid lg:grid-cols-2 gap-3 lg:gap-5">
+              <div className="glass-card p-3 lg:p-5 fade-in">
+                <div className="flex items-center gap-2 mb-2 lg:mb-3">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                   </svg>
-                  View Last
-                </Button>
-              )}
-
-              <Button onClick={() => setShowTemplateManager(true)} variant="secondary" className="text-xs py-1.5 px-3">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                </svg>
-                Templates
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Form Grid */}
-        <div className="grid lg:grid-cols-2 gap-5">
-          {/* Resume LaTeX */}
-          <div className="glass-card p-5 fade-in group" style={{ animationDelay: "0.05s" }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <FieldStatusDot filled={!!resumeLatex} required />
-                <label className="section-label mb-0">Resume</label>
-              </div>
-              <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                {resumeTemplates.length > 0 && (
-                  <select
-                    value={selectedResumeTemplateId}
-                    onChange={(e) => handleSelectResumeTemplate(e.target.value)}
-                    className="text-xs py-1 px-2 rounded-lg border border-card-border bg-background text-foreground focus:border-primary focus:outline-none cursor-pointer"
-                  >
-                    <option value="">Switch template...</option>
-                    {resumeTemplates.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} {t.id === defaultResumeId ? "⭐" : ""}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {selectedResumeTemplateId && resumeLatex && (
-                  <>
-                    <IconButton onClick={handleSaveCurrentResumeToTemplate} title="Save to template">
-                      <SaveIcon size={12} />
-                    </IconButton>
-                    <IconButton 
-                      onClick={() => {
-                        const template = resumeTemplates.find(t => t.id === selectedResumeTemplateId);
-                        if (template) handleOpenEditTemplate("resume", template);
-                      }} 
-                      title="Edit template"
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton 
-                      onClick={() => handleDeleteTemplate("resume", selectedResumeTemplateId)} 
-                      title="Delete template"
-                    >
-                      <TrashIcon />
-                    </IconButton>
-                  </>
-                )}
-                <IconButton onClick={() => handleOpenNewTemplate("resume")} title="New template">
-                  <PlusIcon />
-                </IconButton>
-              </div>
-            </div>
-            <textarea
-              className="input-field h-48 font-mono text-xs resize-none"
-              placeholder="Paste your resume LaTeX code here..."
-              value={resumeLatex}
-              onChange={(e) => setResumeLatex(e.target.value)}
-            />
-            <div className="flex justify-between items-center mt-2">
-              <span className="text-xs text-muted">{resumeLatex.length.toLocaleString()} chars</span>
-              {resumeLatex && <span className="text-xs text-green-500">✓ Ready</span>}
-            </div>
-          </div>
-
-          {/* Cover Letter LaTeX */}
-          <div className="glass-card p-5 fade-in group" style={{ animationDelay: "0.1s" }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <FieldStatusDot filled={!!coverLetterLatex} required={false} />
-                <label className="section-label mb-0">Cover Letter</label>
-                <span className="text-xs text-muted">(optional)</span>
-              </div>
-              <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                {coverLetterTemplates.length > 0 && (
-                  <select
-                    value={selectedCoverLetterTemplateId}
-                    onChange={(e) => handleSelectCoverLetterTemplate(e.target.value)}
-                    className="text-xs py-1 px-2 rounded-lg border border-card-border bg-background text-foreground focus:border-primary focus:outline-none cursor-pointer"
-                  >
-                    <option value="">Switch template...</option>
-                    {coverLetterTemplates.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} {t.id === defaultCoverLetterId ? "⭐" : ""}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {selectedCoverLetterTemplateId && coverLetterLatex && (
-                  <>
-                    <IconButton onClick={handleSaveCurrentCoverLetterToTemplate} title="Save to template">
-                      <SaveIcon size={12} />
-                    </IconButton>
-                    <IconButton 
-                      onClick={() => {
-                        const template = coverLetterTemplates.find(t => t.id === selectedCoverLetterTemplateId);
-                        if (template) handleOpenEditTemplate("coverLetter", template);
-                      }} 
-                      title="Edit template"
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton 
-                      onClick={() => handleDeleteTemplate("coverLetter", selectedCoverLetterTemplateId)} 
-                      title="Delete template"
-                    >
-                      <TrashIcon />
-                    </IconButton>
-                  </>
-                )}
-                <IconButton onClick={() => handleOpenNewTemplate("coverLetter")} title="New template">
-                  <PlusIcon />
-                </IconButton>
-              </div>
-            </div>
-            <textarea
-              className="input-field h-48 font-mono text-xs resize-none"
-              placeholder="Paste your cover letter LaTeX code here..."
-              value={coverLetterLatex}
-              onChange={(e) => setCoverLetterLatex(e.target.value)}
-            />
-            <div className="flex justify-between items-center mt-2">
-              <span className="text-xs text-muted">{coverLetterLatex.length.toLocaleString()} chars</span>
-              {coverLetterLatex && <span className="text-xs text-green-500">✓ Ready</span>}
-            </div>
-          </div>
-
-          {/* Job Description - Full Width */}
-          <div className="glass-card p-5 lg:col-span-2 fade-in" style={{ animationDelay: "0.15s" }}>
-            <div className="flex items-center gap-2 mb-3">
-              <FieldStatusDot filled={!!jobDescription} required />
-              <label className="section-label mb-0">Job Description</label>
-              {jobDescription && <span className="text-xs text-muted ml-auto">{jobDescription.split(/\s+/).length} words</span>}
-            </div>
-            <textarea
-              className="input-field h-36 resize-none"
-              placeholder="Paste the full job description including title, responsibilities, and requirements..."
-              value={jobDescription}
-              onChange={(e) => setJobDescription(e.target.value)}
-            />
-          </div>
-
-          {/* Company Details Row */}
-          <div className="glass-card p-5 lg:col-span-2 fade-in" style={{ animationDelay: "0.2s" }}>
-            <div className="flex items-center gap-2 mb-4">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                <polyline points="9 22 9 12 15 12 15 22" />
-              </svg>
-              <label className="section-label mb-0">Company Details</label>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <FieldStatusDot filled={!!companyName} required />
-                  <label className="text-xs font-medium text-muted uppercase tracking-wide">Company Name</label>
+                  <label className="section-label mb-0 text-sm lg:text-base">Custom Instructions</label>
+                  <span className="text-xs text-muted">(optional)</span>
                 </div>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="e.g., Google, Microsoft..."
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
+                <textarea
+                  className="input-field h-24 lg:h-28 resize-none text-sm overflow-y-auto"
+                  placeholder="Emphasize leadership, focus on backend, highlight specific projects..."
+                  value={personalDetails}
+                  onChange={(e) => setPersonalDetails(e.target.value)}
                 />
               </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <FieldStatusDot filled={!!companyUrl} required={false} />
-                  <label className="text-xs font-medium text-muted uppercase tracking-wide">Company URL <span className="normal-case font-normal">(optional)</span></label>
+
+              <div className="glass-card p-3 lg:p-5 fade-in">
+                <div className="flex items-center gap-2 mb-2 lg:mb-3">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 16v-4" />
+                    <path d="M12 8h.01" />
+                  </svg>
+                  <label className="section-label mb-0 text-sm lg:text-base">Company Info</label>
+                  <span className="text-xs text-muted">(auto-filled by research)</span>
                 </div>
-                <input
-                  type="url"
-                  className="input-field"
-                  placeholder="https://..."
-                  value={companyUrl}
-                  onChange={(e) => setCompanyUrl(e.target.value)}
-                />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <FieldStatusDot filled={!!positionTitle} required />
-                  <label className="text-xs font-medium text-muted uppercase tracking-wide">Position Title</label>
-                </div>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="e.g., Software Engineer..."
-                  value={positionTitle}
-                  onChange={(e) => setPositionTitle(e.target.value)}
+                <textarea
+                  className="input-field h-24 lg:h-28 resize-none text-sm overflow-y-auto"
+                  placeholder="Will be auto-filled when you click Generate..."
+                  value={companyInfo}
+                  onChange={(e) => setCompanyInfo(e.target.value)}
                 />
               </div>
             </div>
-          </div>
 
-          {/* Additional Fields Row */}
-          <div className="glass-card p-5 fade-in" style={{ animationDelay: "0.25s" }}>
-            <div className="flex items-center gap-2 mb-3">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
-              <label className="section-label mb-0">Custom Instructions</label>
-              <span className="text-xs text-muted">(optional)</span>
-            </div>
-            <textarea
-              className="input-field h-28 resize-none text-sm"
-              placeholder="Emphasize leadership, focus on backend, highlight specific projects..."
-              value={personalDetails}
-              onChange={(e) => setPersonalDetails(e.target.value)}
-            />
-          </div>
-
-          <div className="glass-card p-5 fade-in" style={{ animationDelay: "0.3s" }}>
-            <div className="flex items-center gap-2 mb-3">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 16v-4" />
-                <path d="M12 8h.01" />
-              </svg>
-              <label className="section-label mb-0">Company Info</label>
-              <span className="text-xs text-muted">(auto-filled by research)</span>
-            </div>
-            <textarea
-              className="input-field h-28 resize-none text-sm"
-              placeholder="Will be auto-filled when you click Generate..."
-              value={companyInfo}
-              onChange={(e) => setCompanyInfo(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="mt-5 p-4 rounded-xl border border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-800 fade-in">
-            <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              <p className="text-sm font-medium">{error}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Action Section */}
-        <div className="mt-8 flex flex-col items-center gap-4 fade-in" style={{ animationDelay: "0.35s" }}>
-          <Button
-            onClick={handleResearch}
-            disabled={!isValid || isResearching || isGeneratingTailored}
-            variant="primary"
-            className="text-base px-10 py-4 shadow-lg hover:shadow-xl transition-shadow"
-          >
-            {isResearching ? (
-              <><span className="spinner" />Researching company...</>
-            ) : isGeneratingTailored ? (
-              <><span className="spinner" />Generating documents...</>
-            ) : (
-              <>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                </svg>
-                Generate Tailored Documents
-              </>
+            {/* Error */}
+            {error && (
+              <div className="p-4 rounded-xl border border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-800 fade-in">
+                <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <p className="text-sm font-medium">{error}</p>
+                </div>
+              </div>
             )}
-          </Button>
-          {!isValid && (
-            <p className="text-muted text-sm flex items-center gap-2">
-              <span className="inline-flex items-center gap-1">
-                {!resumeLatex && <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />}
-                {!jobDescription && <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />}
-                {!companyName && <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />}
-                {!positionTitle && <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />}
-              </span>
-              {4 - progress.completed} required field{4 - progress.completed !== 1 ? "s" : ""} remaining
-            </p>
-          )}
+          </div>
         </div>
-      </div>
+
+        {/* Fixed Action Bar at Bottom */}
+        <div className="border-t border-card-border bg-surface-hover/50 p-3 lg:p-4">
+          <div className="flex flex-col items-center gap-2 lg:gap-3">
+            <Button
+              onClick={handleResearch}
+              disabled={!isValid || isResearching || isGeneratingTailored}
+              variant="primary"
+              className="text-sm lg:text-base px-6 lg:px-10 py-2 lg:py-3 shadow-lg hover:shadow-xl transition-shadow"
+            >
+              {isResearching ? (
+                <><span className="spinner" />Researching company...</>
+              ) : isGeneratingTailored ? (
+                <><span className="spinner" />Generating documents...</>
+              ) : (
+                <>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                  Generate Tailored Documents
+                </>
+              )}
+            </Button>
+            {!isValid && (
+              <p className="text-muted text-sm flex items-center gap-2">
+                <span className="inline-flex items-center gap-1">
+                  {!resumeLatex && <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />}
+                  {!jobDescription && <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />}
+                  {!companyName && <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />}
+                  {!positionTitle && <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />}
+                </span>
+                {4 - progress.completed} required field{4 - progress.completed !== 1 ? "s" : ""} remaining
+              </p>
+            )}
+          </div>
+        </div>
+      </main>
 
       {/* Personal Details Modal */}
       {showPersonalDetailsModal && (
@@ -984,6 +1274,201 @@ export default function Home() {
           </div>
         </div>
       )}
-    </main>
+
+      {/* Profile Editor Modal */}
+      {showProfileEditor && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-60 p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowProfileEditor(false); }}
+        >
+          <div className="glass-card p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto fade-in shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-foreground">
+                  {editingProfile ? "Edit Profile" : "New Profile"}
+                </h2>
+                <p className="text-sm text-muted mt-1">
+                  {editingProfile ? "Update your profile details" : "Create a profile for different job types"}
+                </p>
+              </div>
+              <button onClick={() => setShowProfileEditor(false)} className="p-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground transition-colors">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Profile Preview */}
+            <div className="flex justify-center mb-6">
+              <div className={`w-16 h-16 rounded-full bg-linear-to-br ${editingProfile?.color || getNextProfileColor()} flex items-center justify-center text-white font-bold text-xl shadow-lg`}>
+                {profileFormFirstName?.[0]?.toUpperCase() || "?"}{profileFormLastName?.[0]?.toUpperCase() || ""}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-medium text-muted uppercase tracking-wide mb-1.5 block">Profile Name</label>
+                <input
+                  type="text"
+                  value={profileFormName}
+                  onChange={(e) => setProfileFormName(e.target.value)}
+                  placeholder="e.g., Software Engineer, Cloud Role..."
+                  className="input-field"
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted uppercase tracking-wide mb-1.5 block">First Name</label>
+                  <input
+                    type="text"
+                    value={profileFormFirstName}
+                    onChange={(e) => setProfileFormFirstName(e.target.value)}
+                    placeholder="John"
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted uppercase tracking-wide mb-1.5 block">Last Name</label>
+                  <input
+                    type="text"
+                    value={profileFormLastName}
+                    onChange={(e) => setProfileFormLastName(e.target.value)}
+                    placeholder="Doe"
+                    className="input-field"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-medium text-muted uppercase tracking-wide">Default Resume Template</label>
+                  <button
+                    onClick={() => setShowNewResumeInProfile(!showNewResumeInProfile)}
+                    className="text-xs text-primary hover:underline flex items-center gap-1"
+                  >
+                    {showNewResumeInProfile ? "Cancel" : "+ Add New"}
+                  </button>
+                </div>
+                {showNewResumeInProfile ? (
+                  <div className="space-y-2 p-3 border border-primary/30 rounded-lg bg-primary/5">
+                    <input
+                      type="text"
+                      value={newResumeNameInProfile}
+                      onChange={(e) => setNewResumeNameInProfile(e.target.value)}
+                      placeholder="Template name (e.g., Software Engineer)"
+                      className="input-field text-sm"
+                    />
+                    <textarea
+                      value={newResumeContentInProfile}
+                      onChange={(e) => setNewResumeContentInProfile(e.target.value)}
+                      placeholder="Paste your LaTeX resume template here..."
+                      className="input-field h-32 font-mono text-xs resize-none"
+                    />
+                    <Button
+                      onClick={handleAddResumeInProfile}
+                      variant="primary"
+                      className="w-full text-xs py-1.5"
+                      disabled={!newResumeNameInProfile.trim() || !newResumeContentInProfile.trim()}
+                    >
+                      Create & Select Resume Template
+                    </Button>
+                  </div>
+                ) : (
+                  <select
+                    value={profileFormResumeId || ""}
+                    onChange={(e) => setProfileFormResumeId(e.target.value || null)}
+                    className="input-field"
+                  >
+                    <option value="">None selected</option>
+                    {resumeTemplates.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-medium text-muted uppercase tracking-wide">Default Cover Letter Template</label>
+                  <button
+                    onClick={() => setShowNewCoverLetterInProfile(!showNewCoverLetterInProfile)}
+                    className="text-xs text-primary hover:underline flex items-center gap-1"
+                  >
+                    {showNewCoverLetterInProfile ? "Cancel" : "+ Add New"}
+                  </button>
+                </div>
+                {showNewCoverLetterInProfile ? (
+                  <div className="space-y-2 p-3 border border-primary/30 rounded-lg bg-primary/5">
+                    <input
+                      type="text"
+                      value={newCoverLetterNameInProfile}
+                      onChange={(e) => setNewCoverLetterNameInProfile(e.target.value)}
+                      placeholder="Template name (e.g., General Cover Letter)"
+                      className="input-field text-sm"
+                    />
+                    <textarea
+                      value={newCoverLetterContentInProfile}
+                      onChange={(e) => setNewCoverLetterContentInProfile(e.target.value)}
+                      placeholder="Paste your LaTeX cover letter template here..."
+                      className="input-field h-32 font-mono text-xs resize-none"
+                    />
+                    <Button
+                      onClick={handleAddCoverLetterInProfile}
+                      variant="primary"
+                      className="w-full text-xs py-1.5"
+                      disabled={!newCoverLetterNameInProfile.trim() || !newCoverLetterContentInProfile.trim()}
+                    >
+                      Create & Select Cover Letter Template
+                    </Button>
+                  </div>
+                ) : (
+                  <select
+                    value={profileFormCoverLetterId || ""}
+                    onChange={(e) => setProfileFormCoverLetterId(e.target.value || null)}
+                    className="input-field"
+                  >
+                    <option value="">None selected</option>
+                    {coverLetterTemplates.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-between mt-6">
+              {editingProfile ? (
+                <Button
+                  onClick={() => {
+                    handleDeleteProfile(editingProfile.id);
+                    setShowProfileEditor(false);
+                  }}
+                  variant="secondary"
+                  className="px-4 py-2 text-red-500 hover:bg-red-50 hover:border-red-300"
+                >
+                  Delete
+                </Button>
+              ) : (
+                <div />
+              )}
+              <div className="flex gap-3">
+                <Button onClick={() => setShowProfileEditor(false)} variant="secondary" className="px-5 py-2">Cancel</Button>
+                <Button 
+                  onClick={handleSaveProfile} 
+                  variant="primary" 
+                  className="px-5 py-2" 
+                  disabled={!profileFormName.trim() || !profileFormFirstName.trim() || !profileFormLastName.trim()}
+                >
+                  {editingProfile ? "Save Changes" : "Create Profile"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

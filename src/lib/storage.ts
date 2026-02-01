@@ -8,6 +8,8 @@ const STORAGE_KEYS = {
   COVER_LETTER_TEMPLATES: "fd_cover_letter_templates",
   DEFAULT_RESUME: "fd_default_resume_id",
   DEFAULT_COVER_LETTER: "fd_default_cover_letter_id",
+  PROFILES: "fd_profiles",
+  ACTIVE_PROFILE: "fd_active_profile_id",
   // Legacy keys for migration
   LEGACY_RESUME: "resume_template_latex",
   LEGACY_COVER_LETTER: "cover_letter_template_latex",
@@ -17,6 +19,18 @@ const STORAGE_KEYS = {
 export interface PersonalDetails {
   firstName: string;
   lastName: string;
+}
+
+export interface Profile {
+  id: string;
+  name: string; // Profile name e.g., "Software Engineer", "Cloud Engineer"
+  firstName: string;
+  lastName: string;
+  defaultResumeId: string | null;
+  defaultCoverLetterId: string | null;
+  color: string; // For avatar background
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface Template {
@@ -264,4 +278,139 @@ export const clearAllStorage = (): void => {
 
 export const hasAnyTemplates = (): boolean => {
   return getResumeTemplates().length > 0 || getCoverLetterTemplates().length > 0;
+};
+
+// ============ Profile Management ============
+
+const PROFILE_COLORS = [
+  "from-blue-500 to-blue-600",
+  "from-purple-500 to-purple-600",
+  "from-green-500 to-green-600",
+  "from-orange-500 to-orange-600",
+  "from-pink-500 to-pink-600",
+  "from-teal-500 to-teal-600",
+  "from-indigo-500 to-indigo-600",
+  "from-red-500 to-red-600",
+];
+
+export const getProfiles = (): Profile[] => {
+  if (typeof window === "undefined") return [];
+  const data = localStorage.getItem(STORAGE_KEYS.PROFILES);
+  if (!data) {
+    // Migrate from legacy personal details
+    const personalDetails = getPersonalDetails();
+    if (personalDetails?.firstName && personalDetails?.lastName) {
+      const defaultResumeId = getDefaultResumeId();
+      const defaultCoverLetterId = getDefaultCoverLetterId();
+      const migratedProfile: Profile = {
+        id: generateId(),
+        name: "Default",
+        firstName: personalDetails.firstName,
+        lastName: personalDetails.lastName,
+        defaultResumeId,
+        defaultCoverLetterId,
+        color: PROFILE_COLORS[0],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      saveProfiles([migratedProfile]);
+      setActiveProfileId(migratedProfile.id);
+      return [migratedProfile];
+    }
+    return [];
+  }
+  try {
+    return JSON.parse(data) as Profile[];
+  } catch {
+    return [];
+  }
+};
+
+export const saveProfiles = (profiles: Profile[]): void => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(profiles));
+};
+
+export const addProfile = (
+  name: string,
+  firstName: string,
+  lastName: string,
+  defaultResumeId: string | null = null,
+  defaultCoverLetterId: string | null = null
+): Profile => {
+  const profiles = getProfiles();
+  const colorIndex = profiles.length % PROFILE_COLORS.length;
+  const newProfile: Profile = {
+    id: generateId(),
+    name,
+    firstName,
+    lastName,
+    defaultResumeId,
+    defaultCoverLetterId,
+    color: PROFILE_COLORS[colorIndex],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  profiles.push(newProfile);
+  saveProfiles(profiles);
+  // If this is the first profile, set it as active
+  if (profiles.length === 1) {
+    setActiveProfileId(newProfile.id);
+  }
+  return newProfile;
+};
+
+export const updateProfile = (id: string, updates: Partial<Omit<Profile, "id" | "createdAt">>): void => {
+  const profiles = getProfiles();
+  const index = profiles.findIndex((p) => p.id === id);
+  if (index !== -1) {
+    profiles[index] = {
+      ...profiles[index],
+      ...updates,
+      updatedAt: Date.now(),
+    };
+    saveProfiles(profiles);
+  }
+};
+
+export const deleteProfile = (id: string): void => {
+  const profiles = getProfiles().filter((p) => p.id !== id);
+  saveProfiles(profiles);
+  // If deleted profile was active, set a new active
+  if (getActiveProfileId() === id && profiles.length > 0) {
+    setActiveProfileId(profiles[0].id);
+  } else if (profiles.length === 0) {
+    localStorage.removeItem(STORAGE_KEYS.ACTIVE_PROFILE);
+  }
+};
+
+export const getActiveProfileId = (): string | null => {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(STORAGE_KEYS.ACTIVE_PROFILE);
+};
+
+export const setActiveProfileId = (id: string): void => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE, id);
+};
+
+export const getActiveProfile = (): Profile | null => {
+  const profiles = getProfiles();
+  const activeId = getActiveProfileId();
+  if (activeId) {
+    const activeProfile = profiles.find((p) => p.id === activeId);
+    if (activeProfile) return activeProfile;
+  }
+  // Return first profile if no active set
+  return profiles.length > 0 ? profiles[0] : null;
+};
+
+export const getProfileById = (id: string): Profile | null => {
+  const profiles = getProfiles();
+  return profiles.find((p) => p.id === id) || null;
+};
+
+export const getNextProfileColor = (): string => {
+  const profiles = getProfiles();
+  return PROFILE_COLORS[profiles.length % PROFILE_COLORS.length];
 };
