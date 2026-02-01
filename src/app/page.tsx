@@ -655,7 +655,7 @@ export default function Home() {
               Templates
             </Button>
             <Button
-              onClick={() => router.push("/jobs")}
+              onClick={() => window.open("/jobs", "_blank")}
               variant="secondary"
               className="flex-1 text-xs py-2"
             >
