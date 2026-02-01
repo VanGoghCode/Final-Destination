@@ -40,6 +40,9 @@ export default function LaTeXEditor({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMatches, setSearchMatches] = useState<number[]>([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  // Replace state
+  const [showReplace, setShowReplace] = useState(false);
+  const [replaceQuery, setReplaceQuery] = useState("");
   const compileTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -122,7 +125,7 @@ export default function LaTeXEditor({
     }
   }, [compileLatex, onCodeChange, autoCompile]);
 
-  // Handle CTRL+S to compile, CTRL+F to search
+  // Handle CTRL+S to compile, CTRL+F to search, CTRL+H to replace
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "s") {
       e.preventDefault();
@@ -136,9 +139,17 @@ export default function LaTeXEditor({
       setShowSearch(true);
       setTimeout(() => searchInputRef.current?.focus(), 50);
     }
+    if ((e.ctrlKey || e.metaKey) && e.key === "h") {
+      e.preventDefault();
+      setShowSearch(true);
+      setShowReplace(true);
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
     if (e.key === "Escape" && showSearch) {
       setShowSearch(false);
+      setShowReplace(false);
       setSearchQuery("");
+      setReplaceQuery("");
       setSearchMatches([]);
     }
   }, [compileLatex, editableCode, showSearch]);
@@ -169,41 +180,86 @@ export default function LaTeXEditor({
     setSearchMatches(matches);
     setCurrentMatchIndex(matches.length > 0 ? 0 : -1);
     if (matches.length > 0) {
-      scrollToMatch(matches[0], query.length);
+      scrollToMatch(matches[0], query.length, true);
     }
   }, [editableCode]);
 
-  const scrollToMatch = (position: number, length: number) => {
+  const scrollToMatch = (position: number, length: number, keepSearchFocus: boolean = false) => {
     if (!textareaRef.current) return;
     const textarea = textareaRef.current;
-    textarea.focus();
-    textarea.setSelectionRange(position, position + length);
-    // Calculate scroll position
+    
+    // Calculate scroll position first
     const textBeforeMatch = editableCode.substring(0, position);
     const linesBefore = textBeforeMatch.split("\n").length - 1;
     const lineHeight = 20; // approximate line height
     const scrollTop = Math.max(0, linesBefore * lineHeight - 100);
     textarea.scrollTop = scrollTop;
+    
+    // Set selection in textarea (this highlights the match)
+    textarea.setSelectionRange(position, position + length);
+    
+    if (keepSearchFocus) {
+      // Briefly focus textarea to show selection, then return focus to search
+      textarea.focus();
+      // Small delay so selection highlight is visible before refocusing search
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+    } else {
+      textarea.focus();
+    }
   };
 
   const goToNextMatch = () => {
     if (searchMatches.length === 0) return;
     const nextIndex = (currentMatchIndex + 1) % searchMatches.length;
     setCurrentMatchIndex(nextIndex);
-    scrollToMatch(searchMatches[nextIndex], searchQuery.length);
+    scrollToMatch(searchMatches[nextIndex], searchQuery.length, true);
   };
 
   const goToPrevMatch = () => {
     if (searchMatches.length === 0) return;
     const prevIndex = currentMatchIndex <= 0 ? searchMatches.length - 1 : currentMatchIndex - 1;
     setCurrentMatchIndex(prevIndex);
-    scrollToMatch(searchMatches[prevIndex], searchQuery.length);
+    scrollToMatch(searchMatches[prevIndex], searchQuery.length, true);
   };
 
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
     findMatches(query);
   };
+
+  // Replace current match
+  const handleReplaceCurrent = useCallback(() => {
+    if (searchMatches.length === 0 || currentMatchIndex < 0 || !searchQuery) return;
+    
+    const matchPosition = searchMatches[currentMatchIndex];
+    const before = editableCode.substring(0, matchPosition);
+    const after = editableCode.substring(matchPosition + searchQuery.length);
+    const newCode = before + replaceQuery + after;
+    
+    setEditableCode(newCode);
+    onCodeChange?.(newCode);
+    
+    // Recalculate matches after replacement
+    setTimeout(() => {
+      findMatches(searchQuery);
+    }, 0);
+  }, [searchMatches, currentMatchIndex, searchQuery, replaceQuery, editableCode, onCodeChange, findMatches]);
+
+  // Replace all matches
+  const handleReplaceAll = useCallback(() => {
+    if (searchMatches.length === 0 || !searchQuery) return;
+    
+    // Use a case-insensitive global replace
+    const regex = new RegExp(searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    const newCode = editableCode.replace(regex, replaceQuery);
+    
+    setEditableCode(newCode);
+    onCodeChange?.(newCode);
+    setSearchMatches([]);
+    setCurrentMatchIndex(0);
+  }, [searchMatches, searchQuery, replaceQuery, editableCode, onCodeChange]);
 
   // Search from PDF selection - tries to find text from clipboard
   const searchFromClipboard = async () => {
@@ -435,72 +491,151 @@ export default function LaTeXEditor({
 
       {/* Search Bar */}
       {showSearch && (
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-card-border bg-surface-hover/50 shrink-0">
-          <div className="flex items-center gap-1 flex-1">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.shiftKey ? goToPrevMatch() : goToNextMatch();
-                }
-                if (e.key === "Escape") {
-                  setShowSearch(false);
-                  setSearchQuery("");
-                  setSearchMatches([]);
-                }
+        <div className="flex flex-col border-b border-card-border bg-surface-hover/50 shrink-0">
+          {/* Search Row */}
+          <div className="flex items-center gap-2 px-4 py-2">
+            {/* Toggle Replace Button */}
+            <button
+              onClick={() => setShowReplace(!showReplace)}
+              className={`p-1 rounded hover:bg-surface-hover transition-transform ${showReplace ? 'rotate-90' : ''}`}
+              title="Toggle Replace (Ctrl+H)"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+            <div className="flex items-center gap-1 flex-1">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey) {
+                    e.preventDefault();
+                    goToNextMatch();
+                  }
+                  if (e.key === "Enter" && e.shiftKey) {
+                    e.preventDefault();
+                    goToPrevMatch();
+                  }
+                  if (e.key === "Escape") {
+                    setShowSearch(false);
+                    setShowReplace(false);
+                    setSearchQuery("");
+                    setReplaceQuery("");
+                    setSearchMatches([]);
+                  }
+                }}
+                placeholder="Find in code... (Enter for next, Shift+Enter for prev)"
+                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted focus:outline-none"
+              />
+            </div>
+            {searchQuery && (
+              <span className="text-xs text-muted">
+                {searchMatches.length > 0 ? `${currentMatchIndex + 1} of ${searchMatches.length}` : "No matches"}
+              </span>
+            )}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={goToPrevMatch}
+                disabled={searchMatches.length === 0}
+                className="p-1 rounded hover:bg-surface-hover disabled:opacity-40"
+                title="Previous match (Shift+Enter)"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button
+                onClick={goToNextMatch}
+                disabled={searchMatches.length === 0}
+                className="p-1 rounded hover:bg-surface-hover disabled:opacity-40"
+                title="Next match (Enter)"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            </div>
+            <button
+              onClick={() => {
+                setShowSearch(false);
+                setShowReplace(false);
+                setSearchQuery("");
+                setReplaceQuery("");
+                setSearchMatches([]);
               }}
-              placeholder="Find in code... (Enter for next, Shift+Enter for prev)"
-              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted focus:outline-none"
-            />
+              className="p-1 rounded hover:bg-surface-hover text-muted hover:text-foreground"
+              title="Close (Esc)"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
-          {searchQuery && (
-            <span className="text-xs text-muted">
-              {searchMatches.length > 0 ? `${currentMatchIndex + 1} of ${searchMatches.length}` : "No matches"}
-            </span>
+          
+          {/* Replace Row */}
+          {showReplace && (
+            <div className="flex items-center gap-2 px-4 py-2 border-t border-card-border/50">
+              <div className="w-5" /> {/* Spacer to align with search row */}
+              <div className="flex items-center gap-1 flex-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted">
+                  <path d="M17 1l4 4-4 4" />
+                  <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                  <path d="M7 23l-4-4 4-4" />
+                  <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                </svg>
+                <input
+                  type="text"
+                  value={replaceQuery}
+                  onChange={(e) => setReplaceQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey) {
+                      e.preventDefault();
+                      handleReplaceCurrent();
+                    }
+                    if (e.key === "Enter" && e.ctrlKey) {
+                      e.preventDefault();
+                      handleReplaceAll();
+                    }
+                    if (e.key === "Escape") {
+                      setShowSearch(false);
+                      setShowReplace(false);
+                      setSearchQuery("");
+                      setReplaceQuery("");
+                      setSearchMatches([]);
+                    }
+                  }}
+                  placeholder="Replace with... (Enter to replace, Ctrl+Enter to replace all)"
+                  className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted focus:outline-none"
+                />
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={handleReplaceCurrent}
+                  disabled={searchMatches.length === 0}
+                  className="px-2 py-1 text-xs rounded hover:bg-surface-hover disabled:opacity-40 border border-card-border"
+                  title="Replace current match (Enter)"
+                >
+                  Replace
+                </button>
+                <button
+                  onClick={handleReplaceAll}
+                  disabled={searchMatches.length === 0}
+                  className="px-2 py-1 text-xs rounded hover:bg-surface-hover disabled:opacity-40 border border-card-border"
+                  title="Replace all matches (Ctrl+Enter)"
+                >
+                  Replace All
+                </button>
+              </div>
+            </div>
           )}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={goToPrevMatch}
-              disabled={searchMatches.length === 0}
-              className="p-1 rounded hover:bg-surface-hover disabled:opacity-40"
-              title="Previous match (Shift+Enter)"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="18 15 12 9 6 15" />
-              </svg>
-            </button>
-            <button
-              onClick={goToNextMatch}
-              disabled={searchMatches.length === 0}
-              className="p-1 rounded hover:bg-surface-hover disabled:opacity-40"
-              title="Next match (Enter)"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-          </div>
-          <button
-            onClick={() => {
-              setShowSearch(false);
-              setSearchQuery("");
-              setSearchMatches([]);
-            }}
-            className="p-1 rounded hover:bg-surface-hover text-muted hover:text-foreground"
-            title="Close (Esc)"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
         </div>
       )}
 
