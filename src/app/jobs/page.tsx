@@ -130,6 +130,7 @@ export default function JobsPage() {
   
   const startEditPortal = (index: number) => {
     const portal = externalPortals[index];
+    if (!portal) return;
     setNewPortalName(portal.name);
     setNewPortalUrl(portal.url);
     setNewPortalLogo(portal.logo || "");
@@ -344,7 +345,10 @@ export default function JobsPage() {
       const start = Math.min(lastSelectedIndex, index);
       const end = Math.max(lastSelectedIndex, index);
       for (let i = start; i <= end; i++) {
-        newSelected.add(filteredCompanies[i].id);
+        const filteredCompany = filteredCompanies[i];
+        if (filteredCompany) {
+          newSelected.add(filteredCompany.id);
+        }
       }
     } else if (event.ctrlKey || event.metaKey) {
       // Ctrl+Click (or Cmd+Click on Mac): Toggle single selection

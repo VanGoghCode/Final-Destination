@@ -11,14 +11,13 @@ export * from "./workday";
 import { scrapeGreenhouse, GREENHOUSE_COMPANIES } from "./greenhouse";
 import { scrapeLever, LEVER_COMPANIES } from "./lever";
 import { scrapeAshby, ASHBY_COMPANIES } from "./ashby";
-import { scrapeWorkday, WORKDAY_COMPANIES } from "./workday";
+import { scrapeWorkday } from "./workday";
 import {
   filterJobs,
   getTargetRoles,
   getExcludedKeywords,
   type Job,
   type ScrapeResult,
-  type CareerConfig,
 } from "./types";
 import fs from "fs";
 import path from "path";

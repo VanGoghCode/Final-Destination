@@ -50,16 +50,8 @@ export default function QuestionsPage() {
 
   // Regeneration state
   const [isRegeneratingAnswers, setIsRegeneratingAnswers] = useState(false);
-  const [isRegeneratingColdEmail, setIsRegeneratingColdEmail] = useState(false);
-  const [isRegeneratingReferenceEmail, setIsRegeneratingReferenceEmail] =
-    useState(false);
   const [answersComment, setAnswersComment] = useState("");
-  const [coldEmailComment, setColdEmailComment] = useState("");
-  const [referenceEmailComment, setReferenceEmailComment] = useState("");
   const [showAnswersFeedback, setShowAnswersFeedback] = useState(false);
-  const [showColdEmailFeedback, setShowColdEmailFeedback] = useState(false);
-  const [showReferenceEmailFeedback, setShowReferenceEmailFeedback] =
-    useState(false);
 
   // Redirect removed - allow free navigation between pages
   // useEffect(() => {
@@ -223,54 +215,6 @@ export default function QuestionsPage() {
       setError(`Failed to regenerate answers: ${message}. Please try rephrasing your feedback.`);
     } finally {
       setIsRegeneratingAnswers(false);
-    }
-  };
-
-  const handleRegenerateEmailContent = async (type: "cold" | "reference") => {
-    const comment = type === "cold" ? coldEmailComment : referenceEmailComment;
-    if (!comment.trim()) return;
-
-    const setLoading =
-      type === "cold"
-        ? setIsRegeneratingColdEmail
-        : setIsRegeneratingReferenceEmail;
-    const setEmailContent = type === "cold" ? setColdEmail : setReferenceEmail;
-    const setComment =
-      type === "cold" ? setColdEmailComment : setReferenceEmailComment;
-    const setShowFeedback =
-      type === "cold"
-        ? setShowColdEmailFeedback
-        : setShowReferenceEmailFeedback;
-    const currentEmail = type === "cold" ? coldEmail : referenceEmail;
-
-    setLoading(true);
-    try {
-      const response = await fetch("/api/regenerate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: type === "cold" ? "coldEmail" : "referenceEmail",
-          currentContent: currentEmail,
-          comment,
-          tailoredResume,
-          tailoredCoverLetter,
-          jobDescription,
-          companyInfo: questionsCompanyInfo || companyInfo,
-          positionTitle,
-          companyName,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      setEmailContent(data.regeneratedContent);
-      setComment("");
-      setShowFeedback(false);
-    } catch (err) {
-      const emailType = type === "cold" ? "cold email" : "reference email";
-      const message = err instanceof Error ? err.message : "Unknown error";
-      setError(`Failed to regenerate ${emailType}: ${message}. Please try rephrasing your feedback.`);
-    } finally {
-      setLoading(false);
     }
   };
 

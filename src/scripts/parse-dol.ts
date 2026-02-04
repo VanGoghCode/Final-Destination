@@ -35,45 +35,61 @@ function parseCSV(filePath: string): Map<string, CompanyData> {
 
   const content = fs.readFileSync(filePath, "utf-8");
   const lines = content.split("\n");
-  const headers = lines[0].split(",").map((h) => h.trim().replace(/"/g, ""));
+  const headerLine = lines[0];
+  if (!headerLine) {
+    console.error("Empty CSV file");
+    return new Map();
+  }
+  const headers = headerLine.split(",").map((h) => h.trim().replace(/"/g, ""));
 
   console.log(`📊 Total rows: ${(lines.length - 1).toLocaleString()}`);
 
   const cols: Record<string, number> = {};
   headers.forEach((h, i) => (cols[h] = i));
 
+  const getCol = (name: string): number => cols[name] ?? -1;
+
   const companies = new Map<string, CompanyData>();
 
   for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
+    const line = lines[i];
+    if (!line?.trim()) continue;
 
-    const fields = parseCSVLine(line);
+    const fields = parseCSVLine(line.trim());
 
-    const employerName = (fields[cols["EMPLOYER_NAME"]] || "")
+    const employerNameCol = getCol("EMPLOYER_NAME");
+    const employerName = (employerNameCol >= 0 ? fields[employerNameCol] ?? "" : "")
       .trim()
       .toUpperCase();
     if (!employerName) continue;
 
-    const status = (fields[cols["CASE_STATUS"]] || "").toUpperCase();
+    const caseStatusCol = getCol("CASE_STATUS");
+    const status = (caseStatusCol >= 0 ? fields[caseStatusCol] ?? "" : "").toUpperCase();
     const isCertified = status.includes("CERTIFIED");
-    const quarter = (fields[cols["QUARTER"]] || "").toUpperCase();
+    const quarterCol = getCol("QUARTER");
+    const quarter = (quarterCol >= 0 ? fields[quarterCol] ?? "" : "").toUpperCase();
 
     if (!companies.has(employerName)) {
+      const cityCol = getCol("EMPLOYER_CITY");
+      const stateCol = getCol("EMPLOYER_STATE");
+      const pocFirstCol = getCol("EMPLOYER_POC_FIRST_NAME");
+      const pocLastCol = getCol("EMPLOYER_POC_LAST_NAME");
+      const pocEmailCol = getCol("EMPLOYER_POC_EMAIL");
+      const pocPhoneCol = getCol("EMPLOYER_POC_PHONE");
       companies.set(employerName, {
-        name: fields[cols["EMPLOYER_NAME"]]?.trim() || "",
-        city: fields[cols["EMPLOYER_CITY"]]?.trim() || "",
-        state: fields[cols["EMPLOYER_STATE"]]?.trim() || "",
+        name: (employerNameCol >= 0 ? fields[employerNameCol] : "")?.trim() || "",
+        city: (cityCol >= 0 ? fields[cityCol] : "")?.trim() || "",
+        state: (stateCol >= 0 ? fields[stateCol] : "")?.trim() || "",
         lcaCount: 0,
         certifiedCount: 0,
         lcaQ1: 0,
         lcaQ2: 0,
         lcaQ3: 0,
         lcaQ4: 0,
-        pocFirstName: fields[cols["EMPLOYER_POC_FIRST_NAME"]]?.trim() || "",
-        pocLastName: fields[cols["EMPLOYER_POC_LAST_NAME"]]?.trim() || "",
-        pocEmail: fields[cols["EMPLOYER_POC_EMAIL"]]?.trim() || "",
-        pocPhone: fields[cols["EMPLOYER_POC_PHONE"]]?.trim() || "",
+        pocFirstName: (pocFirstCol >= 0 ? fields[pocFirstCol] : "")?.trim() || "",
+        pocLastName: (pocLastCol >= 0 ? fields[pocLastCol] : "")?.trim() || "",
+        pocEmail: (pocEmailCol >= 0 ? fields[pocEmailCol] : "")?.trim() || "",
+        pocPhone: (pocPhoneCol >= 0 ? fields[pocPhoneCol] : "")?.trim() || "",
       });
     }
 
@@ -120,7 +136,6 @@ function rankCompanies(companyData: Map<string, CompanyData>): Company[] {
       data.lcaCount > 0 ? data.certifiedCount / data.lcaCount : 0;
     // Priority: 50% LCA count + 50% approval rate
     const priorityScore = data.lcaCount * 0.5 + approvalRate * 100 * 0.5;
-    const isTop = data.lcaCount >= TOP_COMPANY_THRESHOLD;
 
     companies.push({
       id: key
@@ -198,9 +213,11 @@ function main(): void {
     console.log("|---------|-------|----|----|----|----|-------|");
     for (let i = 0; i < Math.min(10, companies.length); i++) {
       const c = companies[i];
-      console.log(
-        `| ${c.name.substring(0, 25).padEnd(25)} | ${c.lcaCount.toString().padStart(5)} | ${c.lcaQ1?.toString().padStart(3) || "0"} | ${c.lcaQ2?.toString().padStart(3) || "0"} | ${c.lcaQ3?.toString().padStart(3) || "0"} | ${c.lcaQ4?.toString().padStart(3) || "0"} | ${c.priorityScore.toFixed(0).padStart(5)} |`,
-      );
+      if (c) {
+        console.log(
+          `| ${c.name.substring(0, 25).padEnd(25)} | ${c.lcaCount.toString().padStart(5)} | ${c.lcaQ1?.toString().padStart(3) || "0"} | ${c.lcaQ2?.toString().padStart(3) || "0"} | ${c.lcaQ3?.toString().padStart(3) || "0"} | ${c.lcaQ4?.toString().padStart(3) || "0"} | ${c.priorityScore.toFixed(0).padStart(5)} |`,
+        );
+      }
     }
 
     console.log("\n✅ Done!");

@@ -1,15 +1,13 @@
 import sharp from "sharp";
 import path from "path";
-import fs from "fs";
 
 async function generateRoundedFavicon() {
   const publicDir = path.join(process.cwd(), "public");
   const logoPath = path.join(publicDir, "logo.png");
-  const faviconPath = path.join(publicDir, "favicon.ico");
 
   // Read the logo
   const logo = sharp(logoPath);
-  const metadata = await logo.metadata();
+  await logo.metadata(); // Validate image exists
 
   const size = 64; // Standard favicon size
 
@@ -35,7 +33,7 @@ async function generateRoundedFavicon() {
   await sharp(roundedImage).toFile(faviconPngPath);
 
   // Also create multiple sizes for better browser support
-  const icon32 = await sharp(logoPath)
+  await sharp(logoPath)
     .resize(32, 32, { fit: "cover" })
     .composite([
       {
@@ -48,7 +46,7 @@ async function generateRoundedFavicon() {
     .png()
     .toFile(path.join(publicDir, "icon-32.png"));
 
-  const icon192 = await sharp(logoPath)
+  await sharp(logoPath)
     .resize(192, 192, { fit: "cover" })
     .composite([
       {
@@ -61,7 +59,7 @@ async function generateRoundedFavicon() {
     .png()
     .toFile(path.join(publicDir, "icon-192.png"));
 
-  const icon512 = await sharp(logoPath)
+  await sharp(logoPath)
     .resize(512, 512, { fit: "cover" })
     .composite([
       {

@@ -1,8 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import CopyButton from "./CopyButton";
 import Button from "./Button";
+
+// Lazy load the PDF preview component
+const PDFPreview = lazy(() => import("./PDFPreview").then(mod => ({ default: mod.PDFPreview })));
 
 interface LaTeXEditorProps {
   code: string;
@@ -137,6 +140,7 @@ export default function LaTeXEditor({
     if ((e.ctrlKey || e.metaKey) && e.key === "f") {
       e.preventDefault();
       setShowSearch(true);
+      setShowReplace(true);
       setTimeout(() => searchInputRef.current?.focus(), 50);
     }
     if ((e.ctrlKey || e.metaKey) && e.key === "h") {
@@ -179,12 +183,12 @@ export default function LaTeXEditor({
     }
     setSearchMatches(matches);
     setCurrentMatchIndex(matches.length > 0 ? 0 : -1);
-    if (matches.length > 0) {
-      scrollToMatch(matches[0], query.length, true);
+    if (matches.length > 0 && matches[0] !== undefined) {
+      scrollToMatch(matches[0], query.length);
     }
   }, [editableCode]);
 
-  const scrollToMatch = (position: number, length: number, keepSearchFocus: boolean = false) => {
+  const scrollToMatch = (position: number, length: number) => {
     if (!textareaRef.current) return;
     const textarea = textareaRef.current;
     
@@ -195,33 +199,29 @@ export default function LaTeXEditor({
     const scrollTop = Math.max(0, linesBefore * lineHeight - 100);
     textarea.scrollTop = scrollTop;
     
-    // Set selection in textarea (this highlights the match)
+    // Focus textarea and set selection (this highlights the match and keeps it visible)
+    textarea.focus();
     textarea.setSelectionRange(position, position + length);
-    
-    if (keepSearchFocus) {
-      // Briefly focus textarea to show selection, then return focus to search
-      textarea.focus();
-      // Small delay so selection highlight is visible before refocusing search
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 50);
-    } else {
-      textarea.focus();
-    }
   };
 
   const goToNextMatch = () => {
     if (searchMatches.length === 0) return;
     const nextIndex = (currentMatchIndex + 1) % searchMatches.length;
     setCurrentMatchIndex(nextIndex);
-    scrollToMatch(searchMatches[nextIndex], searchQuery.length, true);
+    const matchPosition = searchMatches[nextIndex];
+    if (matchPosition !== undefined) {
+      scrollToMatch(matchPosition, searchQuery.length);
+    }
   };
 
   const goToPrevMatch = () => {
     if (searchMatches.length === 0) return;
     const prevIndex = currentMatchIndex <= 0 ? searchMatches.length - 1 : currentMatchIndex - 1;
     setCurrentMatchIndex(prevIndex);
-    scrollToMatch(searchMatches[prevIndex], searchQuery.length, true);
+    const matchPosition = searchMatches[prevIndex];
+    if (matchPosition !== undefined) {
+      scrollToMatch(matchPosition, searchQuery.length);
+    }
   };
 
   const handleSearchChange = (query: string) => {
@@ -234,6 +234,8 @@ export default function LaTeXEditor({
     if (searchMatches.length === 0 || currentMatchIndex < 0 || !searchQuery) return;
     
     const matchPosition = searchMatches[currentMatchIndex];
+    if (matchPosition === undefined) return;
+    
     const before = editableCode.substring(0, matchPosition);
     const after = editableCode.substring(matchPosition + searchQuery.length);
     const newCode = before + replaceQuery + after;
@@ -489,161 +491,91 @@ export default function LaTeXEditor({
         </div>
       </div>
 
-      {/* Search Bar */}
-      {showSearch && (
-        <div className="flex flex-col border-b border-card-border bg-surface-hover/50 shrink-0">
-          {/* Search Row */}
-          <div className="flex items-center gap-2 px-4 py-2">
-            {/* Toggle Replace Button */}
-            <button
-              onClick={() => setShowReplace(!showReplace)}
-              className={`p-1 rounded hover:bg-surface-hover transition-transform ${showReplace ? 'rotate-90' : ''}`}
-              title="Toggle Replace (Ctrl+H)"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
-            <div className="flex items-center gap-1 flex-1">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey) {
-                    e.preventDefault();
-                    goToNextMatch();
-                  }
-                  if (e.key === "Enter" && e.shiftKey) {
-                    e.preventDefault();
-                    goToPrevMatch();
-                  }
-                  if (e.key === "Escape") {
-                    setShowSearch(false);
-                    setShowReplace(false);
-                    setSearchQuery("");
-                    setReplaceQuery("");
-                    setSearchMatches([]);
-                  }
-                }}
-                placeholder="Find in code... (Enter for next, Shift+Enter for prev)"
-                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted focus:outline-none"
-              />
-            </div>
-            {searchQuery && (
-              <span className="text-xs text-muted">
-                {searchMatches.length > 0 ? `${currentMatchIndex + 1} of ${searchMatches.length}` : "No matches"}
-              </span>
-            )}
-            <div className="flex items-center gap-1">
-              <button
-                onClick={goToPrevMatch}
-                disabled={searchMatches.length === 0}
-                className="p-1 rounded hover:bg-surface-hover disabled:opacity-40"
-                title="Previous match (Shift+Enter)"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="18 15 12 9 6 15" />
-                </svg>
-              </button>
-              <button
-                onClick={goToNextMatch}
-                disabled={searchMatches.length === 0}
-                className="p-1 rounded hover:bg-surface-hover disabled:opacity-40"
-                title="Next match (Enter)"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-            </div>
-            <button
-              onClick={() => {
-                setShowSearch(false);
-                setShowReplace(false);
-                setSearchQuery("");
-                setReplaceQuery("");
-                setSearchMatches([]);
-              }}
-              className="p-1 rounded hover:bg-surface-hover text-muted hover:text-foreground"
-              title="Close (Esc)"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-          
-          {/* Replace Row */}
-          {showReplace && (
-            <div className="flex items-center gap-2 px-4 py-2 border-t border-card-border/50">
-              <div className="w-5" /> {/* Spacer to align with search row */}
-              <div className="flex items-center gap-1 flex-1">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted">
-                  <path d="M17 1l4 4-4 4" />
-                  <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-                  <path d="M7 23l-4-4 4-4" />
-                  <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-                </svg>
-                <input
-                  type="text"
-                  value={replaceQuery}
-                  onChange={(e) => setReplaceQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey) {
-                      e.preventDefault();
-                      handleReplaceCurrent();
-                    }
-                    if (e.key === "Enter" && e.ctrlKey) {
-                      e.preventDefault();
-                      handleReplaceAll();
-                    }
-                    if (e.key === "Escape") {
-                      setShowSearch(false);
-                      setShowReplace(false);
-                      setSearchQuery("");
-                      setReplaceQuery("");
-                      setSearchMatches([]);
-                    }
-                  }}
-                  placeholder="Replace with... (Enter to replace, Ctrl+Enter to replace all)"
-                  className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted focus:outline-none"
-                />
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={handleReplaceCurrent}
-                  disabled={searchMatches.length === 0}
-                  className="px-2 py-1 text-xs rounded hover:bg-surface-hover disabled:opacity-40 border border-card-border"
-                  title="Replace current match (Enter)"
-                >
-                  Replace
-                </button>
-                <button
-                  onClick={handleReplaceAll}
-                  disabled={searchMatches.length === 0}
-                  className="px-2 py-1 text-xs rounded hover:bg-surface-hover disabled:opacity-40 border border-card-border"
-                  title="Replace all matches (Ctrl+Enter)"
-                >
-                  Replace All
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Content Area */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Code Editor */}
         {(viewMode === "code" || viewMode === "split") && (
           <div className={`flex flex-col overflow-hidden ${viewMode === "split" ? "w-1/2 border-r border-card-border" : "w-full"}`}>
+            {/* Find Bar - Top of code section */}
+            {showSearch && (
+              <div className="flex items-center gap-2 px-4 py-2 border-b border-card-border bg-surface-hover/50 shrink-0">
+                <div className="flex items-center gap-1 flex-1">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey) {
+                        e.preventDefault();
+                        goToNextMatch();
+                      }
+                      if (e.key === "Enter" && e.shiftKey) {
+                        e.preventDefault();
+                        goToPrevMatch();
+                      }
+                      if (e.key === "Escape") {
+                        setShowSearch(false);
+                        setShowReplace(false);
+                        setSearchQuery("");
+                        setReplaceQuery("");
+                        setSearchMatches([]);
+                      }
+                    }}
+                    placeholder="Find in code... (Enter for next, Shift+Enter for prev)"
+                    className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted focus:outline-none"
+                  />
+                </div>
+                {searchQuery && (
+                  <span className="text-xs text-muted">
+                    {searchMatches.length > 0 ? `${currentMatchIndex + 1} of ${searchMatches.length}` : "No matches"}
+                  </span>
+                )}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={goToPrevMatch}
+                    disabled={searchMatches.length === 0}
+                    className="p-1 rounded hover:bg-surface-hover disabled:opacity-40"
+                    title="Previous match (Shift+Enter)"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="18 15 12 9 6 15" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={goToNextMatch}
+                    disabled={searchMatches.length === 0}
+                    className="p-1 rounded hover:bg-surface-hover disabled:opacity-40"
+                    title="Next match (Enter)"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowSearch(false);
+                    setShowReplace(false);
+                    setSearchQuery("");
+                    setReplaceQuery("");
+                    setSearchMatches([]);
+                  }}
+                  className="p-1 rounded hover:bg-surface-hover text-muted hover:text-foreground"
+                  title="Close (Esc)"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            )}
+            
             <textarea
               ref={textareaRef}
               value={editableCode}
@@ -655,6 +587,62 @@ export default function LaTeXEditor({
               placeholder="Paste your LaTeX code here... (Ctrl+S to compile)"
               spellCheck={false}
             />
+            
+            {/* Replace Bar - Bottom of code section */}
+            {showSearch && showReplace && (
+              <div className="flex items-center gap-2 px-4 py-2 border-t border-card-border bg-surface-hover/50 shrink-0">
+                <div className="flex items-center gap-1 flex-1">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted">
+                    <path d="M17 1l4 4-4 4" />
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                    <path d="M7 23l-4-4 4-4" />
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={replaceQuery}
+                    onChange={(e) => setReplaceQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey) {
+                        e.preventDefault();
+                        handleReplaceCurrent();
+                      }
+                      if (e.key === "Enter" && e.ctrlKey) {
+                        e.preventDefault();
+                        handleReplaceAll();
+                      }
+                      if (e.key === "Escape") {
+                        setShowSearch(false);
+                        setShowReplace(false);
+                        setSearchQuery("");
+                        setReplaceQuery("");
+                        setSearchMatches([]);
+                      }
+                    }}
+                    placeholder="Replace with... (Enter to replace, Ctrl+Enter to replace all)"
+                    className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted focus:outline-none"
+                  />
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={handleReplaceCurrent}
+                    disabled={searchMatches.length === 0}
+                    className="px-2 py-1 text-xs rounded hover:bg-surface-hover disabled:opacity-40 border border-card-border"
+                    title="Replace current match (Enter)"
+                  >
+                    Replace
+                  </button>
+                  <button
+                    onClick={handleReplaceAll}
+                    disabled={searchMatches.length === 0}
+                    className="px-2 py-1 text-xs rounded hover:bg-surface-hover disabled:opacity-40 border border-card-border"
+                    title="Replace all matches (Ctrl+Enter)"
+                  >
+                    Replace All
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -663,62 +651,21 @@ export default function LaTeXEditor({
           <div 
             ref={pdfContainerRef}
             className={`flex flex-col bg-gray-100 overflow-auto ${viewMode === "split" ? "w-1/2" : "w-full"} relative group`}
-            onDoubleClick={handlePdfDoubleClick}
-            title="Tip: Select text in PDF, copy it (Ctrl+C), then double-click here to find it in the code"
           >
-            {compileError ? (
+            <Suspense fallback={
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" className="mb-4">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-                <p className="text-sm font-medium text-red-600 mb-2">Compilation Error</p>
-                <p className="text-xs text-red-500 max-w-xs font-mono whitespace-pre-wrap">{compileError}</p>
-                <Button
-                  onClick={handleManualCompile}
-                  variant="secondary"
-                  className="mt-4 text-xs"
-                >
-                  Retry Compilation
-                </Button>
+                <span className="spinner mb-4" />
+                <p className="text-sm text-muted">Loading preview...</p>
               </div>
-            ) : pdfBase64 ? (
-              // PDF container
-              <div className="flex-1 overflow-auto flex justify-center">
-                <object
-                  data={`data:application/pdf;base64,${pdfBase64}#toolbar=0&navpanes=0`}
-                  type="application/pdf"
-                  className="w-full h-full border-0"
-                  title="PDF Preview"
-                >
-                  {/* Fallback for browsers that don't support object */}
-                  <iframe
-                    src={`data:application/pdf;base64,${pdfBase64}#toolbar=0&navpanes=0`}
-                    className="w-full h-full border-0"
-                    title="PDF Preview"
-                  />
-                </object>
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                {isCompiling ? (
-                  <>
-                    <span className="spinner mb-4" />
-                    <p className="text-sm text-muted">Compiling LaTeX...</p>
-                  </>
-                ) : (
-                  <>
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted mb-4">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                    </svg>
-                    <p className="text-sm text-muted mb-2">No preview available</p>
-                    <p className="text-xs text-muted-light">Enter LaTeX code and click Compile</p>
-                  </>
-                )}
-              </div>
-            )}
+            }>
+              <PDFPreview
+                pdfBase64={pdfBase64}
+                compileError={compileError}
+                isCompiling={isCompiling}
+                onRetry={handleManualCompile}
+                onDoubleClick={handlePdfDoubleClick}
+              />
+            </Suspense>
           </div>
         )}
       </div>

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import Sidebar from "@/components/Sidebar";
 import Button from "@/components/Button";
+import { useDebouncedCallback, useCache, useAutoSave } from "@/lib/hooks";
 import {
   getPersonalDetails,
   savePersonalDetails,
@@ -31,7 +32,6 @@ import {
   deleteProfile,
   getActiveProfileId,
   setActiveProfileId,
-  getActiveProfile,
   getNextProfileColor,
 } from "@/lib/storage";
 
@@ -92,9 +92,9 @@ const REQUIRED_FIELDS = ["resumeLatex", "jobDescription", "companyName", "positi
 export default function Home() {
   const router = useRouter();
   const {
-    firstName,
+    firstName: _firstName,
     setFirstName,
-    lastName,
+    lastName: _lastName,
     setLastName,
     resumeLatex,
     setResumeLatex,
@@ -122,7 +122,7 @@ export default function Home() {
     setTailoredCoverLetter,
     setJobCountry,
     setJobWorkMode,
-    tailoredResume,
+    tailoredResume: _tailoredResume,
     isGeneratingTailored,
     setIsGeneratingTailored,
   } = useAppContext();
@@ -167,11 +167,55 @@ export default function Home() {
   const [newCoverLetterNameInProfile, setNewCoverLetterNameInProfile] = useState("");
   const [newCoverLetterContentInProfile, setNewCoverLetterContentInProfile] = useState("");
 
+  // Research caching hook
+  const { getFromCache: getResearchCache, setInCache: setResearchCache } = useCache<string>(
+    "fd_research_cache",
+    60 * 60 * 1000 // 1 hour TTL
+  );
+
+  // Auto-save draft application data
+  const draftData = {
+    companyName,
+    companyUrl,
+    positionTitle,
+    jobDescription,
+    personalDetails,
+  };
+  const { isSaving: _isAutoSaving, lastSaved: _lastAutoSaved } = useAutoSave(
+    "fd_draft_application",
+    draftData,
+    2000 // Save after 2 seconds of inactivity
+  );
+
+  // Debounced function to clear company research
+  const debouncedClearResearch = useDebouncedCallback(() => {
+    if (companyInfo) {
+      setCompanyInfo("");
+    }
+  }, 500);
+
   // Show notification helper
   const showNotification = (message: string) => {
     setSavedNotification(message);
     setTimeout(() => setSavedNotification(null), 2000);
   };
+
+  // Load draft data from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem("fd_draft_application");
+      if (savedDraft) {
+        const draft = JSON.parse(savedDraft);
+        if (draft.companyName && !companyName) setCompanyName(draft.companyName);
+        if (draft.companyUrl && !companyUrl) setCompanyUrl(draft.companyUrl);
+        if (draft.positionTitle && !positionTitle) setPositionTitle(draft.positionTitle);
+        if (draft.jobDescription && !jobDescription) setJobDescription(draft.jobDescription);
+        if (draft.personalDetails && !personalDetails) setPersonalDetails(draft.personalDetails);
+      }
+    } catch (error) {
+      console.error("Failed to load draft:", error);
+    }
+  }, []);
 
   // Load data from localStorage on mount
   useEffect(() => {
@@ -386,14 +430,20 @@ export default function Home() {
     // If deleted profile was active, switch to first available
     if (activeProfileId === id) {
       const remainingProfiles = getProfiles();
-      if (remainingProfiles.length > 0) {
-        handleSelectProfile(remainingProfiles[0]);
+      const firstProfile = remainingProfiles[0];
+      if (remainingProfiles.length > 0 && firstProfile) {
+        handleSelectProfile(firstProfile);
       } else {
         setActiveProfileIdState(null);
       }
     }
     showNotification("Profile deleted!");
   };
+
+  // Generate cache key for research
+  const getResearchCacheKey = useCallback(() => {
+    return `${companyName}_${positionTitle}`.toLowerCase().replace(/\s+/g, "_");
+  }, [companyName, positionTitle]);
 
   const handleResearch = async () => {
     if (!companyName || !positionTitle || !jobDescription) {
@@ -409,6 +459,16 @@ export default function Home() {
       return;
     }
 
+    // Check cache first
+    const cacheKey = getResearchCacheKey();
+    const cachedResearch = getResearchCache(cacheKey);
+    if (cachedResearch) {
+      console.log("[Research] Using cached research");
+      setCompanyInfo(cachedResearch);
+      if (resumeLatex && jobDescription) await triggerGenerate(cachedResearch);
+      return;
+    }
+
     setIsResearching(true);
     try {
       const response = await fetch("/api/research", {
@@ -417,7 +477,17 @@ export default function Home() {
         body: JSON.stringify({ companyName, companyUrl, positionTitle, jobDescription }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to research company");
+      if (!response.ok) {
+        // Handle rate limit specifically
+        if (response.status === 429) {
+          throw new Error(`Rate limited. Please try again in ${data.retryAfter || 60} seconds.`);
+        }
+        throw new Error(data.error || "Failed to research company");
+      }
+      
+      // Cache the research result
+      setResearchCache(cacheKey, data.research);
+      
       setCompanyInfo(data.research);
       setIsResearching(false);
       if (resumeLatex && jobDescription) await triggerGenerate(data.research);
@@ -571,11 +641,6 @@ export default function Home() {
     showNotification("Default template updated!");
   };
 
-  const handleUpdatePersonalDetails = () => {
-    savePersonalDetails({ firstName, lastName });
-    showNotification("Name saved!");
-  };
-
   const handleSaveCurrentResumeToTemplate = () => {
     if (selectedResumeTemplateId && resumeLatex) {
       updateResumeTemplate(selectedResumeTemplateId, { content: resumeLatex });
@@ -601,10 +666,6 @@ export default function Home() {
 
   const progress = getProgress();
   const isValid = progress.completed === progress.total;
-
-  // Get selected template name
-  const selectedResumeName = resumeTemplates.find((t) => t.id === selectedResumeTemplateId)?.name;
-  const selectedCoverLetterName = coverLetterTemplates.find((t) => t.id === selectedCoverLetterTemplateId)?.name;
 
   return (
     <div className="h-screen flex overflow-hidden">
@@ -916,7 +977,11 @@ export default function Home() {
                     className="input-field"
                     placeholder="e.g., Google, Microsoft..."
                     value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
+                    onChange={(e) => {
+                      setCompanyName(e.target.value);
+                      // Debounced clear of company research when company name changes
+                      debouncedClearResearch();
+                    }}
                   />
                 </div>
                 <div>
@@ -929,7 +994,11 @@ export default function Home() {
                     className="input-field"
                     placeholder="https://..."
                     value={companyUrl}
-                    onChange={(e) => setCompanyUrl(e.target.value)}
+                    onChange={(e) => {
+                      setCompanyUrl(e.target.value);
+                      // Debounced clear of company research when company URL changes
+                      debouncedClearResearch();
+                    }}
                   />
                 </div>
                 <div>
@@ -942,7 +1011,11 @@ export default function Home() {
                     className="input-field"
                     placeholder="e.g., Software Engineer..."
                     value={positionTitle}
-                    onChange={(e) => setPositionTitle(e.target.value)}
+                    onChange={(e) => {
+                      setPositionTitle(e.target.value);
+                      // Debounced clear of company research when position title changes
+                      debouncedClearResearch();
+                    }}
                   />
                 </div>
               </div>

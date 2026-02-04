@@ -60,7 +60,7 @@ export default function TailoredPage() {
   const [isAskingQuestion, setIsAskingQuestion] = useState(false);
   const [limitType, setLimitType] = useState<"none" | "words" | "characters">("none");
   const [limitValue, setLimitValue] = useState<number>(10);
-  const [searchMode, setSearchMode] = useState<"context" | "context+internet" | "internet">("context");
+  const [searchMode, _setSearchMode] = useState<"context" | "context+internet" | "internet">("context");
 
   // Update limit value when limit type changes to set appropriate defaults
   const handleLimitTypeChange = (newType: "none" | "words" | "characters") => {

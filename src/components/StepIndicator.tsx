@@ -18,7 +18,7 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
   const router = useRouter();
   const { tailoredResume, generatedAnswers } = useAppContext();
 
-  const handleStepClick = (stepNumber: number, path: string) => {
+  const handleStepClick = (_stepNumber: number, path: string) => {
     // Allow navigation to any step
     router.push(path);
   };

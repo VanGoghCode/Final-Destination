@@ -165,9 +165,13 @@ export async function updateCompanyInTier(
     if (data) {
       const index = data.companies.findIndex(c => c.id === companyId);
       if (index !== -1) {
-        data.companies[index] = { ...data.companies[index], ...updates };
-        await setTierData(tier, data);
-        return { company: data.companies[index], tier };
+        const existingCompany = data.companies[index];
+        if (existingCompany) {
+          const updatedCompany: Company = { ...existingCompany, ...updates };
+          data.companies[index] = updatedCompany;
+          await setTierData(tier, data);
+          return { company: updatedCompany, tier };
+        }
       }
     }
   }
@@ -247,7 +251,7 @@ export async function addCompanyCareerUrl(companyId: string, url: string): Promi
     return { success: false, urls: [] };
   }
   
-  const { company, tier } = result;
+  const { company } = result;
   const currentUrls = company.careerUrls || [];
   
   // Don't add duplicates

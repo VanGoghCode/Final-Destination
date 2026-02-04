@@ -1,7 +1,29 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
+import { sanitizeLatex } from "@/lib/sanitize";
 
 export async function POST(request: Request) {
   try {
+    // Rate limiting
+    const clientId = getClientIdentifier(request);
+    const rateLimitResult = checkRateLimit(`latex_${clientId}`, RATE_LIMITS.LATEX);
+    
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { 
+          error: `Rate limit exceeded. Please try again in ${rateLimitResult.retryAfter} seconds.`,
+          retryAfter: rateLimitResult.retryAfter 
+        },
+        { 
+          status: 429,
+          headers: {
+            "Retry-After": String(rateLimitResult.retryAfter),
+            "X-RateLimit-Remaining": String(rateLimitResult.remaining),
+          }
+        },
+      );
+    }
+
     const { latex } = await request.json();
 
     if (!latex || typeof latex !== "string") {
@@ -10,6 +32,9 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    // Sanitize LaTeX input
+    const sanitizedLatex = sanitizeLatex(latex);
 
     // Use latex.ytotech.com free API for compilation
     // Alternative: latexonline.cc
@@ -23,7 +48,7 @@ export async function POST(request: Request) {
         resources: [
           {
             main: true,
-            content: latex,
+            content: sanitizedLatex,
           },
         ],
       }),

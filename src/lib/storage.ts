@@ -126,9 +126,10 @@ export const addResumeTemplate = (name: string, content: string): Template => {
 export const updateResumeTemplate = (id: string, updates: Partial<Omit<Template, "id" | "createdAt">>): void => {
   const templates = getResumeTemplates();
   const index = templates.findIndex((t) => t.id === id);
-  if (index !== -1) {
+  const existingTemplate = templates[index];
+  if (index !== -1 && existingTemplate) {
     templates[index] = {
-      ...templates[index],
+      ...existingTemplate,
       ...updates,
       updatedAt: Date.now(),
     };
@@ -140,8 +141,9 @@ export const deleteResumeTemplate = (id: string): void => {
   const templates = getResumeTemplates().filter((t) => t.id !== id);
   saveResumeTemplates(templates);
   // If deleted template was default, set a new default
-  if (getDefaultResumeId() === id && templates.length > 0) {
-    setDefaultResumeId(templates[0].id);
+  const firstTemplate = templates[0];
+  if (getDefaultResumeId() === id && templates.length > 0 && firstTemplate) {
+    setDefaultResumeId(firstTemplate.id);
   } else if (templates.length === 0) {
     localStorage.removeItem(STORAGE_KEYS.DEFAULT_RESUME);
   }
@@ -165,7 +167,7 @@ export const getDefaultResumeTemplate = (): Template | null => {
     if (defaultTemplate) return defaultTemplate;
   }
   // Return first template if no default set
-  return templates.length > 0 ? templates[0] : null;
+  return templates[0] ?? null;
 };
 
 // ============ Cover Letter Templates ============
@@ -225,9 +227,10 @@ export const addCoverLetterTemplate = (name: string, content: string): Template 
 export const updateCoverLetterTemplate = (id: string, updates: Partial<Omit<Template, "id" | "createdAt">>): void => {
   const templates = getCoverLetterTemplates();
   const index = templates.findIndex((t) => t.id === id);
-  if (index !== -1) {
+  const existingTemplate = templates[index];
+  if (index !== -1 && existingTemplate) {
     templates[index] = {
-      ...templates[index],
+      ...existingTemplate,
       ...updates,
       updatedAt: Date.now(),
     };
@@ -239,8 +242,9 @@ export const deleteCoverLetterTemplate = (id: string): void => {
   const templates = getCoverLetterTemplates().filter((t) => t.id !== id);
   saveCoverLetterTemplates(templates);
   // If deleted template was default, set a new default
-  if (getDefaultCoverLetterId() === id && templates.length > 0) {
-    setDefaultCoverLetterId(templates[0].id);
+  const firstTemplate = templates[0];
+  if (getDefaultCoverLetterId() === id && templates.length > 0 && firstTemplate) {
+    setDefaultCoverLetterId(firstTemplate.id);
   } else if (templates.length === 0) {
     localStorage.removeItem(STORAGE_KEYS.DEFAULT_COVER_LETTER);
   }
@@ -264,7 +268,7 @@ export const getDefaultCoverLetterTemplate = (): Template | null => {
     if (defaultTemplate) return defaultTemplate;
   }
   // Return first template if no default set
-  return templates.length > 0 ? templates[0] : null;
+  return templates[0] ?? null;
 };
 
 // ============ Utility Functions ============
@@ -309,7 +313,7 @@ export const getProfiles = (): Profile[] => {
         lastName: personalDetails.lastName,
         defaultResumeId,
         defaultCoverLetterId,
-        color: PROFILE_COLORS[0],
+        color: PROFILE_COLORS[0] ?? "#6366f1",
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -347,7 +351,7 @@ export const addProfile = (
     lastName,
     defaultResumeId,
     defaultCoverLetterId,
-    color: PROFILE_COLORS[colorIndex],
+    color: PROFILE_COLORS[colorIndex] ?? "#6366f1",
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
@@ -363,9 +367,10 @@ export const addProfile = (
 export const updateProfile = (id: string, updates: Partial<Omit<Profile, "id" | "createdAt">>): void => {
   const profiles = getProfiles();
   const index = profiles.findIndex((p) => p.id === id);
-  if (index !== -1) {
+  const existingProfile = profiles[index];
+  if (index !== -1 && existingProfile) {
     profiles[index] = {
-      ...profiles[index],
+      ...existingProfile,
       ...updates,
       updatedAt: Date.now(),
     };
@@ -377,8 +382,9 @@ export const deleteProfile = (id: string): void => {
   const profiles = getProfiles().filter((p) => p.id !== id);
   saveProfiles(profiles);
   // If deleted profile was active, set a new active
-  if (getActiveProfileId() === id && profiles.length > 0) {
-    setActiveProfileId(profiles[0].id);
+  const firstProfile = profiles[0];
+  if (getActiveProfileId() === id && profiles.length > 0 && firstProfile) {
+    setActiveProfileId(firstProfile.id);
   } else if (profiles.length === 0) {
     localStorage.removeItem(STORAGE_KEYS.ACTIVE_PROFILE);
   }
@@ -402,7 +408,7 @@ export const getActiveProfile = (): Profile | null => {
     if (activeProfile) return activeProfile;
   }
   // Return first profile if no active set
-  return profiles.length > 0 ? profiles[0] : null;
+  return profiles[0] ?? null;
 };
 
 export const getProfileById = (id: string): Profile | null => {
@@ -412,5 +418,5 @@ export const getProfileById = (id: string): Profile | null => {
 
 export const getNextProfileColor = (): string => {
   const profiles = getProfiles();
-  return PROFILE_COLORS[profiles.length % PROFILE_COLORS.length];
+  return PROFILE_COLORS[profiles.length % PROFILE_COLORS.length] ?? "#6366f1";
 };

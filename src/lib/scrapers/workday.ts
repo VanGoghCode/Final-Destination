@@ -1,19 +1,4 @@
-import type { Job, ScrapeResult } from "./types";
-
-/**
- * Workday job listing from HTML parsing
- * Note: Workday doesn't have a public API, so we use their internal search endpoint
- */
-interface WorkdayJob {
-  title: string;
-  externalPath: string;
-  locationsText: string;
-  postedOn: string;
-}
-
-interface WorkdayResponse {
-  jobPostings?: WorkdayJob[];
-}
+import type { ScrapeResult } from "./types";
 
 /**
  * Known Workday domains and their configurations
@@ -75,7 +60,7 @@ export const WORKDAY_COMPANIES: Record<
  */
 export async function scrapeWorkday(
   companyKey: string,
-  companyId: string,
+  _companyId: string,
   companyName: string,
 ): Promise<ScrapeResult> {
   const config = WORKDAY_COMPANIES[companyKey];
@@ -116,7 +101,7 @@ export async function scrapeWorkday(
 
     // Try to extract job count from page
     const jobCountMatch = html.match(/(\d+)\s*(?:jobs?|results?)/i);
-    const hasJobs = jobCountMatch && parseInt(jobCountMatch[1]) > 0;
+    const hasJobs = jobCountMatch && jobCountMatch[1] && parseInt(jobCountMatch[1]) > 0;
 
     // For now, return a placeholder indicating Workday is reachable
     // Full implementation would parse the embedded JSON or use Playwright
