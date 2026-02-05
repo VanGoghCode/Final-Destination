@@ -10,6 +10,8 @@ import QueueProgress from "@/components/QueueProgress";
 import {
   getDefaultResumeTemplate,
   getDefaultCoverLetterTemplate,
+  getResumeTemplates,
+  getCoverLetterTemplates,
   getProfiles,
   Template,
   Profile,
@@ -310,8 +312,38 @@ export default function BatchProcessPage() {
   // Process a single job
   const processJob = useCallback(
     async (job: QueuedJob, signal: AbortSignal) => {
-      if (!resumeTemplate) {
-        setJobError(job.id, "No default resume template set");
+      // Resolve the correct template based on job's profile
+      let jobResumeTemplate: Template | null = resumeTemplate;
+      let jobCoverLetterTemplate: Template | null = coverLetterTemplate;
+
+      if (job.profileId) {
+        const profile = profiles.find((p) => p.id === job.profileId);
+        if (profile) {
+          // Use profile-specific templates if available
+          if (profile.defaultResumeId) {
+            const allResumeTemplates = getResumeTemplates();
+            const profileResume = allResumeTemplates.find(
+              (t) => t.id === profile.defaultResumeId,
+            );
+            if (profileResume) {
+              jobResumeTemplate = profileResume;
+              addActivity(`📋 Using profile "${profile.name}" resume template`);
+            }
+          }
+          if (profile.defaultCoverLetterId) {
+            const allCoverLetterTemplates = getCoverLetterTemplates();
+            const profileCoverLetter = allCoverLetterTemplates.find(
+              (t) => t.id === profile.defaultCoverLetterId,
+            );
+            if (profileCoverLetter) {
+              jobCoverLetterTemplate = profileCoverLetter;
+            }
+          }
+        }
+      }
+
+      if (!jobResumeTemplate) {
+        setJobError(job.id, "No resume template found for this job's profile");
         return;
       }
 
@@ -350,7 +382,7 @@ export default function BatchProcessPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            resumeLatex: resumeTemplate.content,
+            resumeLatex: jobResumeTemplate.content,
             jobDescription: job.jobDescription,
             personalDetails: job.personalDetails || globalPersonalDetails,
             companyInfo: researchData.research,
@@ -374,7 +406,7 @@ export default function BatchProcessPage() {
         addActivity(`✓ Resume tailored for ${job.companyName}`);
 
         // Step 3: Tailor cover letter
-        if (coverLetterTemplate) {
+        if (jobCoverLetterTemplate) {
           updateJobStatus(job.id, "tailoring-cover-letter", 70);
           addActivity(`✉️ Generating cover letter for ${job.positionTitle}...`);
 
@@ -382,7 +414,7 @@ export default function BatchProcessPage() {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              coverLetterLatex: coverLetterTemplate.content,
+              coverLetterLatex: jobCoverLetterTemplate.content,
               jobDescription: job.jobDescription,
               personalDetails: job.personalDetails || globalPersonalDetails,
               companyInfo: researchData.research,
@@ -420,6 +452,7 @@ export default function BatchProcessPage() {
     [
       resumeTemplate,
       coverLetterTemplate,
+      profiles,
       globalPersonalDetails,
       updateJobStatus,
       updateJobResults,
@@ -517,6 +550,7 @@ export default function BatchProcessPage() {
         tailoredResume: job.tailoredResume,
         tailoredCoverLetter: job.tailoredCoverLetter,
         companyName: job.companyName,
+        companyUrl: job.companyUrl,
         positionTitle: job.positionTitle,
         jobDescription: job.jobDescription,
         companyResearch: job.companyResearch,

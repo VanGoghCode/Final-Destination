@@ -10,6 +10,7 @@ interface BatchJobData {
   tailoredResume?: string;
   tailoredCoverLetter?: string;
   companyName: string;
+  companyUrl?: string;
   positionTitle: string;
   jobDescription: string;
   companyResearch?: string;
@@ -17,7 +18,11 @@ interface BatchJobData {
   jobWorkMode?: "" | "Remote" | "Hybrid" | "On-site";
 }
 
-export default function TailoredCompanyPage({ params }: { params: Promise<{ company: string }> }) {
+export default function TailoredCompanyPage({
+  params,
+}: {
+  params: Promise<{ company: string }>;
+}) {
   const resolvedParams = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -33,7 +38,8 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
 
   // Regeneration state
   const [isRegeneratingResume, setIsRegeneratingResume] = useState(false);
-  const [isRegeneratingCoverLetter, setIsRegeneratingCoverLetter] = useState(false);
+  const [isRegeneratingCoverLetter, setIsRegeneratingCoverLetter] =
+    useState(false);
 
   // Sheet logging state
   const [showLogModal, setShowLogModal] = useState(false);
@@ -44,7 +50,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
   const [logSuccess, setLogSuccess] = useState(false);
   const [logError, setLogError] = useState("");
   const [country, setCountry] = useState("");
-  const [workMode, setWorkMode] = useState<"" | "Remote" | "Hybrid" | "On-site">("");
+  const [workMode, setWorkMode] = useState<
+    "" | "Remote" | "Hybrid" | "On-site"
+  >("");
   const [editableCompanyName, setEditableCompanyName] = useState("");
   const [editablePositionTitle, setEditablePositionTitle] = useState("");
   const applicationLinkRef = useRef<HTMLInputElement>(null);
@@ -53,7 +61,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
   const [generalQuestion, setGeneralQuestion] = useState("");
   const [generalAnswer, setGeneralAnswer] = useState("");
   const [isAskingQuestion, setIsAskingQuestion] = useState(false);
-  const [limitType, setLimitType] = useState<"none" | "words" | "characters">("none");
+  const [limitType, setLimitType] = useState<"none" | "words" | "characters">(
+    "none",
+  );
   const [limitValue, setLimitValue] = useState<number>(10);
 
   // Collapsible sections state
@@ -83,17 +93,24 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
 
   // Generate formatted filenames
   const formatName = (str: string | undefined | null) =>
-    (str || "").replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_").trim();
+    (str || "")
+      .replace(/[^a-zA-Z0-9\s]/g, "")
+      .replace(/\s+/g, "_")
+      .trim();
 
   const fullName = "Resume";
-  const companyName = jobData?.companyName || resolvedParams.company || "Company";
+  const companyName =
+    jobData?.companyName || resolvedParams.company || "Company";
   const positionTitle = jobData?.positionTitle || "Position";
 
   const resumeFileNamePlain = `${fullName}`;
   const resumeFileNameDetailed = `${formatName(companyName)}_${formatName(positionTitle)}_Resume`;
   const coverLetterFileNameDetailed = `${formatName(companyName)}_${formatName(positionTitle)}_CoverLetter`;
 
-  const copyToClipboard = async (text: string, type: "resume" | "coverLetter") => {
+  const copyToClipboard = async (
+    text: string,
+    type: "resume" | "coverLetter",
+  ) => {
     await navigator.clipboard.writeText(text);
     if (type === "resume") {
       setCopiedResume(true);
@@ -128,7 +145,8 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to log application");
+      if (!response.ok)
+        throw new Error(data.error || "Failed to log application");
 
       setLogSuccess(true);
       setTimeout(() => {
@@ -204,8 +222,16 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
       <div className="h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-100 flex items-center justify-center animate-pulse">
-            <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg
+              className="w-8 h-8 text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeWidth="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
             </svg>
           </div>
           <p className="text-muted">Loading job data...</p>
@@ -219,13 +245,22 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
       <div className="h-screen flex items-center justify-center">
         <div className="text-center max-w-md">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-100 flex items-center justify-center">
-            <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <svg
+              className="w-8 h-8 text-red-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeWidth="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
             </svg>
           </div>
           <h2 className="text-lg font-semibold mb-2">Job data not found</h2>
           <p className="text-sm text-muted mb-4">
-            This page requires job data from batch processing. The data may have expired.
+            This page requires job data from batch processing. The data may have
+            expired.
           </p>
           <Button onClick={() => router.push("/batch")} variant="primary">
             Go to Batch Processing
@@ -245,24 +280,46 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
               onClick={() => router.push("/")}
               className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
             >
-              <span className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+              <span className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center text-[10px] font-bold">
+                ✓
+              </span>
               Input
             </button>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted shrink-0">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-muted shrink-0"
+            >
               <polyline points="9 18 15 12 9 6" />
             </svg>
             <div className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-primary/10 border border-primary text-primary text-xs font-medium">
-              <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold">2</span>
+              <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold">
+                2
+              </span>
               Review
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted shrink-0">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-muted shrink-0"
+            >
               <polyline points="9 18 15 12 9 6" />
             </svg>
             <button
-              onClick={() => window.open(`/questions?jobId=${jobId}`, '_blank')}
+              onClick={() => window.open(`/questions?jobId=${jobId}`, "_blank")}
               className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
             >
-              <span className="w-5 h-5 rounded-full bg-card-border text-muted flex items-center justify-center text-[10px] font-bold">3</span>
+              <span className="w-5 h-5 rounded-full bg-card-border text-muted flex items-center justify-center text-[10px] font-bold">
+                3
+              </span>
               Q&A
             </button>
           </div>
@@ -274,12 +331,37 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
             <div className="w-8 h-8 rounded-lg bg-linear-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
               {companyName[0]?.toUpperCase()}
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-sm">{companyName}</h3>
-              <p className="text-xs text-muted">{positionTitle}</p>
+              <p className="text-xs text-muted truncate">{positionTitle}</p>
             </div>
           </div>
-          <p className="text-[10px] text-purple-600">From Batch Processing</p>
+          {jobData?.companyUrl && (
+            <a
+              href={jobData.companyUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-lg transition-colors w-full"
+            >
+              <svg
+                className="w-3 h-3 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
+              <span className="truncate">{jobData.companyUrl}</span>
+            </a>
+          )}
+          {!jobData?.companyUrl && (
+            <p className="text-[10px] text-purple-600">From Batch Processing</p>
+          )}
         </div>
 
         {/* Actions */}
@@ -289,7 +371,14 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
             variant="secondary"
             className="w-full text-xs py-2"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
               <line x1="3" y1="9" x2="21" y2="9" />
               <line x1="9" y1="3" x2="9" y2="21" />
@@ -297,11 +386,18 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
             Log to Sheet
           </Button>
           <Button
-            onClick={() => window.open(`/questions?jobId=${jobId}`, '_blank')}
+            onClick={() => window.open(`/questions?jobId=${jobId}`, "_blank")}
             variant="secondary"
             className="w-full text-xs py-2"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <circle cx="12" cy="12" r="10" />
               <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
               <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -316,9 +412,13 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
           {tailoredCoverLetter && (
             <div className="p-3 bg-green-50 rounded-lg border border-green-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-green-700">Cover Letter Ready</span>
+                <span className="text-xs font-medium text-green-700">
+                  Cover Letter Ready
+                </span>
                 <Button
-                  onClick={() => navigator.clipboard.writeText(tailoredCoverLetter)}
+                  onClick={() =>
+                    navigator.clipboard.writeText(tailoredCoverLetter)
+                  }
                   variant="ghost"
                   className="text-xs py-1 px-2"
                 >
@@ -343,7 +443,12 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
               className="flex items-center justify-between w-full text-xs font-medium text-muted hover:text-foreground py-2"
             >
               <span>Filenames</span>
-              <svg className={`w-4 h-4 transition-transform ${showFilenames ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                className={`w-4 h-4 transition-transform ${showFilenames ? "rotate-180" : ""}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <path strokeWidth="2" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
@@ -354,7 +459,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                     {resumeFileNameDetailed}
                   </code>
                   <button
-                    onClick={() => copyToClipboard(resumeFileNameDetailed, "resume")}
+                    onClick={() =>
+                      copyToClipboard(resumeFileNameDetailed, "resume")
+                    }
                     className="text-xs text-muted hover:text-foreground"
                   >
                     {copiedResume ? "✓" : "Copy"}
@@ -365,7 +472,12 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                     {coverLetterFileNameDetailed}
                   </code>
                   <button
-                    onClick={() => copyToClipboard(coverLetterFileNameDetailed, "coverLetter")}
+                    onClick={() =>
+                      copyToClipboard(
+                        coverLetterFileNameDetailed,
+                        "coverLetter",
+                      )
+                    }
                     className="text-xs text-muted hover:text-foreground"
                   >
                     {copiedCoverLetter ? "✓" : "Copy"}
@@ -377,7 +489,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
 
           {/* Quick Q&A */}
           <div>
-            <label className="block text-xs font-medium text-muted mb-2">Quick Question</label>
+            <label className="block text-xs font-medium text-muted mb-2">
+              Quick Question
+            </label>
             <textarea
               value={generalQuestion}
               onChange={(e) => setGeneralQuestion(e.target.value)}
@@ -393,7 +507,11 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
               ].map((opt) => (
                 <button
                   key={opt.value}
-                  onClick={() => handleLimitTypeChange(opt.value as "none" | "words" | "characters")}
+                  onClick={() =>
+                    handleLimitTypeChange(
+                      opt.value as "none" | "words" | "characters",
+                    )
+                  }
                   className={`flex-1 px-2 py-1 text-[10px] font-medium rounded transition-all ${
                     limitType === opt.value
                       ? "bg-primary text-white"
@@ -408,7 +526,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
               <input
                 type="number"
                 value={limitValue}
-                onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) =>
+                  setLimitValue(Math.max(1, parseInt(e.target.value) || 1))
+                }
                 className="w-full px-3 py-1.5 text-xs rounded-lg border border-card-border mb-2"
                 min="1"
               />
@@ -435,7 +555,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                   if (!response.ok) throw new Error(data.error);
                   setGeneralAnswer(data.answer);
                 } catch (err) {
-                  setGeneralAnswer("Error: " + (err instanceof Error ? err.message : "Failed"));
+                  setGeneralAnswer(
+                    "Error: " + (err instanceof Error ? err.message : "Failed"),
+                  );
                 } finally {
                   setIsAskingQuestion(false);
                 }
@@ -450,13 +572,21 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
             {/* Quick Question Shortcuts */}
             <div className="flex gap-2 mt-2">
               <button
-                onClick={() => setGeneralQuestion("What is the salary range for this position?")}
+                onClick={() =>
+                  setGeneralQuestion(
+                    "What is the salary range for this position?",
+                  )
+                }
                 className="flex-1 px-2 py-1.5 text-xs font-medium text-muted bg-surface-hover hover:bg-gray-200 rounded-lg transition-colors border border-card-border/50"
               >
                 💰 Salary
               </button>
               <button
-                onClick={() => setGeneralQuestion("What are the key skills required for this role?")}
+                onClick={() =>
+                  setGeneralQuestion(
+                    "What are the key skills required for this role?",
+                  )
+                }
                 className="flex-1 px-2 py-1.5 text-xs font-medium text-muted bg-surface-hover hover:bg-gray-200 rounded-lg transition-colors border border-card-border/50"
               >
                 🎯 Skills
@@ -474,7 +604,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                     Copy
                   </button>
                 </div>
-                <p className="text-xs text-foreground whitespace-pre-wrap">{generalAnswer}</p>
+                <p className="text-xs text-foreground whitespace-pre-wrap">
+                  {generalAnswer}
+                </p>
               </div>
             )}
           </div>
@@ -497,7 +629,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
 
       {/* Log to Sheet Modal */}
       {showLogModal && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowLogModal(false);
@@ -506,13 +638,17 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
             <div className="p-6 border-b border-gray-100">
               <h2 className="text-lg font-semibold">Log Application</h2>
-              <p className="text-sm text-muted mt-1">Record this application to your spreadsheet</p>
+              <p className="text-sm text-muted mt-1">
+                Record this application to your spreadsheet
+              </p>
             </div>
 
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-1">Company</label>
+                  <label className="block text-xs font-medium text-muted mb-1">
+                    Company
+                  </label>
                   <input
                     type="text"
                     value={editableCompanyName}
@@ -521,7 +657,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-1">Position</label>
+                  <label className="block text-xs font-medium text-muted mb-1">
+                    Position
+                  </label>
                   <input
                     type="text"
                     value={editablePositionTitle}
@@ -532,7 +670,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted mb-1">Application Link</label>
+                <label className="block text-xs font-medium text-muted mb-1">
+                  Application Link
+                </label>
                 <input
                   ref={applicationLinkRef}
                   type="url"
@@ -545,7 +685,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-1">Country</label>
+                  <label className="block text-xs font-medium text-muted mb-1">
+                    Country
+                  </label>
                   <input
                     type="text"
                     value={country}
@@ -555,10 +697,16 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-1">Work Mode</label>
+                  <label className="block text-xs font-medium text-muted mb-1">
+                    Work Mode
+                  </label>
                   <select
                     value={workMode}
-                    onChange={(e) => setWorkMode(e.target.value as "" | "Remote" | "Hybrid" | "On-site")}
+                    onChange={(e) =>
+                      setWorkMode(
+                        e.target.value as "" | "Remote" | "Hybrid" | "On-site",
+                      )
+                    }
                     className="w-full px-3 py-2 border border-card-border rounded-lg text-sm"
                   >
                     <option value="">Select...</option>
@@ -570,7 +718,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted mb-1">Notes</label>
+                <label className="block text-xs font-medium text-muted mb-1">
+                  Notes
+                </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -580,9 +730,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                 />
               </div>
 
-              {logError && (
-                <p className="text-xs text-red-500">{logError}</p>
-              )}
+              {logError && <p className="text-xs text-red-500">{logError}</p>}
 
               <div className="flex gap-3 pt-2">
                 <Button
@@ -599,7 +747,11 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                   variant="primary"
                   className="flex-1"
                 >
-                  {isLogging ? "Logging..." : logSuccess ? "✓ Logged!" : "Log Application"}
+                  {isLogging
+                    ? "Logging..."
+                    : logSuccess
+                      ? "✓ Logged!"
+                      : "Log Application"}
                 </Button>
               </div>
             </div>

@@ -31,6 +31,8 @@ export interface QueuedJob {
   profileId?: string;
   profileName?: string;
   profileColor?: string;
+  // Company website for research (separate from job posting URL)
+  companyWebsite?: string;
   // Results
   companyResearch?: string;
   tailoredResume?: string;

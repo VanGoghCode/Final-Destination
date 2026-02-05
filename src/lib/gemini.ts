@@ -8,7 +8,7 @@ import {
 import { isValidInput } from "./sanitize";
 
 const MODEL_NAME = "gemini-3-pro-preview";
-const MODEL_NAME_GROUNDED = "gemini-2.0-flash";
+const MODEL_NAME_GROUNDED = "gemini-2.5-flash-lite";
 
 // Retry configuration
 const MAX_RETRIES = 3;
@@ -33,12 +33,13 @@ const RETRYABLE_ERRORS = [
 function isRetryableError(error: unknown): boolean {
   if (!error) return false;
   const errorString = String(error).toLowerCase();
-  const errorMessage = error instanceof Error ? error.message.toLowerCase() : "";
-  
+  const errorMessage =
+    error instanceof Error ? error.message.toLowerCase() : "";
+
   return RETRYABLE_ERRORS.some(
     (pattern) =>
       errorString.includes(pattern.toLowerCase()) ||
-      errorMessage.includes(pattern.toLowerCase())
+      errorMessage.includes(pattern.toLowerCase()),
   );
 }
 
@@ -130,7 +131,7 @@ async function generateContent(prompt: string): Promise<string> {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       const ai = getGenAI();
-      
+
       if (attempt === 0) {
         console.log(`[Gemini] Initializing model ${MODEL_NAME}`);
         console.log("[Gemini] Sending request to Google GenAI...");
@@ -153,7 +154,10 @@ async function generateContent(prompt: string): Promise<string> {
       return text;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      console.error(`[Gemini] Error (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`, error);
+      console.error(
+        `[Gemini] Error (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`,
+        error,
+      );
 
       // Check if error is retryable and we have retries left
       if (isRetryableError(error) && attempt < MAX_RETRIES) {
@@ -185,7 +189,9 @@ async function generateContentWithSearch(prompt: string): Promise<string> {
       const ai = getGenAI();
 
       if (attempt === 0) {
-        console.log(`[Gemini] Initializing grounded model ${MODEL_NAME_GROUNDED}`);
+        console.log(
+          `[Gemini] Initializing grounded model ${MODEL_NAME_GROUNDED}`,
+        );
         console.log("[Gemini] Sending request with Google Search grounding...");
       } else {
         console.log(`[Gemini] Retry attempt ${attempt}/${MAX_RETRIES}...`);
@@ -206,7 +212,10 @@ async function generateContentWithSearch(prompt: string): Promise<string> {
       return text;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      console.error(`[Gemini] Error (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`, error);
+      console.error(
+        `[Gemini] Error (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`,
+        error,
+      );
 
       if (isRetryableError(error) && attempt < MAX_RETRIES) {
         const delay = BASE_DELAY_MS * Math.pow(2, attempt);
@@ -219,7 +228,9 @@ async function generateContentWithSearch(prompt: string): Promise<string> {
     }
   }
 
-  throw lastError || new Error("Failed to generate grounded content after retries");
+  throw (
+    lastError || new Error("Failed to generate grounded content after retries")
+  );
 }
 
 // ========================================
@@ -259,17 +270,19 @@ Output ONLY the JSON, nothing else:`;
 
   try {
     const response = await generateContent(prompt);
-    
+
     // Parse the JSON response
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       return {
         country: parsed.country || "",
-        workMode: ["Remote", "Hybrid", "On-site"].includes(parsed.workMode) ? parsed.workMode : "",
+        workMode: ["Remote", "Hybrid", "On-site"].includes(parsed.workMode)
+          ? parsed.workMode
+          : "",
       };
     }
-    
+
     return { country: "", workMode: "" };
   } catch (error) {
     console.error("[Gemini] Error extracting job info:", error);
@@ -283,9 +296,9 @@ export async function researchCompany(
   positionTitle: string,
   jobDescription: string,
 ): Promise<string> {
-  const companyUrlInfo = companyUrl 
+  const companyUrlInfo = companyUrl
     ? `\n\n## COMPANY WEBSITE:\nIMPORTANT: Use this URL to identify the EXACT company: ${companyUrl}\nThis URL is authoritative - use it to research the correct company and avoid confusion with other companies that may have similar names.`
-    : '';
+    : "";
 
   const prompt = `You are an expert career researcher and strategist. Your task is to provide deep, actionable research about a company and role that will help a candidate stand out by showing MULTIDISCIPLINARY FIT.
 
@@ -856,9 +869,10 @@ export async function answerGeneralQuestion(
   limitType?: "words" | "characters",
   limitValue?: number,
 ): Promise<string> {
-  const limitInstruction = limitType && limitValue
-    ? `\n6. IMPORTANT: Your answer MUST be within ${limitValue} ${limitType}. Be concise and stay within this limit.`
-    : "";
+  const limitInstruction =
+    limitType && limitValue
+      ? `\n6. IMPORTANT: Your answer MUST be within ${limitValue} ${limitType}. Be concise and stay within this limit.`
+      : "";
 
   const prompt = `You are helping a job applicant write answers in FIRST PERSON (using "I", "my", "me"). Write as if you ARE the applicant. Use ONLY the provided context to answer the question. If the answer cannot be found in the context, say so clearly.
 
@@ -906,9 +920,10 @@ export async function answerWithInternet(
   limitType?: "words" | "characters",
   limitValue?: number,
 ): Promise<string> {
-  const limitInstruction = limitType && limitValue
-    ? `\n7. IMPORTANT: Your answer MUST be within ${limitValue} ${limitType}. Be concise and stay within this limit.`
-    : "";
+  const limitInstruction =
+    limitType && limitValue
+      ? `\n7. IMPORTANT: Your answer MUST be within ${limitValue} ${limitType}. Be concise and stay within this limit.`
+      : "";
 
   const prompt = `You are helping a job applicant answer questions. You have access to their APPLICATION CONTEXT and can also search the INTERNET for additional information.
 
@@ -951,13 +966,15 @@ export async function answerInternetOnly(
   limitType?: "words" | "characters",
   limitValue?: number,
 ): Promise<string> {
-  const limitInstruction = limitType && limitValue
-    ? `\n5. IMPORTANT: Your answer MUST be within ${limitValue} ${limitType}. Be concise and stay within this limit.`
-    : "";
+  const limitInstruction =
+    limitType && limitValue
+      ? `\n5. IMPORTANT: Your answer MUST be within ${limitValue} ${limitType}. Be concise and stay within this limit.`
+      : "";
 
-  const contextHint = companyName || positionTitle
-    ? `\n\n## CONTEXT HINT:\nThe user is researching for a ${positionTitle || "position"} at ${companyName || "a company"}. Keep this context in mind when searching.`
-    : "";
+  const contextHint =
+    companyName || positionTitle
+      ? `\n\n## CONTEXT HINT:\nThe user is researching for a ${positionTitle || "position"} at ${companyName || "a company"}. Keep this context in mind when searching.`
+      : "";
 
   const prompt = `You are a helpful research assistant. Answer the following question using internet search. Provide accurate, up-to-date information from the web.${contextHint}
 

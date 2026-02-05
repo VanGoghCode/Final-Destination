@@ -4,210 +4,190 @@
     <meta charset="UTF-8" />
     <style>
       :root {
-        --primary: #2563eb;
-        --primary-hover: #1d4ed8;
-        --bg: #ffffff;
-        --surface: #f8fafc;
-        --border: #e2e8f0;
-        --text: #0f172a;
-        --text-muted: #64748b;
-        --error: #ef4444;
+        --bg: #faf9f6;
+        --surface: #ffffff;
+        --primary: #000000;
+        --border: #e5e5e5;
+        --text: #000000;
+        --muted: #666666;
         --success: #10b981;
-        --radius: 8px;
-        --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        --error: #ef4444;
       }
 
       * {
         box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
 
       body {
-        width: 360px;
-        margin: 0;
-        padding: 0;
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-          Arial, sans-serif;
-        color: var(--text);
+        width: 320px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         background: var(--bg);
+        color: var(--text);
       }
 
       .header {
-        padding: 16px;
-        background: var(--surface);
-        border-bottom: 1px solid var(--border);
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 10px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
       }
 
       .logo {
-        width: 24px;
-        height: 24px;
+        width: 28px;
+        height: 28px;
         background: var(--primary);
-        border-radius: 6px;
+        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
-        font-weight: bold;
-        font-size: 14px;
+        font-weight: 700;
+        font-size: 11px;
       }
 
-      h2 {
-        margin: 0;
+      .header h1 {
         font-size: 14px;
         font-weight: 600;
-        color: var(--text);
       }
 
-      #form {
-        padding: 16px;
+      .form {
+        padding: 14px;
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 10px;
       }
 
-      .form-group {
+      .field {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 4px;
       }
 
-      label {
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--text-muted);
+      .field label {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--muted);
         text-transform: uppercase;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.03em;
       }
 
-      input,
-      textarea {
+      .field input,
+      .field textarea {
         width: 100%;
-        padding: 10px 12px;
+        padding: 8px 10px;
         border: 1px solid var(--border);
-        border-radius: var(--radius);
-        font-size: 13px;
-        color: var(--text);
-        background: var(--bg);
-        transition: all 0.2s;
+        border-radius: 8px;
+        font-size: 12px;
+        background: var(--surface);
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
       }
 
-      textarea {
-        resize: vertical;
-        min-height: 80px;
-        line-height: 1.5;
-      }
-
-      input:focus,
-      textarea:focus {
+      .field input:focus,
+      .field textarea:focus {
         outline: none;
         border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.06);
       }
 
-      input::placeholder,
-      textarea::placeholder {
-        color: #94a3b8;
+      .field textarea {
+        resize: none;
+        height: 60px;
+        line-height: 1.4;
       }
 
-      /* Profile Selector */
-      .profile-container {
+      .row {
         display: flex;
         gap: 8px;
-        overflow-x: auto;
-        padding-bottom: 4px;
-        scrollbar-width: none;
+      }
+      .row .field {
+        flex: 1;
       }
 
-      .profile-container::-webkit-scrollbar {
+      /* Profiles */
+      .profiles {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding: 2px 0;
+      }
+      .profiles::-webkit-scrollbar {
         display: none;
       }
 
-      .profile-item {
-        flex-shrink: 0;
+      .profile {
         display: flex;
-        flex-direction: column;
         align-items: center;
-        gap: 4px;
+        gap: 5px;
+        padding: 5px 8px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--surface);
         cursor: pointer;
-        opacity: 0.6;
-        transition: all 0.2s;
-        width: 60px;
+        transition: all 0.15s;
+        flex-shrink: 0;
       }
-
-      .profile-item:hover {
-        opacity: 0.8;
+      .profile:hover {
+        border-color: #ccc;
       }
-
-      .profile-item.selected {
-        opacity: 1;
+      .profile.selected {
+        border-color: var(--primary);
+        background: var(--primary);
+        color: white;
       }
-
-      .profile-avatar {
-        width: 40px;
-        height: 40px;
+      .profile .dot {
+        width: 14px;
+        height: 14px;
         border-radius: 50%;
-        background: #e2e8f0;
+        font-size: 8px;
+        font-weight: 600;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: 600;
         color: white;
-        font-size: 14px;
-        border: 2px solid transparent;
-        transition: all 0.2s;
       }
-
-      .profile-item.selected .profile-avatar {
-        border-color: var(--primary);
-        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-        transform: scale(1.05);
+      .profile.selected .dot {
+        background: white !important;
+        color: var(--primary);
       }
-
-      .profile-name {
-        font-size: 10px;
+      .profile span {
+        font-size: 11px;
         font-weight: 500;
-        text-align: center;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        width: 100%;
       }
 
       button#addBtn {
+        width: 100%;
+        padding: 10px;
         background: var(--primary);
         color: white;
         border: none;
-        padding: 12px;
-        border-radius: var(--radius);
-        font-weight: 600;
+        border-radius: 8px;
         font-size: 13px;
+        font-weight: 600;
         cursor: pointer;
-        transition: background 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        margin-top: 8px;
+        transition: background 0.15s;
+        margin-top: 4px;
       }
-
       button#addBtn:hover {
-        background: var(--primary-hover);
+        background: #1a1a1a;
       }
-
       button#addBtn:disabled {
-        opacity: 0.7;
+        background: #ccc;
         cursor: not-allowed;
       }
 
       #status {
-        font-size: 12px;
-        text-align: center;
-        min-height: 20px;
-        padding: 0 16px 16px;
+        font-size: 11px;
         font-weight: 500;
+        text-align: center;
+        padding: 0 14px 12px;
+        min-height: 18px;
       }
 
       .error {
@@ -216,62 +196,96 @@
       .success {
         color: var(--success);
       }
+      .loading {
+        color: var(--muted);
+      }
+
+      input::placeholder,
+      textarea::placeholder {
+        color: #999;
+      }
+      input[type="hidden"] {
+        display: none;
+      }
+
+      .loading-field {
+        background: linear-gradient(
+          90deg,
+          #f0f0f0 25%,
+          #e0e0e0 50%,
+          #f0f0f0 75%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+      }
+      @keyframes shimmer {
+        0% {
+          background-position: -200% 0;
+        }
+        100% {
+          background-position: 200% 0;
+        }
+      }
+
+      .warning {
+        color: #f59e0b;
+      }
+
+      .confidence {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 12px;
+        font-weight: 600;
+      }
     </style>
   </head>
   <body>
     <div class="header">
       <div class="logo">RT</div>
-      <h2>Resume Tailor</h2>
+      <h1>Resume Tailor</h1>
     </div>
 
-    <div id="form">
-      <div class="form-group">
-        <label>Select Profile</label>
-        <div id="profileContainer" class="profile-container">
-          <!-- Profiles will be injected here -->
-          <div class="profile-item selected" data-id="">
-            <div class="profile-avatar" style="background: #64748b">D</div>
-            <span class="profile-name">Default</span>
-          </div>
+    <div class="form">
+      <div class="field">
+        <label>Profile</label>
+        <div id="profileContainer" class="profiles">
+          <!-- Profiles loaded dynamically -->
         </div>
         <input type="hidden" id="profileId" value="" />
       </div>
 
-      <div class="form-group">
-        <label>Company</label>
-        <input type="text" id="companyName" placeholder="e.g. Google" />
+      <div class="row">
+        <div class="field">
+          <label>Company</label>
+          <input type="text" id="companyName" placeholder="Loading..." />
+        </div>
+        <div class="field">
+          <label>Position</label>
+          <input type="text" id="positionTitle" placeholder="Loading..." />
+        </div>
       </div>
 
-      <div class="form-group">
-        <label>Position</label>
-        <input
-          type="text"
-          id="positionTitle"
-          placeholder="e.g. Senior Engineer"
-        />
+      <div class="field">
+        <label>Job Posting URL</label>
+        <input type="text" id="jobUrl" placeholder="https://..." />
       </div>
 
-      <div class="form-group">
-        <label>Job URL</label>
+      <div class="field">
+        <label>Company Website (for research)</label>
         <input type="text" id="companyUrl" placeholder="https://..." />
       </div>
 
-      <div class="form-group">
+      <div class="field">
         <label>Job Description</label>
         <textarea
           id="jobDescription"
-          placeholder="Paste description or select text on page..."
+          placeholder="Paste or select text on page..."
         ></textarea>
       </div>
 
-      <div class="form-group">
-        <label>Notes (Optional)</label>
-        <textarea
-          id="personalDetails"
-          style="min-height: 50px"
-          placeholder="Specific notes for this application..."
-        ></textarea>
-      </div>
+      <input type="hidden" id="personalDetails" value="" />
 
       <button id="addBtn">Add to Queue</button>
     </div>
