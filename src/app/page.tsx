@@ -726,6 +726,19 @@ export default function Home() {
               Companies
             </Button>
           </div>
+          <Button
+            onClick={() => router.push("/batch")}
+            variant="ghost"
+            className="w-full text-xs py-2 border border-dashed border-primary/30 hover:border-primary hover:bg-primary/5"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+            Batch Mode - Process Multiple Jobs
+          </Button>
         </div>
 
         {/* Sidebar Content */}

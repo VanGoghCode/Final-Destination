@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
+import { JobQueueProvider } from "@/context/JobQueueContext";
 import MouseGlow from "@/components/MouseGlow";
 
 const geistSans = Geist({
@@ -40,7 +41,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <MouseGlow />
-        <AppProvider>{children}</AppProvider>
+        <AppProvider>
+          <JobQueueProvider>{children}</JobQueueProvider>
+        </AppProvider>
       </body>
     </html>
   );
