@@ -31,6 +31,8 @@ function AddJobModal({
     jobDescription: string; 
     personalDetails: string;
     profileId?: string;
+    profileName?: string;
+    profileColor?: string;
   }) => void;
   profiles: Profile[];
 }) {
@@ -54,6 +56,8 @@ function AddJobModal({
       jobDescription, 
       personalDetails,
       profileId: selectedProfileId || undefined,
+      profileName: selectedProfile?.name,
+      profileColor: selectedProfile?.color,
     });
     // Reset form
     setCompanyName("");
@@ -103,7 +107,7 @@ function AddJobModal({
                     }`}
                   >
                     <span className={`w-4 h-4 rounded-full bg-linear-to-br ${profile.color} flex items-center justify-center text-white text-[8px] font-bold`}>
-                      {profile.firstName[0]}
+                      {profile.avatarText || profile.firstName[0]}
                     </span>
                     {profile.name}
                   </button>
@@ -210,6 +214,172 @@ function AddJobModal({
   );
 }
 
+// Edit Job Modal Component
+function EditJobModal({
+  job,
+  onClose,
+  onSave,
+}: {
+  job: QueuedJob;
+  onClose: () => void;
+  onSave: (updates: { 
+    companyName: string; 
+    companyUrl: string; 
+    positionTitle: string; 
+    jobDescription: string; 
+    personalDetails: string;
+  }) => void;
+}) {
+  const [companyName, setCompanyName] = useState(job.companyName);
+  const [companyUrl, setCompanyUrl] = useState(job.companyUrl);
+  const [positionTitle, setPositionTitle] = useState(job.positionTitle);
+  const [jobDescription, setJobDescription] = useState(job.jobDescription);
+  const [personalDetails, setPersonalDetails] = useState(job.personalDetails);
+  const [showAdvanced, setShowAdvanced] = useState(!!job.personalDetails);
+
+  const isProcessing = ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(job.status);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyName.trim() || !companyUrl.trim() || !positionTitle.trim() || !jobDescription.trim()) return;
+    onSave({ 
+      companyName: companyName.trim(), 
+      companyUrl: companyUrl.trim(), 
+      positionTitle: positionTitle.trim(), 
+      jobDescription: jobDescription.trim(), 
+      personalDetails: personalDetails.trim(),
+    });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-6 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Edit Job</h2>
+              <p className="text-sm text-muted mt-1">
+                {isProcessing 
+                  ? "Job will restart from the beginning after saving" 
+                  : "Update job details and restart processing"
+                }
+              </p>
+            </div>
+            {isProcessing && (
+              <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-700 rounded">
+                Currently Processing
+              </span>
+            )}
+          </div>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1">Company Name *</label>
+              <input
+                type="text"
+                value={companyName}
+                onChange={e => setCompanyName(e.target.value)}
+                className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                placeholder="e.g. Google"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted mb-1">Position Title *</label>
+              <input
+                type="text"
+                value={positionTitle}
+                onChange={e => setPositionTitle(e.target.value)}
+                className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                placeholder="e.g. Software Engineer"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-muted mb-1">Job Posting URL *</label>
+            <input
+              type="url"
+              value={companyUrl}
+              onChange={e => setCompanyUrl(e.target.value)}
+              className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              placeholder="https://careers.google.com/jobs/..."
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-xs font-medium text-muted mb-1">Job Description *</label>
+            <textarea
+              value={jobDescription}
+              onChange={e => setJobDescription(e.target.value)}
+              className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+              rows={6}
+              placeholder="Paste the job description here..."
+              required
+            />
+          </div>
+
+          {/* Advanced Options Toggle */}
+          <button
+            type="button"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-1 text-xs text-muted hover:text-foreground"
+          >
+            <svg className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeWidth="2" d="M9 5l7 7-7 7" />
+            </svg>
+            Advanced Options
+          </button>
+
+          {showAdvanced && (
+            <div className="space-y-4 pl-4 border-l-2 border-gray-100">
+              <div>
+                <label className="block text-xs font-medium text-muted mb-1">Additional Details (optional)</label>
+                <textarea
+                  value={personalDetails}
+                  onChange={e => setPersonalDetails(e.target.value)}
+                  className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                  rows={2}
+                  placeholder="Any specific points you want highlighted..."
+                />
+              </div>
+            </div>
+          )}
+
+          {isProcessing && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div className="text-xs text-yellow-700">
+                  <strong>Note:</strong> This job is currently being processed. Saving changes will cancel the current progress and restart the job from the beginning.
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4">
+            <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" className="flex-1">
+              <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              {isProcessing ? "Save & Restart" : "Save Changes"}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // Live Activity Feed Component
 function ActivityFeed({ currentJob, recentActivities }: { currentJob: QueuedJob | null; recentActivities: string[] }) {
   return (
@@ -255,6 +425,7 @@ export default function BatchProcessPage() {
     isProcessing,
     addJob,
     removeJob,
+    updateJob,
     clearQueue,
     clearCompleted,
     startProcessing,
@@ -272,6 +443,7 @@ export default function BatchProcessPage() {
   const { personalDetails: globalPersonalDetails } = useAppContext();
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingJob, setEditingJob] = useState<QueuedJob | null>(null);
   const [recentActivities, setRecentActivities] = useState<string[]>([]);
   const [resumeTemplate, setResumeTemplate] = useState<Template | null>(null);
   const [coverLetterTemplate, setCoverLetterTemplate] = useState<Template | null>(null);
@@ -473,6 +645,8 @@ export default function BatchProcessPage() {
     jobDescription: string; 
     personalDetails: string;
     profileId?: string;
+    profileName?: string;
+    profileColor?: string;
   }) => {
     addJob(jobData);
     addActivity(`➕ Added: ${jobData.companyName} - ${jobData.positionTitle}`);
@@ -505,6 +679,27 @@ export default function BatchProcessPage() {
     // Open new tab with company name in URL
     const companySlug = job.companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     window.open(`/tailored/${companySlug}?jobId=${job.id}`, '_blank');
+  };
+
+  // Handle edit job - updates job and restarts from beginning
+  const handleEditJob = (updates: { 
+    companyName: string; 
+    companyUrl: string; 
+    positionTitle: string; 
+    jobDescription: string; 
+    personalDetails: string;
+  }) => {
+    if (editingJob) {
+      updateJob(editingJob.id, updates);
+      addActivity(`✏️ Edited: ${updates.companyName} - ${updates.positionTitle} (restarting)`);
+      
+      // If processing is not active, start it
+      setTimeout(() => {
+        if (!processingRef.current && resumeTemplate) {
+          startProcessing();
+        }
+      }, 100);
+    }
   };
 
   const currentJob = queue.find(j => ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(j.status));
@@ -797,6 +992,7 @@ export default function BatchProcessPage() {
                     onRemove={() => removeJob(job.id)}
                     onRetry={() => retryJob(job.id)}
                     onView={() => handleViewResults(job)}
+                    onEdit={() => setEditingJob(job)}
                     isCurrentJob={currentJob?.id === job.id}
                   />
                 ))}
@@ -813,6 +1009,15 @@ export default function BatchProcessPage() {
         onAdd={handleAddJob}
         profiles={profiles}
       />
+
+      {/* Edit Job Modal */}
+      {editingJob && (
+        <EditJobModal
+          job={editingJob}
+          onClose={() => setEditingJob(null)}
+          onSave={handleEditJob}
+        />
+      )}
     </div>
   );
 }

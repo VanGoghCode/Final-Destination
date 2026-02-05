@@ -158,6 +158,7 @@ export default function Home() {
   const [profileFormLastName, setProfileFormLastName] = useState("");
   const [profileFormResumeId, setProfileFormResumeId] = useState<string | null>(null);
   const [profileFormCoverLetterId, setProfileFormCoverLetterId] = useState<string | null>(null);
+  const [profileFormAvatarText, setProfileFormAvatarText] = useState("");
   
   // Inline template creation in profile modal
   const [showNewResumeInProfile, setShowNewResumeInProfile] = useState(false);
@@ -337,6 +338,7 @@ export default function Home() {
     setProfileFormLastName("");
     setProfileFormResumeId(null);
     setProfileFormCoverLetterId(null);
+    setProfileFormAvatarText("");
     // Reset inline template creation
     setShowNewResumeInProfile(false);
     setShowNewCoverLetterInProfile(false);
@@ -354,6 +356,7 @@ export default function Home() {
     setProfileFormLastName(profile.lastName);
     setProfileFormResumeId(profile.defaultResumeId);
     setProfileFormCoverLetterId(profile.defaultCoverLetterId);
+    setProfileFormAvatarText(profile.avatarText || "");
     // Reset inline template creation
     setShowNewResumeInProfile(false);
     setShowNewCoverLetterInProfile(false);
@@ -400,6 +403,7 @@ export default function Home() {
         lastName: profileFormLastName.trim(),
         defaultResumeId: profileFormResumeId,
         defaultCoverLetterId: profileFormCoverLetterId,
+        avatarText: profileFormAvatarText.trim() || undefined,
       });
       // Update local state
       if (activeProfileId === editingProfile.id) {
@@ -413,7 +417,8 @@ export default function Home() {
         profileFormFirstName.trim(),
         profileFormLastName.trim(),
         profileFormResumeId,
-        profileFormCoverLetterId
+        profileFormCoverLetterId,
+        profileFormAvatarText.trim() || undefined
       );
       // Select the new profile
       handleSelectProfile(newProfile);
@@ -771,7 +776,7 @@ export default function Home() {
                       }`}
                       title={profile.name}
                     >
-                      {profile.firstName?.[0]?.toUpperCase() || "?"}{profile.lastName?.[0]?.toUpperCase() || ""}
+                      {profile.avatarText || `${profile.firstName?.[0]?.toUpperCase() || "?"}${profile.lastName?.[0]?.toUpperCase() || ""}`}
                     </button>
                   </div>
                   {/* Edit button on hover */}
@@ -1387,7 +1392,7 @@ export default function Home() {
             {/* Profile Preview */}
             <div className="flex justify-center mb-6">
               <div className={`w-16 h-16 rounded-full bg-linear-to-br ${editingProfile?.color || getNextProfileColor()} flex items-center justify-center text-white font-bold text-xl shadow-lg`}>
-                {profileFormFirstName?.[0]?.toUpperCase() || "?"}{profileFormLastName?.[0]?.toUpperCase() || ""}
+                {profileFormAvatarText || `${profileFormFirstName?.[0]?.toUpperCase() || "?"}${profileFormLastName?.[0]?.toUpperCase() || ""}`}
               </div>
             </div>
 
@@ -1425,6 +1430,19 @@ export default function Home() {
                     className="input-field"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted uppercase tracking-wide mb-1.5 block">Avatar Text <span className="normal-case font-normal">(optional)</span></label>
+                <input
+                  type="text"
+                  value={profileFormAvatarText}
+                  onChange={(e) => setProfileFormAvatarText(e.target.value)}
+                  placeholder="e.g., JD, SE, Dev... (defaults to initials)"
+                  className="input-field"
+                  maxLength={4}
+                />
+                <p className="text-[10px] text-muted mt-1">Custom text shown on profile circle (max 4 chars)</p>
               </div>
 
               <div>

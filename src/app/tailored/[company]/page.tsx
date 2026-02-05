@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LaTeXEditor from "@/components/LaTeXEditor";
 import Sidebar from "@/components/Sidebar";
@@ -17,7 +17,8 @@ interface BatchJobData {
   jobWorkMode?: "" | "Remote" | "Hybrid" | "On-site";
 }
 
-export default function TailoredCompanyPage({ params }: { params: { company: string } }) {
+export default function TailoredCompanyPage({ params }: { params: Promise<{ company: string }> }) {
+  const resolvedParams = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
   const jobId = searchParams.get("jobId");
@@ -81,11 +82,11 @@ export default function TailoredCompanyPage({ params }: { params: { company: str
   }, [jobId]);
 
   // Generate formatted filenames
-  const formatName = (str: string) =>
-    str.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_").trim();
+  const formatName = (str: string | undefined | null) =>
+    (str || "").replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_").trim();
 
   const fullName = "Resume";
-  const companyName = jobData?.companyName || params.company;
+  const companyName = jobData?.companyName || resolvedParams.company || "Company";
   const positionTitle = jobData?.positionTitle || "Position";
 
   const resumeFileNamePlain = `${fullName}`;
@@ -237,6 +238,36 @@ export default function TailoredCompanyPage({ params }: { params: { company: str
   return (
     <div className="h-screen flex overflow-hidden">
       <Sidebar title={companyName} subtitle={positionTitle}>
+        {/* Step Navigation - Breadcrumbs */}
+        <div className="p-3 border-b border-gray-100">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => router.push("/")}
+              className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
+            >
+              <span className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+              Input
+            </button>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted shrink-0">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+            <div className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-primary/10 border border-primary text-primary text-xs font-medium">
+              <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold">2</span>
+              Review
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted shrink-0">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+            <button
+              onClick={() => window.open(`/questions?jobId=${jobId}`, '_blank')}
+              className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
+            >
+              <span className="w-5 h-5 rounded-full bg-card-border text-muted flex items-center justify-center text-[10px] font-bold">3</span>
+              Q&A
+            </button>
+          </div>
+        </div>
+
         {/* Job Info Header */}
         <div className="p-4 border-b border-gray-100 bg-purple-50">
           <div className="flex items-center gap-2 mb-2">
@@ -415,6 +446,22 @@ export default function TailoredCompanyPage({ params }: { params: { company: str
             >
               {isAskingQuestion ? "Thinking..." : "Ask"}
             </Button>
+
+            {/* Quick Question Shortcuts */}
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => setGeneralQuestion("What is the salary range for this position?")}
+                className="flex-1 px-2 py-1.5 text-xs font-medium text-muted bg-surface-hover hover:bg-gray-200 rounded-lg transition-colors border border-card-border/50"
+              >
+                💰 Salary
+              </button>
+              <button
+                onClick={() => setGeneralQuestion("What are the key skills required for this role?")}
+                className="flex-1 px-2 py-1.5 text-xs font-medium text-muted bg-surface-hover hover:bg-gray-200 rounded-lg transition-colors border border-card-border/50"
+              >
+                🎯 Skills
+              </button>
+            </div>
 
             {generalAnswer && (
               <div className="mt-3 p-3 bg-surface-hover rounded-lg border border-card-border">

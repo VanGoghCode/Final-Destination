@@ -29,6 +29,7 @@ export interface Profile {
   defaultResumeId: string | null;
   defaultCoverLetterId: string | null;
   color: string; // For avatar background
+  avatarText?: string; // Custom text for avatar (defaults to initials if not set)
   createdAt: number;
   updatedAt: number;
 }
@@ -340,7 +341,8 @@ export const addProfile = (
   firstName: string,
   lastName: string,
   defaultResumeId: string | null = null,
-  defaultCoverLetterId: string | null = null
+  defaultCoverLetterId: string | null = null,
+  avatarText?: string
 ): Profile => {
   const profiles = getProfiles();
   const colorIndex = profiles.length % PROFILE_COLORS.length;
@@ -348,6 +350,7 @@ export const addProfile = (
     id: generateId(),
     name,
     firstName,
+    avatarText,
     lastName,
     defaultResumeId,
     defaultCoverLetterId,

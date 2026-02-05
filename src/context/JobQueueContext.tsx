@@ -14,6 +14,10 @@ export interface QueuedJob {
   status: JobStatus;
   progress: number; // 0-100
   error?: string;
+  // Profile info
+  profileId?: string;
+  profileName?: string;
+  profileColor?: string;
   // Results
   companyResearch?: string;
   tailoredResume?: string;
@@ -36,6 +40,7 @@ interface JobQueueContextType {
   addJob: (job: Omit<QueuedJob, "id" | "status" | "progress" | "addedAt">) => string;
   addJobs: (jobs: Omit<QueuedJob, "id" | "status" | "progress" | "addedAt">[]) => string[];
   removeJob: (id: string) => void;
+  updateJob: (id: string, updates: Partial<Pick<QueuedJob, "companyName" | "companyUrl" | "positionTitle" | "jobDescription" | "personalDetails">>) => void;
   clearQueue: () => void;
   clearCompleted: () => void;
   
@@ -96,6 +101,30 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
   // Remove job
   const removeJob = useCallback((id: string) => {
     setQueue(prev => prev.filter(j => j.id !== id));
+  }, []);
+
+  // Update job data and reset to pending (keeps position in queue)
+  const updateJob = useCallback((id: string, updates: Partial<Pick<QueuedJob, "companyName" | "companyUrl" | "positionTitle" | "jobDescription" | "personalDetails">>) => {
+    setQueue(prev => prev.map(job => 
+      job.id === id 
+        ? { 
+            ...job, 
+            ...updates,
+            // Reset processing state to restart from beginning
+            status: "pending" as JobStatus,
+            progress: 0,
+            error: undefined,
+            startedAt: undefined,
+            completedAt: undefined,
+            // Clear previous results since we're restarting
+            companyResearch: undefined,
+            tailoredResume: undefined,
+            tailoredCoverLetter: undefined,
+            jobCountry: undefined,
+            jobWorkMode: undefined,
+          } 
+        : job
+    ));
   }, []);
 
   // Clear entire queue
@@ -173,6 +202,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
         addJob,
         addJobs,
         removeJob,
+        updateJob,
         clearQueue,
         clearCompleted,
         startProcessing,

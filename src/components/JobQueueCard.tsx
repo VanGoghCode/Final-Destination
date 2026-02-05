@@ -7,6 +7,7 @@ interface JobQueueCardProps {
   onRemove: () => void;
   onRetry?: () => void;
   onView?: () => void;
+  onEdit?: () => void;
   isCurrentJob?: boolean;
 }
 
@@ -75,7 +76,7 @@ const STATUS_CONFIG: Record<JobStatus, { label: string; color: string; bgColor: 
   },
 };
 
-export default function JobQueueCard({ job, onRemove, onRetry, onView, isCurrentJob }: JobQueueCardProps) {
+export default function JobQueueCard({ job, onRemove, onRetry, onView, onEdit, isCurrentJob }: JobQueueCardProps) {
   const config = STATUS_CONFIG[job.status];
   const isProcessing = ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(job.status);
 
@@ -110,13 +111,21 @@ export default function JobQueueCard({ job, onRemove, onRetry, onView, isCurrent
           </div>
           <p className="text-xs text-muted truncate">{job.positionTitle || "Position"}</p>
           
-          {/* Status badge */}
-          <div className="flex items-center gap-2 mt-1.5">
+          {/* Status badge and Profile tag */}
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${config.bgColor} ${config.color}`}>
               {config.icon}
               {config.label}
               {isProcessing && <span className="ml-0.5">{job.progress}%</span>}
             </span>
+            {job.profileName && (
+              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600`}>
+                <span className={`w-3 h-3 rounded-full bg-linear-to-br ${job.profileColor || 'from-gray-400 to-gray-500'} flex items-center justify-center text-white text-[6px] font-bold`}>
+                  {job.profileName[0]}
+                </span>
+                {job.profileName}
+              </span>
+            )}
           </div>
 
           {/* Error message */}
@@ -136,6 +145,17 @@ export default function JobQueueCard({ job, onRemove, onRetry, onView, isCurrent
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </button>
+          )}
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className="p-1.5 rounded hover:bg-gray-100 text-gray-600 transition-colors"
+              title="Edit job"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
             </button>
           )}
