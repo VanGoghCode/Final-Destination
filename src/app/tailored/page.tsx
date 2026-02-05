@@ -62,6 +62,9 @@ export default function TailoredPage() {
   const [limitValue, setLimitValue] = useState<number>(10);
   const [searchMode, _setSearchMode] = useState<"context" | "context+internet" | "internet">("context");
 
+  // Collapsible sections state
+  const [showFilenames, setShowFilenames] = useState(false);
+
   // Update limit value when limit type changes to set appropriate defaults
   const handleLimitTypeChange = (newType: "none" | "words" | "characters") => {
     setLimitType(newType);
@@ -354,8 +357,8 @@ export default function TailoredPage() {
                 <Button
                   onClick={handleRegenerateCoverLetter.bind(null, "Improve it")}
                   disabled={isRegeneratingCoverLetter}
-                  variant="ghost"
-                  className="w-full text-xs py-2 border border-card-border"
+                  variant="secondary"
+                  className="w-full text-xs py-2"
                 >
                   {isRegeneratingCoverLetter ? (
                     <>
@@ -402,66 +405,82 @@ export default function TailoredPage() {
             )}
           </div>
 
-          {/* Resume Filenames */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Resume Filenames</label>
-            <div className="space-y-2 border-b border-gray-200 pb-4 mb-4">
-              <div className="flex items-center gap-2">
-                <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
-                  {resumeFileNamePlain}
-                </code>
-                <Button
-                  onClick={() => copyToClipboard(resumeFileNamePlain, "resume")}
-                  variant="ghost"
-                  className="copy-btn shrink-0 text-xs py-1 px-2"
-                >
-                  {copiedResume ? "✓" : "Copy"}
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
-                  {resumeFileNameDetailed}
-                </code>
-                <Button
-                  onClick={() => copyToClipboard(resumeFileNameDetailed, "resumeDetailed")}
-                  variant="ghost"
-                  className="copy-btn shrink-0 text-xs py-1 px-2"
-                >
-                  {copiedResumeDetailed ? "✓" : "Copy"}
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Cover Letter Filenames */}
+          {/* Collapsible Filenames Section */}
           <div className="border-b border-gray-200 pb-4 mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Cover Letter Filenames</label>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
-                  {coverLetterFileNamePlain}
-                </code>
-                <Button
-                  onClick={() => copyToClipboard(coverLetterFileNamePlain, "coverLetter")}
-                  variant="ghost"
-                  className="copy-btn shrink-0 text-xs py-1 px-2"
-                >
-                  {copiedCoverLetter ? "✓" : "Copy"}
-                </Button>
+            <button
+              onClick={() => setShowFilenames(!showFilenames)}
+              className="flex items-center justify-between w-full text-sm font-medium text-gray-700 hover:text-foreground py-2"
+            >
+              <span>📁 Filenames</span>
+              <svg className={`w-4 h-4 transition-transform ${showFilenames ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showFilenames && (
+              <div className="space-y-4 mt-3">
+                {/* Resume Filenames */}
+                <div>
+                  <label className="block text-xs font-medium text-muted mb-2">Resume</label>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-[10px] font-mono text-foreground truncate">
+                        {resumeFileNamePlain}
+                      </code>
+                      <Button
+                        onClick={() => copyToClipboard(resumeFileNamePlain, "resume")}
+                        variant="ghost"
+                        className="copy-btn shrink-0 text-xs py-1 px-2"
+                      >
+                        {copiedResume ? "✓" : "Copy"}
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-[10px] font-mono text-foreground truncate">
+                        {resumeFileNameDetailed}
+                      </code>
+                      <Button
+                        onClick={() => copyToClipboard(resumeFileNameDetailed, "resumeDetailed")}
+                        variant="ghost"
+                        className="copy-btn shrink-0 text-xs py-1 px-2"
+                      >
+                        {copiedResumeDetailed ? "✓" : "Copy"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cover Letter Filenames */}
+                <div>
+                  <label className="block text-xs font-medium text-muted mb-2">Cover Letter</label>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-[10px] font-mono text-foreground truncate">
+                        {coverLetterFileNamePlain}
+                      </code>
+                      <Button
+                        onClick={() => copyToClipboard(coverLetterFileNamePlain, "coverLetter")}
+                        variant="ghost"
+                        className="copy-btn shrink-0 text-xs py-1 px-2"
+                      >
+                        {copiedCoverLetter ? "✓" : "Copy"}
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-[10px] font-mono text-foreground truncate">
+                        {coverLetterFileNameDetailed}
+                      </code>
+                      <Button
+                        onClick={() => copyToClipboard(coverLetterFileNameDetailed, "coverLetterDetailed")}
+                        variant="ghost"
+                        className="copy-btn shrink-0 text-xs py-1 px-2"
+                      >
+                        {copiedCoverLetterDetailed ? "✓" : "Copy"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-xs font-mono text-foreground truncate">
-                  {coverLetterFileNameDetailed}
-                </code>
-                <Button
-                  onClick={() => copyToClipboard(coverLetterFileNameDetailed, "coverLetterDetailed")}
-                  variant="ghost"
-                  className="copy-btn shrink-0 text-xs py-1 px-2"
-                >
-                  {copiedCoverLetterDetailed ? "✓" : "Copy"}
-                </Button>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Quick Q&A */}

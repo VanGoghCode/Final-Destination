@@ -726,19 +726,19 @@ export default function Home() {
               Companies
             </Button>
           </div>
-          <Button
+          <button
             onClick={() => router.push("/batch")}
-            variant="ghost"
-            className="w-full text-xs py-2 border border-dashed border-primary/30 hover:border-primary hover:bg-primary/5"
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-linear-to-r from-purple-500 to-indigo-600 text-white text-xs font-medium shadow-md hover:shadow-lg hover:from-purple-600 hover:to-indigo-700 transition-all"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="3" y="3" width="7" height="7" rx="1" />
               <rect x="14" y="3" width="7" height="7" rx="1" />
               <rect x="3" y="14" width="7" height="7" rx="1" />
               <rect x="14" y="14" width="7" height="7" rx="1" />
             </svg>
-            Batch Mode - Process Multiple Jobs
-          </Button>
+            Batch Mode
+            <span className="px-1.5 py-0.5 bg-white/20 rounded text-[10px]">NEW</span>
+          </button>
         </div>
 
         {/* Sidebar Content */}
