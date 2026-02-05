@@ -1,0 +1,27 @@
+{
+    "manifest_version": 3,
+    "name": "Resume Tailor - Job Scraper",
+    "version": "1.0",
+    "description": "Scrape job data and add to processing queue",
+    "permissions": [
+        "activeTab",
+        "scripting"
+    ],
+    "host_permissions": [
+        "http://localhost:3000/*",
+        "https://final-destination-rose.vercel.app/*"
+    ],
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
+    },
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    }
+}

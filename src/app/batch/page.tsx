@@ -14,6 +14,7 @@ import {
   Template,
   Profile,
 } from "@/lib/storage";
+import JobForm from "@/components/JobForm";
 
 // Add Job Modal Component with Profile Selection
 function AddJobModal({
@@ -24,11 +25,11 @@ function AddJobModal({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (job: { 
-    companyName: string; 
-    companyUrl: string; 
-    positionTitle: string; 
-    jobDescription: string; 
+  onAdd: (job: {
+    companyName: string;
+    companyUrl: string;
+    positionTitle: string;
+    jobDescription: string;
     personalDetails: string;
     profileId?: string;
     profileName?: string;
@@ -36,179 +37,49 @@ function AddJobModal({
   }) => void;
   profiles: Profile[];
 }) {
-  const [companyName, setCompanyName] = useState("");
-  const [companyUrl, setCompanyUrl] = useState("");
-  const [positionTitle, setPositionTitle] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
-  const [personalDetails, setPersonalDetails] = useState("");
-  const [selectedProfileId, setSelectedProfileId] = useState<string>("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
-
-  const selectedProfile = profiles.find(p => p.id === selectedProfileId);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!companyName.trim() || !companyUrl.trim() || !positionTitle.trim() || !jobDescription.trim()) return;
-    onAdd({ 
-      companyName, 
-      companyUrl, 
-      positionTitle, 
-      jobDescription, 
-      personalDetails,
-      profileId: selectedProfileId || undefined,
-      profileName: selectedProfile?.name,
-      profileColor: selectedProfile?.color,
-    });
-    // Reset form
-    setCompanyName("");
-    setCompanyUrl("");
-    setPositionTitle("");
-    setJobDescription("");
-    setPersonalDetails("");
-    setSelectedProfileId("");
-    onClose();
-  };
-
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-lg font-semibold">Add Job to Queue</h2>
-          <p className="text-sm text-muted mt-1">Job will start processing automatically</p>
+          <p className="text-sm text-muted mt-1">
+            Job will start processing automatically
+          </p>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Profile Selection */}
-          {profiles.length > 0 && (
-            <div>
-              <label className="block text-xs font-medium text-muted mb-2">Select Profile</label>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedProfileId("")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    !selectedProfileId 
-                      ? "bg-primary text-white" 
-                      : "bg-gray-100 text-muted hover:bg-gray-200"
-                  }`}
-                >
-                  Default
-                </button>
-                {profiles.map(profile => (
-                  <button
-                    key={profile.id}
-                    type="button"
-                    onClick={() => setSelectedProfileId(profile.id)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      selectedProfileId === profile.id 
-                        ? "bg-primary text-white" 
-                        : "bg-gray-100 text-muted hover:bg-gray-200"
-                    }`}
-                  >
-                    <span className={`w-4 h-4 rounded-full bg-linear-to-br ${profile.color} flex items-center justify-center text-white text-[8px] font-bold`}>
-                      {profile.avatarText || profile.firstName[0]}
-                    </span>
-                    {profile.name}
-                  </button>
-                ))}
-              </div>
-              {selectedProfile && (
-                <p className="text-[10px] text-green-600 mt-1">
-                  Using {selectedProfile.firstName} {selectedProfile.lastName}&apos;s templates
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-muted mb-1">Company Name *</label>
-              <input
-                type="text"
-                value={companyName}
-                onChange={e => setCompanyName(e.target.value)}
-                className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                placeholder="e.g. Google"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-muted mb-1">Position Title *</label>
-              <input
-                type="text"
-                value={positionTitle}
-                onChange={e => setPositionTitle(e.target.value)}
-                className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                placeholder="e.g. Software Engineer"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-muted mb-1">Job Posting URL *</label>
-            <input
-              type="url"
-              value={companyUrl}
-              onChange={e => setCompanyUrl(e.target.value)}
-              className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              placeholder="https://careers.google.com/jobs/..."
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-muted mb-1">Job Description *</label>
-            <textarea
-              value={jobDescription}
-              onChange={e => setJobDescription(e.target.value)}
-              className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-              rows={6}
-              placeholder="Paste the job description here..."
-              required
-            />
-          </div>
-
-          {/* Advanced Options Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-1 text-xs text-muted hover:text-foreground"
-          >
-            <svg className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeWidth="2" d="M9 5l7 7-7 7" />
-            </svg>
-            Advanced Options
-          </button>
-
-          {showAdvanced && (
-            <div className="space-y-4 pl-4 border-l-2 border-gray-100">
-              <div>
-                <label className="block text-xs font-medium text-muted mb-1">Additional Details (optional)</label>
-                <textarea
-                  value={personalDetails}
-                  onChange={e => setPersonalDetails(e.target.value)}
-                  className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-                  rows={2}
-                  placeholder="Any specific points you want highlighted..."
+        <JobForm
+          profiles={profiles}
+          onCancel={onClose}
+          onSubmit={(data) => {
+            onAdd(data);
+            onClose();
+          }}
+          submitLabel={
+            <>
+              <svg
+                className="w-4 h-4 mr-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4v16m8-8H4"
                 />
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" className="flex-1">
-              <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
               Add & Start
-            </Button>
-          </div>
-        </form>
+            </>
+          }
+        />
       </div>
     </div>
   );
@@ -219,51 +90,55 @@ function EditJobModal({
   job,
   onClose,
   onSave,
+  profiles,
 }: {
   job: QueuedJob;
   onClose: () => void;
-  onSave: (updates: { 
-    companyName: string; 
-    companyUrl: string; 
-    positionTitle: string; 
-    jobDescription: string; 
+  onSave: (updates: {
+    companyName: string;
+    companyUrl: string;
+    positionTitle: string;
+    jobDescription: string;
     personalDetails: string;
+    profileId?: string;
+    profileName?: string;
+    profileColor?: string;
   }) => void;
+  profiles: Profile[];
 }) {
-  const [companyName, setCompanyName] = useState(job.companyName);
-  const [companyUrl, setCompanyUrl] = useState(job.companyUrl);
-  const [positionTitle, setPositionTitle] = useState(job.positionTitle);
-  const [jobDescription, setJobDescription] = useState(job.jobDescription);
-  const [personalDetails, setPersonalDetails] = useState(job.personalDetails);
-  const [showAdvanced, setShowAdvanced] = useState(!!job.personalDetails);
+  const isProcessing = [
+    "researching",
+    "tailoring-resume",
+    "tailoring-cover-letter",
+  ].includes(job.status);
 
-  const isProcessing = ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(job.status);
+  useEffect(() => {
+    if (isProcessing) {
+      onClose();
+    }
+  }, [isProcessing, onClose]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!companyName.trim() || !companyUrl.trim() || !positionTitle.trim() || !jobDescription.trim()) return;
-    onSave({ 
-      companyName: companyName.trim(), 
-      companyUrl: companyUrl.trim(), 
-      positionTitle: positionTitle.trim(), 
-      jobDescription: jobDescription.trim(), 
-      personalDetails: personalDetails.trim(),
-    });
-    onClose();
-  };
+  if (isProcessing) {
+    return null;
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold">Edit Job</h2>
               <p className="text-sm text-muted mt-1">
-                {isProcessing 
-                  ? "Job will restart from the beginning after saving" 
-                  : "Update job details and restart processing"
-                }
+                {isProcessing
+                  ? "Job will restart from the beginning after saving"
+                  : "Update job details and restart processing"}
               </p>
             </div>
             {isProcessing && (
@@ -273,115 +148,54 @@ function EditJobModal({
             )}
           </div>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-muted mb-1">Company Name *</label>
-              <input
-                type="text"
-                value={companyName}
-                onChange={e => setCompanyName(e.target.value)}
-                className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                placeholder="e.g. Google"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-muted mb-1">Position Title *</label>
-              <input
-                type="text"
-                value={positionTitle}
-                onChange={e => setPositionTitle(e.target.value)}
-                className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                placeholder="e.g. Software Engineer"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-muted mb-1">Job Posting URL *</label>
-            <input
-              type="url"
-              value={companyUrl}
-              onChange={e => setCompanyUrl(e.target.value)}
-              className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              placeholder="https://careers.google.com/jobs/..."
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-xs font-medium text-muted mb-1">Job Description *</label>
-            <textarea
-              value={jobDescription}
-              onChange={e => setJobDescription(e.target.value)}
-              className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-              rows={6}
-              placeholder="Paste the job description here..."
-              required
-            />
-          </div>
-
-          {/* Advanced Options Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-1 text-xs text-muted hover:text-foreground"
-          >
-            <svg className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeWidth="2" d="M9 5l7 7-7 7" />
-            </svg>
-            Advanced Options
-          </button>
-
-          {showAdvanced && (
-            <div className="space-y-4 pl-4 border-l-2 border-gray-100">
-              <div>
-                <label className="block text-xs font-medium text-muted mb-1">Additional Details (optional)</label>
-                <textarea
-                  value={personalDetails}
-                  onChange={e => setPersonalDetails(e.target.value)}
-                  className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-                  rows={2}
-                  placeholder="Any specific points you want highlighted..."
+        <JobForm
+          profiles={profiles}
+          initialValues={{
+            companyName: job.companyName,
+            companyUrl: job.companyUrl,
+            positionTitle: job.positionTitle,
+            jobDescription: job.jobDescription,
+            personalDetails: job.personalDetails,
+            profileId: job.profileId || "",
+          }}
+          onCancel={onClose}
+          onSubmit={(data) => {
+            onSave(data);
+            onClose();
+          }}
+          isProcessing={isProcessing}
+          submitLabel={
+            <>
+              <svg
+                className="w-4 h-4 mr-1"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
                 />
-              </div>
-            </div>
-          )}
-
-          {isProcessing && (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-start gap-2">
-                <svg className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <div className="text-xs text-yellow-700">
-                  <strong>Note:</strong> This job is currently being processed. Saving changes will cancel the current progress and restart the job from the beginning.
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" className="flex-1">
-              <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              {isProcessing ? "Save & Restart" : "Save Changes"}
-            </Button>
-          </div>
-        </form>
+              Save Changes
+            </>
+          }
+        />
       </div>
     </div>
   );
 }
 
 // Live Activity Feed Component
-function ActivityFeed({ currentJob, recentActivities }: { currentJob: QueuedJob | null; recentActivities: string[] }) {
+function ActivityFeed({
+  currentJob,
+  recentActivities,
+}: {
+  currentJob: QueuedJob | null;
+  recentActivities: string[];
+}) {
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 font-mono text-xs">
       <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200">
@@ -400,13 +214,17 @@ function ActivityFeed({ currentJob, recentActivities }: { currentJob: QueuedJob 
       <div className="space-y-1 max-h-24 overflow-y-auto">
         {currentJob && (
           <div className="flex gap-2 text-gray-700">
-            <span className="text-gray-400">[{new Date().toLocaleTimeString()}]</span>
+            <span className="text-gray-400">
+              [{new Date().toLocaleTimeString()}]
+            </span>
             <span>Processing: {currentJob.companyName}</span>
           </div>
         )}
         {recentActivities.slice(0, 5).map((activity, i) => (
           <div key={i} className="flex gap-2 text-gray-500">
-            <span className="text-gray-400">[{new Date(Date.now() - i * 5000).toLocaleTimeString()}]</span>
+            <span className="text-gray-400">
+              [{new Date(Date.now() - i * 5000).toLocaleTimeString()}]
+            </span>
             <span>{activity}</span>
           </div>
         ))}
@@ -446,10 +264,13 @@ export default function BatchProcessPage() {
   const [editingJob, setEditingJob] = useState<QueuedJob | null>(null);
   const [recentActivities, setRecentActivities] = useState<string[]>([]);
   const [resumeTemplate, setResumeTemplate] = useState<Template | null>(null);
-  const [coverLetterTemplate, setCoverLetterTemplate] = useState<Template | null>(null);
+  const [coverLetterTemplate, setCoverLetterTemplate] =
+    useState<Template | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "processing" | "completed" | "failed">("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "pending" | "processing" | "completed" | "failed"
+  >("all");
 
   const processingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -466,121 +287,146 @@ export default function BatchProcessPage() {
     const defaultCoverLetter = getDefaultCoverLetterTemplate();
     if (defaultResume) setResumeTemplate(defaultResume);
     if (defaultCoverLetter) setCoverLetterTemplate(defaultCoverLetter);
-    setProfiles(getProfiles());
+
+    // Get profiles and sync to server
+    const localProfiles = getProfiles();
+    setProfiles(localProfiles);
+
+    // Sync to server so extension can see them
+    if (localProfiles.length > 0) {
+      fetch("/api/profiles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(localProfiles),
+      }).catch((err) => console.error("Failed to sync profiles:", err));
+    }
   }, []);
 
   // Add activity log
   const addActivity = useCallback((message: string) => {
-    setRecentActivities(prev => [message, ...prev.slice(0, 19)]);
+    setRecentActivities((prev) => [message, ...prev.slice(0, 19)]);
   }, []);
 
   // Process a single job
-  const processJob = useCallback(async (job: QueuedJob, signal: AbortSignal) => {
-    if (!resumeTemplate) {
-      setJobError(job.id, "No default resume template set");
-      return;
-    }
-
-    try {
-      // Step 1: Research company
-      updateJobStatus(job.id, "researching", 10);
-      addActivity(`🔍 Researching ${job.companyName}...`);
-
-      const researchResponse = await fetch("/api/research", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName: job.companyName,
-          companyUrl: job.companyUrl,
-          positionTitle: job.positionTitle,
-          jobDescription: job.jobDescription,
-        }),
-        signal,
-      });
-
-      if (!researchResponse.ok) {
-        const data = await researchResponse.json();
-        throw new Error(data.error || "Research failed");
+  const processJob = useCallback(
+    async (job: QueuedJob, signal: AbortSignal) => {
+      if (!resumeTemplate) {
+        setJobError(job.id, "No default resume template set");
+        return;
       }
 
-      const researchData = await researchResponse.json();
-      updateJobResults(job.id, { companyResearch: researchData.research });
-      updateJobStatus(job.id, "researching", 30);
-      addActivity(`✓ Research complete for ${job.companyName}`);
+      try {
+        // Step 1: Research company
+        updateJobStatus(job.id, "researching", 10);
+        addActivity(`🔍 Researching ${job.companyName}...`);
 
-      // Step 2: Tailor resume
-      updateJobStatus(job.id, "tailoring-resume", 40);
-      addActivity(`📝 Tailoring resume for ${job.positionTitle}...`);
-
-      const tailorResponse = await fetch("/api/tailor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resumeLatex: resumeTemplate.content,
-          jobDescription: job.jobDescription,
-          personalDetails: job.personalDetails || globalPersonalDetails,
-          companyInfo: researchData.research,
-          companyName: job.companyName,
-        }),
-        signal,
-      });
-
-      if (!tailorResponse.ok) {
-        const data = await tailorResponse.json();
-        throw new Error(data.error || "Resume tailoring failed");
-      }
-
-      const tailorData = await tailorResponse.json();
-      updateJobResults(job.id, { 
-        tailoredResume: tailorData.tailoredResume,
-        jobCountry: tailorData.jobCountry,
-        jobWorkMode: tailorData.jobWorkMode,
-      });
-      updateJobStatus(job.id, "tailoring-resume", 60);
-      addActivity(`✓ Resume tailored for ${job.companyName}`);
-
-      // Step 3: Tailor cover letter
-      if (coverLetterTemplate) {
-        updateJobStatus(job.id, "tailoring-cover-letter", 70);
-        addActivity(`✉️ Generating cover letter for ${job.positionTitle}...`);
-
-        const coverLetterResponse = await fetch("/api/tailor-cover-letter", {
+        const researchResponse = await fetch("/api/research", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            coverLetterLatex: coverLetterTemplate.content,
+            companyName: job.companyName,
+            companyUrl: job.companyUrl,
+            positionTitle: job.positionTitle,
             jobDescription: job.jobDescription,
-            personalDetails: job.personalDetails || globalPersonalDetails,
-            companyInfo: researchData.research,
           }),
           signal,
         });
 
-        if (!coverLetterResponse.ok) {
-          const data = await coverLetterResponse.json();
-          throw new Error(data.error || "Cover letter generation failed");
+        if (!researchResponse.ok) {
+          const data = await researchResponse.json();
+          throw new Error(data.error || "Research failed");
         }
 
-        const coverLetterData = await coverLetterResponse.json();
-        updateJobResults(job.id, { tailoredCoverLetter: coverLetterData.tailoredCoverLetter });
-        addActivity(`✓ Cover letter generated for ${job.companyName}`);
-      }
+        const researchData = await researchResponse.json();
+        updateJobResults(job.id, { companyResearch: researchData.research });
+        updateJobStatus(job.id, "researching", 30);
+        addActivity(`✓ Research complete for ${job.companyName}`);
 
-      // Mark completed
-      updateJobStatus(job.id, "completed", 100);
-      addActivity(`🎉 Completed: ${job.companyName} - ${job.positionTitle}`);
+        // Step 2: Tailor resume
+        updateJobStatus(job.id, "tailoring-resume", 40);
+        addActivity(`📝 Tailoring resume for ${job.positionTitle}...`);
 
-    } catch (error) {
-      if ((error as Error).name === "AbortError") {
-        addActivity(`⏸️ Cancelled: ${job.companyName}`);
-        updateJobStatus(job.id, "pending", 0);
-      } else {
-        const message = error instanceof Error ? error.message : "Unknown error";
-        setJobError(job.id, message);
-        addActivity(`❌ Failed: ${job.companyName} - ${message}`);
+        const tailorResponse = await fetch("/api/tailor", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            resumeLatex: resumeTemplate.content,
+            jobDescription: job.jobDescription,
+            personalDetails: job.personalDetails || globalPersonalDetails,
+            companyInfo: researchData.research,
+            companyName: job.companyName,
+          }),
+          signal,
+        });
+
+        if (!tailorResponse.ok) {
+          const data = await tailorResponse.json();
+          throw new Error(data.error || "Resume tailoring failed");
+        }
+
+        const tailorData = await tailorResponse.json();
+        updateJobResults(job.id, {
+          tailoredResume: tailorData.tailoredResume,
+          jobCountry: tailorData.jobCountry,
+          jobWorkMode: tailorData.jobWorkMode,
+        });
+        updateJobStatus(job.id, "tailoring-resume", 60);
+        addActivity(`✓ Resume tailored for ${job.companyName}`);
+
+        // Step 3: Tailor cover letter
+        if (coverLetterTemplate) {
+          updateJobStatus(job.id, "tailoring-cover-letter", 70);
+          addActivity(`✉️ Generating cover letter for ${job.positionTitle}...`);
+
+          const coverLetterResponse = await fetch("/api/tailor-cover-letter", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              coverLetterLatex: coverLetterTemplate.content,
+              jobDescription: job.jobDescription,
+              personalDetails: job.personalDetails || globalPersonalDetails,
+              companyInfo: researchData.research,
+            }),
+            signal,
+          });
+
+          if (!coverLetterResponse.ok) {
+            const data = await coverLetterResponse.json();
+            throw new Error(data.error || "Cover letter generation failed");
+          }
+
+          const coverLetterData = await coverLetterResponse.json();
+          updateJobResults(job.id, {
+            tailoredCoverLetter: coverLetterData.tailoredCoverLetter,
+          });
+          addActivity(`✓ Cover letter generated for ${job.companyName}`);
+        }
+
+        // Mark completed
+        updateJobStatus(job.id, "completed", 100);
+        addActivity(`🎉 Completed: ${job.companyName} - ${job.positionTitle}`);
+      } catch (error) {
+        if ((error as Error).name === "AbortError") {
+          addActivity(`⏸️ Cancelled: ${job.companyName}`);
+          updateJobStatus(job.id, "pending", 0);
+        } else {
+          const message =
+            error instanceof Error ? error.message : "Unknown error";
+          setJobError(job.id, message);
+          addActivity(`❌ Failed: ${job.companyName} - ${message}`);
+        }
       }
-    }
-  }, [resumeTemplate, coverLetterTemplate, globalPersonalDetails, updateJobStatus, updateJobResults, setJobError, addActivity]);
+    },
+    [
+      resumeTemplate,
+      coverLetterTemplate,
+      globalPersonalDetails,
+      updateJobStatus,
+      updateJobResults,
+      setJobError,
+      addActivity,
+    ],
+  );
 
   // Main processing loop - continuous auto processing
   useEffect(() => {
@@ -596,8 +442,8 @@ export default function BatchProcessPage() {
       while (!abortControllerRef.current?.signal.aborted) {
         // Use ref to get current queue state
         const currentQueue = queueRef.current;
-        const pendingJobs = currentQueue.filter(j => j.status === "pending");
-        
+        const pendingJobs = currentQueue.filter((j) => j.status === "pending");
+
         if (pendingJobs.length === 0) {
           idleCount++;
           if (idleCount >= maxIdleCount) {
@@ -605,7 +451,7 @@ export default function BatchProcessPage() {
             stopProcessing();
             break;
           }
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
           continue;
         }
 
@@ -613,10 +459,10 @@ export default function BatchProcessPage() {
         idleCount = 0;
         const job = pendingJobs[0];
         if (!job) continue;
-        
+
         await processJob(job, abortControllerRef.current.signal);
         // Delay between jobs to avoid rate limits
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
 
       processingRef.current = false;
@@ -638,11 +484,11 @@ export default function BatchProcessPage() {
   };
 
   // Handle add job - auto starts processing
-  const handleAddJob = (jobData: { 
-    companyName: string; 
-    companyUrl: string; 
-    positionTitle: string; 
-    jobDescription: string; 
+  const handleAddJob = (jobData: {
+    companyName: string;
+    companyUrl: string;
+    positionTitle: string;
+    jobDescription: string;
     personalDetails: string;
     profileId?: string;
     profileName?: string;
@@ -650,7 +496,7 @@ export default function BatchProcessPage() {
   }) => {
     addJob(jobData);
     addActivity(`➕ Added: ${jobData.companyName} - ${jobData.positionTitle}`);
-    
+
     // Auto-start processing if not already running
     // Use setTimeout to ensure state is updated before starting
     setTimeout(() => {
@@ -665,34 +511,45 @@ export default function BatchProcessPage() {
   const handleViewResults = (job: QueuedJob) => {
     // Save job data to sessionStorage for the new tab to read
     const jobKey = `batch_job_${job.id}`;
-    sessionStorage.setItem(jobKey, JSON.stringify({
-      tailoredResume: job.tailoredResume,
-      tailoredCoverLetter: job.tailoredCoverLetter,
-      companyName: job.companyName,
-      positionTitle: job.positionTitle,
-      jobDescription: job.jobDescription,
-      companyResearch: job.companyResearch,
-      jobCountry: job.jobCountry,
-      jobWorkMode: job.jobWorkMode,
-    }));
-    
+    sessionStorage.setItem(
+      jobKey,
+      JSON.stringify({
+        tailoredResume: job.tailoredResume,
+        tailoredCoverLetter: job.tailoredCoverLetter,
+        companyName: job.companyName,
+        positionTitle: job.positionTitle,
+        jobDescription: job.jobDescription,
+        companyResearch: job.companyResearch,
+        jobCountry: job.jobCountry,
+        jobWorkMode: job.jobWorkMode,
+      }),
+    );
+
     // Open new tab with company name in URL
-    const companySlug = job.companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    window.open(`/tailored/${companySlug}?jobId=${job.id}`, '_blank');
+    const companySlug = job.companyName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
+    window.open(`/tailored/${companySlug}?jobId=${job.id}`, "_blank");
   };
 
   // Handle edit job - updates job and restarts from beginning
-  const handleEditJob = (updates: { 
-    companyName: string; 
-    companyUrl: string; 
-    positionTitle: string; 
-    jobDescription: string; 
+  const handleEditJob = (updates: {
+    companyName: string;
+    companyUrl: string;
+    positionTitle: string;
+    jobDescription: string;
     personalDetails: string;
+    profileId?: string;
+    profileName?: string;
+    profileColor?: string;
   }) => {
     if (editingJob) {
       updateJob(editingJob.id, updates);
-      addActivity(`✏️ Edited: ${updates.companyName} - ${updates.positionTitle} (restarting)`);
-      
+      addActivity(
+        `✏️ Edited: ${updates.companyName} - ${updates.positionTitle} (restarting)`,
+      );
+
       // If processing is not active, start it
       setTimeout(() => {
         if (!processingRef.current && resumeTemplate) {
@@ -702,21 +559,36 @@ export default function BatchProcessPage() {
     }
   };
 
-  const currentJob = queue.find(j => ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(j.status));
+  const currentJob = queue.find((j) =>
+    ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(
+      j.status,
+    ),
+  );
 
   // Filter jobs by status
-  const getProcessingCount = () => queue.filter(j => ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(j.status)).length;
-  
+  const getProcessingCount = () =>
+    queue.filter((j) =>
+      ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(
+        j.status,
+      ),
+    ).length;
+
   const filteredQueue = () => {
     switch (statusFilter) {
       case "pending":
-        return queue.filter(j => j.status === "pending");
+        return queue.filter((j) => j.status === "pending");
       case "processing":
-        return queue.filter(j => ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(j.status));
+        return queue.filter((j) =>
+          [
+            "researching",
+            "tailoring-resume",
+            "tailoring-cover-letter",
+          ].includes(j.status),
+        );
       case "completed":
-        return queue.filter(j => j.status === "completed");
+        return queue.filter((j) => j.status === "completed");
       case "failed":
-        return queue.filter(j => j.status === "failed");
+        return queue.filter((j) => j.status === "failed");
       default:
         return queue;
     }
@@ -725,17 +597,54 @@ export default function BatchProcessPage() {
   return (
     <div className="h-screen flex overflow-hidden">
       {/* Smart Sidebar */}
-      <div className={`shrink-0 h-screen transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-80'}`}>
+      <div
+        className={`shrink-0 h-screen transition-all duration-300 ${sidebarCollapsed ? "w-16" : "w-80"}`}
+      >
         <div className="h-full bg-white border-r border-gray-200 flex flex-col">
           {/* Header */}
           <div className="h-14 flex items-center justify-between px-3 border-b border-gray-100">
-            <div className={`flex items-center gap-2 ${sidebarCollapsed ? 'hidden' : ''}`}>
+            <div
+              className={`flex items-center gap-2 ${sidebarCollapsed ? "hidden" : ""}`}
+            >
               <div className="w-8 h-8 rounded-lg bg-gray-900 flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth="2" />
-                  <rect x="14" y="3" width="7" height="7" rx="1" strokeWidth="2" />
-                  <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth="2" />
-                  <rect x="14" y="14" width="7" height="7" rx="1" strokeWidth="2" />
+                <svg
+                  className="w-4 h-4 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <rect
+                    x="3"
+                    y="3"
+                    width="7"
+                    height="7"
+                    rx="1"
+                    strokeWidth="2"
+                  />
+                  <rect
+                    x="14"
+                    y="3"
+                    width="7"
+                    height="7"
+                    rx="1"
+                    strokeWidth="2"
+                  />
+                  <rect
+                    x="3"
+                    y="14"
+                    width="7"
+                    height="7"
+                    rx="1"
+                    strokeWidth="2"
+                  />
+                  <rect
+                    x="14"
+                    y="14"
+                    width="7"
+                    height="7"
+                    rx="1"
+                    strokeWidth="2"
+                  />
                 </svg>
               </div>
               <div>
@@ -747,8 +656,18 @@ export default function BatchProcessPage() {
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               className="w-7 h-7 flex items-center justify-center bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-50"
             >
-              <svg className={`w-4 h-4 text-gray-600 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <svg
+                className={`w-4 h-4 text-gray-600 transition-transform ${sidebarCollapsed ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </button>
           </div>
@@ -761,26 +680,50 @@ export default function BatchProcessPage() {
                 className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 text-muted"
                 title="Back to Single Mode"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
                   <path strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
               </button>
               <button
-                onClick={() => { setSidebarCollapsed(false); setShowAddModal(true); }}
+                onClick={() => {
+                  setSidebarCollapsed(false);
+                  setShowAddModal(true);
+                }}
                 className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
                 title="Add Job"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 4v16m8-8H4"
+                  />
                 </svg>
               </button>
               <div className="flex-1" />
               {/* Mini Stats */}
               <div className="space-y-2">
-                <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 text-xs font-bold" title={`${pendingCount} pending`}>
+                <div
+                  className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 text-xs font-bold"
+                  title={`${pendingCount} pending`}
+                >
                   {pendingCount}
                 </div>
-                <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-green-100 text-green-700 text-xs font-bold" title={`${completedCount} completed`}>
+                <div
+                  className="w-10 h-10 flex items-center justify-center rounded-lg bg-green-100 text-green-700 text-xs font-bold"
+                  title={`${completedCount} completed`}
+                >
                   {completedCount}
                 </div>
               </div>
@@ -793,7 +736,12 @@ export default function BatchProcessPage() {
                   onClick={() => router.push("/")}
                   className="w-full flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-sm transition-colors"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
                     <path strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Single Mode
@@ -814,17 +762,28 @@ export default function BatchProcessPage() {
               {/* Templates Status - Compact */}
               <div className="px-4 py-3 border-b border-gray-100">
                 <div className="flex items-center gap-2 text-xs">
-                  <div className={`w-2 h-2 rounded-full ${resumeTemplate ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <div
+                    className={`w-2 h-2 rounded-full ${resumeTemplate ? "bg-green-500" : "bg-red-500"}`}
+                  />
                   <span className="text-muted">Resume:</span>
-                  <span className="font-medium truncate">{resumeTemplate?.name || "Not set"}</span>
+                  <span className="font-medium truncate">
+                    {resumeTemplate?.name || "Not set"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs mt-1">
-                  <div className={`w-2 h-2 rounded-full ${coverLetterTemplate ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                  <div
+                    className={`w-2 h-2 rounded-full ${coverLetterTemplate ? "bg-green-500" : "bg-yellow-500"}`}
+                  />
                   <span className="text-muted">Cover:</span>
-                  <span className="font-medium truncate">{coverLetterTemplate?.name || "Optional"}</span>
+                  <span className="font-medium truncate">
+                    {coverLetterTemplate?.name || "Optional"}
+                  </span>
                 </div>
                 {!resumeTemplate && (
-                  <button onClick={() => router.push("/")} className="text-xs text-primary hover:underline mt-2">
+                  <button
+                    onClick={() => router.push("/")}
+                    className="text-xs text-primary hover:underline mt-2"
+                  >
                     Set up templates first →
                   </button>
                 )}
@@ -837,21 +796,42 @@ export default function BatchProcessPage() {
                   variant="primary"
                   className="w-full justify-center"
                 >
-                  <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 4v16m8-8H4"
+                    />
                   </svg>
                   Add Job
                 </Button>
-                
+
                 {isProcessing ? (
                   <Button
                     onClick={handleStopProcessing}
                     variant="secondary"
                     className="w-full justify-center bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
                   >
-                    <svg className="w-4 h-4 mr-2 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      <path strokeWidth="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                    <svg
+                      className="w-4 h-4 mr-2 animate-pulse"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeWidth="2"
+                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                      <path
+                        strokeWidth="2"
+                        d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
+                      />
                     </svg>
                     Stop Processing
                   </Button>
@@ -861,9 +841,20 @@ export default function BatchProcessPage() {
                     variant="secondary"
                     className="w-full justify-center"
                   >
-                    <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                      <path strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeWidth="2"
+                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                      />
+                      <path
+                        strokeWidth="2"
+                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     Resume ({pendingCount})
                   </Button>
@@ -894,7 +885,9 @@ export default function BatchProcessPage() {
                   <div className="mt-4 p-3 bg-gray-100 rounded-lg">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-gray-700 animate-pulse" />
-                      <span className="text-xs font-medium text-gray-700">Processing active</span>
+                      <span className="text-xs font-medium text-gray-700">
+                        Processing active
+                      </span>
                     </div>
                     <p className="text-[10px] text-gray-500 mt-1">
                       Add more jobs anytime
@@ -921,20 +914,29 @@ export default function BatchProcessPage() {
             {isProcessing && currentJob && (
               <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full">
                 <div className="w-2 h-2 rounded-full bg-gray-700 animate-pulse" />
-                <span className="text-sm font-medium text-gray-700">{currentJob.companyName}</span>
-                <span className="text-xs text-gray-500">{currentJob.progress}%</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {currentJob.companyName}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {currentJob.progress}%
+                </span>
               </div>
             )}
           </div>
 
           {/* Activity Feed */}
-          <ActivityFeed currentJob={currentJob || null} recentActivities={recentActivities} />
+          <ActivityFeed
+            currentJob={currentJob || null}
+            recentActivities={recentActivities}
+          />
 
           {/* Queue List */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold">Job Queue</h2>
-              <span className="text-xs text-muted">{totalCount} job{totalCount !== 1 ? 's' : ''}</span>
+              <span className="text-xs text-muted">
+                {totalCount} job{totalCount !== 1 ? "s" : ""}
+              </span>
             </div>
 
             {/* Status Filter Tabs */}
@@ -942,7 +944,11 @@ export default function BatchProcessPage() {
               {[
                 { id: "all", label: "All", count: totalCount },
                 { id: "pending", label: "Pending", count: pendingCount },
-                { id: "processing", label: "Processing", count: getProcessingCount() },
+                {
+                  id: "processing",
+                  label: "Processing",
+                  count: getProcessingCount(),
+                },
                 { id: "completed", label: "Done", count: completedCount },
                 { id: "failed", label: "Failed", count: failedCount },
               ].map((tab) => (
@@ -956,11 +962,11 @@ export default function BatchProcessPage() {
                   }`}
                 >
                   <span>{tab.label}</span>
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] ${
-                    statusFilter === tab.id 
-                      ? "bg-white/20" 
-                      : "bg-gray-200"
-                  }`}>
+                  <span
+                    className={`px-1.5 py-0.5 rounded text-[10px] ${
+                      statusFilter === tab.id ? "bg-white/20" : "bg-gray-200"
+                    }`}
+                  >
                     {tab.count}
                   </span>
                 </button>
@@ -970,22 +976,31 @@ export default function BatchProcessPage() {
             {queue.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
                 <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gray-100 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeWidth="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  <svg
+                    className="w-6 h-6 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeWidth="1.5"
+                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                    />
                   </svg>
                 </div>
-                <h3 className="text-sm font-medium text-gray-600 mb-1">No jobs in queue</h3>
-                <p className="text-xs text-muted mb-3">Add a job to start processing</p>
-                <Button 
-                  onClick={() => setShowAddModal(true)} 
-                  variant="primary"
-                >
+                <h3 className="text-sm font-medium text-gray-600 mb-1">
+                  No jobs in queue
+                </h3>
+                <p className="text-xs text-muted mb-3">
+                  Add a job to start processing
+                </p>
+                <Button onClick={() => setShowAddModal(true)} variant="primary">
                   Add Job
                 </Button>
               </div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
-                {filteredQueue().map(job => (
+                {filteredQueue().map((job) => (
                   <JobQueueCard
                     key={job.id}
                     job={job}
@@ -1003,9 +1018,9 @@ export default function BatchProcessPage() {
       </main>
 
       {/* Add Job Modal */}
-      <AddJobModal 
-        isOpen={showAddModal} 
-        onClose={() => setShowAddModal(false)} 
+      <AddJobModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
         onAdd={handleAddJob}
         profiles={profiles}
       />
@@ -1016,6 +1031,7 @@ export default function BatchProcessPage() {
           job={editingJob}
           onClose={() => setEditingJob(null)}
           onSave={handleEditJob}
+          profiles={profiles}
         />
       )}
     </div>
