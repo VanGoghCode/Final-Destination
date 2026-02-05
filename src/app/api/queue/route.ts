@@ -1,11 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  getQueue,
-  addJobToQueue,
-  clearAllData,
-  setQueue,
-  QueuedJob,
-} from "@/lib/db";
+import { getQueue, addJobToQueue, setQueue, QueuedJob } from "@/lib/db";
 
 // Helper to handle CORS
 function corsHeaders() {
