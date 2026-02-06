@@ -1,5 +1,5 @@
-// Local Storage Management Utility
-// Handles personal details, multiple templates, and defaults
+// Cloud Storage Management Utility
+// Uses Upstash Redis via API - replaces localStorage
 
 // Storage Keys
 const STORAGE_KEYS = {
@@ -10,9 +10,6 @@ const STORAGE_KEYS = {
   DEFAULT_COVER_LETTER: "fd_default_cover_letter_id",
   PROFILES: "fd_profiles",
   ACTIVE_PROFILE: "fd_active_profile_id",
-  // Legacy keys for migration
-  LEGACY_RESUME: "resume_template_latex",
-  LEGACY_COVER_LETTER: "cover_letter_template_latex",
 };
 
 // Types
@@ -23,20 +20,20 @@ export interface PersonalDetails {
 
 export interface Profile {
   id: string;
-  name: string; // Profile name e.g., "Software Engineer", "Cloud Engineer"
+  name: string;
   firstName: string;
   lastName: string;
   defaultResumeId: string | null;
   defaultCoverLetterId: string | null;
-  color: string; // For avatar background
-  avatarText?: string; // Custom text for avatar (defaults to initials if not set)
+  color: string;
+  avatarText?: string;
   createdAt: number;
   updatedAt: number;
 }
 
 export interface Template {
   id: string;
-  name: string; // e.g., "Software Engineer", "Cloud Engineer", "General"
+  name: string;
   content: string;
   createdAt: number;
   updatedAt: number;
@@ -47,67 +44,76 @@ export const generateId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// ============ Personal Details ============
+// ============ Cloud Storage Helpers ============
 
-export const getPersonalDetails = (): PersonalDetails | null => {
-  if (typeof window === "undefined") return null;
-  const data = localStorage.getItem(STORAGE_KEYS.PERSONAL_DETAILS);
-  if (!data) return null;
+async function cloudGet<T>(key: string): Promise<T | null> {
   try {
-    return JSON.parse(data) as PersonalDetails;
+    const response = await fetch(`/api/storage?key=${encodeURIComponent(key)}`);
+    if (!response.ok) return null;
+    const { data } = await response.json();
+    return data as T | null;
   } catch {
     return null;
   }
+}
+
+async function cloudSet<T>(key: string, value: T): Promise<void> {
+  try {
+    await fetch("/api/storage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, value }),
+    });
+  } catch (error) {
+    console.error("Failed to save to cloud:", error);
+  }
+}
+
+async function cloudRemove(key: string): Promise<void> {
+  try {
+    await fetch(`/api/storage?key=${encodeURIComponent(key)}`, {
+      method: "DELETE",
+    });
+  } catch (error) {
+    console.error("Failed to remove from cloud:", error);
+  }
+}
+
+// ============ Personal Details ============
+
+export const getPersonalDetails = async (): Promise<PersonalDetails | null> => {
+  return cloudGet<PersonalDetails>(STORAGE_KEYS.PERSONAL_DETAILS);
 };
 
-export const savePersonalDetails = (details: PersonalDetails): void => {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEYS.PERSONAL_DETAILS, JSON.stringify(details));
+export const savePersonalDetails = async (
+  details: PersonalDetails,
+): Promise<void> => {
+  await cloudSet(STORAGE_KEYS.PERSONAL_DETAILS, details);
 };
 
-export const hasPersonalDetails = (): boolean => {
-  const details = getPersonalDetails();
+export const hasPersonalDetails = async (): Promise<boolean> => {
+  const details = await getPersonalDetails();
   return !!(details?.firstName && details?.lastName);
 };
 
 // ============ Resume Templates ============
 
-export const getResumeTemplates = (): Template[] => {
-  if (typeof window === "undefined") return [];
-  const data = localStorage.getItem(STORAGE_KEYS.RESUME_TEMPLATES);
-  if (!data) {
-    // Try to migrate from legacy storage
-    const legacyResume = localStorage.getItem(STORAGE_KEYS.LEGACY_RESUME);
-    if (legacyResume) {
-      const migratedTemplate: Template = {
-        id: generateId(),
-        name: "Default Resume",
-        content: legacyResume,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-      saveResumeTemplates([migratedTemplate]);
-      setDefaultResumeId(migratedTemplate.id);
-      // Remove legacy key after migration
-      localStorage.removeItem(STORAGE_KEYS.LEGACY_RESUME);
-      return [migratedTemplate];
-    }
-    return [];
-  }
-  try {
-    return JSON.parse(data) as Template[];
-  } catch {
-    return [];
-  }
+export const getResumeTemplates = async (): Promise<Template[]> => {
+  const data = await cloudGet<Template[]>(STORAGE_KEYS.RESUME_TEMPLATES);
+  return data || [];
 };
 
-export const saveResumeTemplates = (templates: Template[]): void => {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEYS.RESUME_TEMPLATES, JSON.stringify(templates));
+export const saveResumeTemplates = async (
+  templates: Template[],
+): Promise<void> => {
+  await cloudSet(STORAGE_KEYS.RESUME_TEMPLATES, templates);
 };
 
-export const addResumeTemplate = (name: string, content: string): Template => {
-  const templates = getResumeTemplates();
+export const addResumeTemplate = async (
+  name: string,
+  content: string,
+): Promise<Template> => {
+  const templates = await getResumeTemplates();
   const newTemplate: Template = {
     id: generateId(),
     name,
@@ -116,16 +122,18 @@ export const addResumeTemplate = (name: string, content: string): Template => {
     updatedAt: Date.now(),
   };
   templates.push(newTemplate);
-  saveResumeTemplates(templates);
-  // If this is the first template, set it as default
+  await saveResumeTemplates(templates);
   if (templates.length === 1) {
-    setDefaultResumeId(newTemplate.id);
+    await setDefaultResumeId(newTemplate.id);
   }
   return newTemplate;
 };
 
-export const updateResumeTemplate = (id: string, updates: Partial<Omit<Template, "id" | "createdAt">>): void => {
-  const templates = getResumeTemplates();
+export const updateResumeTemplate = async (
+  id: string,
+  updates: Partial<Omit<Template, "id" | "createdAt">>,
+): Promise<void> => {
+  const templates = await getResumeTemplates();
   const index = templates.findIndex((t) => t.id === id);
   const existingTemplate = templates[index];
   if (index !== -1 && existingTemplate) {
@@ -134,81 +142,58 @@ export const updateResumeTemplate = (id: string, updates: Partial<Omit<Template,
       ...updates,
       updatedAt: Date.now(),
     };
-    saveResumeTemplates(templates);
+    await saveResumeTemplates(templates);
   }
 };
 
-export const deleteResumeTemplate = (id: string): void => {
-  const templates = getResumeTemplates().filter((t) => t.id !== id);
-  saveResumeTemplates(templates);
-  // If deleted template was default, set a new default
+export const deleteResumeTemplate = async (id: string): Promise<void> => {
+  const templates = (await getResumeTemplates()).filter((t) => t.id !== id);
+  await saveResumeTemplates(templates);
   const firstTemplate = templates[0];
-  if (getDefaultResumeId() === id && templates.length > 0 && firstTemplate) {
-    setDefaultResumeId(firstTemplate.id);
+  const defaultId = await getDefaultResumeId();
+  if (defaultId === id && templates.length > 0 && firstTemplate) {
+    await setDefaultResumeId(firstTemplate.id);
   } else if (templates.length === 0) {
-    localStorage.removeItem(STORAGE_KEYS.DEFAULT_RESUME);
+    await cloudRemove(STORAGE_KEYS.DEFAULT_RESUME);
   }
 };
 
-export const getDefaultResumeId = (): string | null => {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(STORAGE_KEYS.DEFAULT_RESUME);
+export const getDefaultResumeId = async (): Promise<string | null> => {
+  return cloudGet<string>(STORAGE_KEYS.DEFAULT_RESUME);
 };
 
-export const setDefaultResumeId = (id: string): void => {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEYS.DEFAULT_RESUME, id);
+export const setDefaultResumeId = async (id: string): Promise<void> => {
+  await cloudSet(STORAGE_KEYS.DEFAULT_RESUME, id);
 };
 
-export const getDefaultResumeTemplate = (): Template | null => {
-  const templates = getResumeTemplates();
-  const defaultId = getDefaultResumeId();
+export const getDefaultResumeTemplate = async (): Promise<Template | null> => {
+  const templates = await getResumeTemplates();
+  const defaultId = await getDefaultResumeId();
   if (defaultId) {
     const defaultTemplate = templates.find((t) => t.id === defaultId);
     if (defaultTemplate) return defaultTemplate;
   }
-  // Return first template if no default set
   return templates[0] ?? null;
 };
 
 // ============ Cover Letter Templates ============
 
-export const getCoverLetterTemplates = (): Template[] => {
-  if (typeof window === "undefined") return [];
-  const data = localStorage.getItem(STORAGE_KEYS.COVER_LETTER_TEMPLATES);
-  if (!data) {
-    // Try to migrate from legacy storage
-    const legacyCoverLetter = localStorage.getItem(STORAGE_KEYS.LEGACY_COVER_LETTER);
-    if (legacyCoverLetter) {
-      const migratedTemplate: Template = {
-        id: generateId(),
-        name: "Default Cover Letter",
-        content: legacyCoverLetter,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-      saveCoverLetterTemplates([migratedTemplate]);
-      setDefaultCoverLetterId(migratedTemplate.id);
-      // Remove legacy key after migration
-      localStorage.removeItem(STORAGE_KEYS.LEGACY_COVER_LETTER);
-      return [migratedTemplate];
-    }
-    return [];
-  }
-  try {
-    return JSON.parse(data) as Template[];
-  } catch {
-    return [];
-  }
+export const getCoverLetterTemplates = async (): Promise<Template[]> => {
+  const data = await cloudGet<Template[]>(STORAGE_KEYS.COVER_LETTER_TEMPLATES);
+  return data || [];
 };
 
-export const saveCoverLetterTemplates = (templates: Template[]): void => {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEYS.COVER_LETTER_TEMPLATES, JSON.stringify(templates));
+export const saveCoverLetterTemplates = async (
+  templates: Template[],
+): Promise<void> => {
+  await cloudSet(STORAGE_KEYS.COVER_LETTER_TEMPLATES, templates);
 };
 
-export const addCoverLetterTemplate = (name: string, content: string): Template => {
-  const templates = getCoverLetterTemplates();
+export const addCoverLetterTemplate = async (
+  name: string,
+  content: string,
+): Promise<Template> => {
+  const templates = await getCoverLetterTemplates();
   const newTemplate: Template = {
     id: generateId(),
     name,
@@ -217,16 +202,18 @@ export const addCoverLetterTemplate = (name: string, content: string): Template 
     updatedAt: Date.now(),
   };
   templates.push(newTemplate);
-  saveCoverLetterTemplates(templates);
-  // If this is the first template, set it as default
+  await saveCoverLetterTemplates(templates);
   if (templates.length === 1) {
-    setDefaultCoverLetterId(newTemplate.id);
+    await setDefaultCoverLetterId(newTemplate.id);
   }
   return newTemplate;
 };
 
-export const updateCoverLetterTemplate = (id: string, updates: Partial<Omit<Template, "id" | "createdAt">>): void => {
-  const templates = getCoverLetterTemplates();
+export const updateCoverLetterTemplate = async (
+  id: string,
+  updates: Partial<Omit<Template, "id" | "createdAt">>,
+): Promise<void> => {
+  const templates = await getCoverLetterTemplates();
   const index = templates.findIndex((t) => t.id === id);
   const existingTemplate = templates[index];
   if (index !== -1 && existingTemplate) {
@@ -235,54 +222,55 @@ export const updateCoverLetterTemplate = (id: string, updates: Partial<Omit<Temp
       ...updates,
       updatedAt: Date.now(),
     };
-    saveCoverLetterTemplates(templates);
+    await saveCoverLetterTemplates(templates);
   }
 };
 
-export const deleteCoverLetterTemplate = (id: string): void => {
-  const templates = getCoverLetterTemplates().filter((t) => t.id !== id);
-  saveCoverLetterTemplates(templates);
-  // If deleted template was default, set a new default
+export const deleteCoverLetterTemplate = async (id: string): Promise<void> => {
+  const templates = (await getCoverLetterTemplates()).filter(
+    (t) => t.id !== id,
+  );
+  await saveCoverLetterTemplates(templates);
   const firstTemplate = templates[0];
-  if (getDefaultCoverLetterId() === id && templates.length > 0 && firstTemplate) {
-    setDefaultCoverLetterId(firstTemplate.id);
+  const defaultId = await getDefaultCoverLetterId();
+  if (defaultId === id && templates.length > 0 && firstTemplate) {
+    await setDefaultCoverLetterId(firstTemplate.id);
   } else if (templates.length === 0) {
-    localStorage.removeItem(STORAGE_KEYS.DEFAULT_COVER_LETTER);
+    await cloudRemove(STORAGE_KEYS.DEFAULT_COVER_LETTER);
   }
 };
 
-export const getDefaultCoverLetterId = (): string | null => {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(STORAGE_KEYS.DEFAULT_COVER_LETTER);
+export const getDefaultCoverLetterId = async (): Promise<string | null> => {
+  return cloudGet<string>(STORAGE_KEYS.DEFAULT_COVER_LETTER);
 };
 
-export const setDefaultCoverLetterId = (id: string): void => {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEYS.DEFAULT_COVER_LETTER, id);
+export const setDefaultCoverLetterId = async (id: string): Promise<void> => {
+  await cloudSet(STORAGE_KEYS.DEFAULT_COVER_LETTER, id);
 };
 
-export const getDefaultCoverLetterTemplate = (): Template | null => {
-  const templates = getCoverLetterTemplates();
-  const defaultId = getDefaultCoverLetterId();
-  if (defaultId) {
-    const defaultTemplate = templates.find((t) => t.id === defaultId);
-    if (defaultTemplate) return defaultTemplate;
-  }
-  // Return first template if no default set
-  return templates[0] ?? null;
-};
+export const getDefaultCoverLetterTemplate =
+  async (): Promise<Template | null> => {
+    const templates = await getCoverLetterTemplates();
+    const defaultId = await getDefaultCoverLetterId();
+    if (defaultId) {
+      const defaultTemplate = templates.find((t) => t.id === defaultId);
+      if (defaultTemplate) return defaultTemplate;
+    }
+    return templates[0] ?? null;
+  };
 
 // ============ Utility Functions ============
 
-export const clearAllStorage = (): void => {
-  if (typeof window === "undefined") return;
-  Object.values(STORAGE_KEYS).forEach((key) => {
-    localStorage.removeItem(key);
-  });
+export const clearAllStorage = async (): Promise<void> => {
+  await Promise.all(Object.values(STORAGE_KEYS).map((key) => cloudRemove(key)));
 };
 
-export const hasAnyTemplates = (): boolean => {
-  return getResumeTemplates().length > 0 || getCoverLetterTemplates().length > 0;
+export const hasAnyTemplates = async (): Promise<boolean> => {
+  const [resumes, coverLetters] = await Promise.all([
+    getResumeTemplates(),
+    getCoverLetterTemplates(),
+  ]);
+  return resumes.length > 0 || coverLetters.length > 0;
 };
 
 // ============ Profile Management ============
@@ -298,53 +286,24 @@ const PROFILE_COLORS = [
   "from-red-500 to-red-600",
 ];
 
-export const getProfiles = (): Profile[] => {
-  if (typeof window === "undefined") return [];
-  const data = localStorage.getItem(STORAGE_KEYS.PROFILES);
-  if (!data) {
-    // Migrate from legacy personal details
-    const personalDetails = getPersonalDetails();
-    if (personalDetails?.firstName && personalDetails?.lastName) {
-      const defaultResumeId = getDefaultResumeId();
-      const defaultCoverLetterId = getDefaultCoverLetterId();
-      const migratedProfile: Profile = {
-        id: generateId(),
-        name: "Default",
-        firstName: personalDetails.firstName,
-        lastName: personalDetails.lastName,
-        defaultResumeId,
-        defaultCoverLetterId,
-        color: PROFILE_COLORS[0] ?? "#6366f1",
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-      saveProfiles([migratedProfile]);
-      setActiveProfileId(migratedProfile.id);
-      return [migratedProfile];
-    }
-    return [];
-  }
-  try {
-    return JSON.parse(data) as Profile[];
-  } catch {
-    return [];
-  }
+export const getProfiles = async (): Promise<Profile[]> => {
+  const data = await cloudGet<Profile[]>(STORAGE_KEYS.PROFILES);
+  return data || [];
 };
 
-export const saveProfiles = (profiles: Profile[]): void => {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(profiles));
+export const saveProfiles = async (profiles: Profile[]): Promise<void> => {
+  await cloudSet(STORAGE_KEYS.PROFILES, profiles);
 };
 
-export const addProfile = (
+export const addProfile = async (
   name: string,
   firstName: string,
   lastName: string,
   defaultResumeId: string | null = null,
   defaultCoverLetterId: string | null = null,
-  avatarText?: string
-): Profile => {
-  const profiles = getProfiles();
+  avatarText?: string,
+): Promise<Profile> => {
+  const profiles = await getProfiles();
   const colorIndex = profiles.length % PROFILE_COLORS.length;
   const newProfile: Profile = {
     id: generateId(),
@@ -359,16 +318,18 @@ export const addProfile = (
     updatedAt: Date.now(),
   };
   profiles.push(newProfile);
-  saveProfiles(profiles);
-  // If this is the first profile, set it as active
+  await saveProfiles(profiles);
   if (profiles.length === 1) {
-    setActiveProfileId(newProfile.id);
+    await setActiveProfileId(newProfile.id);
   }
   return newProfile;
 };
 
-export const updateProfile = (id: string, updates: Partial<Omit<Profile, "id" | "createdAt">>): void => {
-  const profiles = getProfiles();
+export const updateProfile = async (
+  id: string,
+  updates: Partial<Omit<Profile, "id" | "createdAt">>,
+): Promise<void> => {
+  const profiles = await getProfiles();
   const index = profiles.findIndex((p) => p.id === id);
   const existingProfile = profiles[index];
   if (index !== -1 && existingProfile) {
@@ -377,49 +338,46 @@ export const updateProfile = (id: string, updates: Partial<Omit<Profile, "id" | 
       ...updates,
       updatedAt: Date.now(),
     };
-    saveProfiles(profiles);
+    await saveProfiles(profiles);
   }
 };
 
-export const deleteProfile = (id: string): void => {
-  const profiles = getProfiles().filter((p) => p.id !== id);
-  saveProfiles(profiles);
-  // If deleted profile was active, set a new active
+export const deleteProfile = async (id: string): Promise<void> => {
+  const profiles = (await getProfiles()).filter((p) => p.id !== id);
+  await saveProfiles(profiles);
   const firstProfile = profiles[0];
-  if (getActiveProfileId() === id && profiles.length > 0 && firstProfile) {
-    setActiveProfileId(firstProfile.id);
+  const activeId = await getActiveProfileId();
+  if (activeId === id && profiles.length > 0 && firstProfile) {
+    await setActiveProfileId(firstProfile.id);
   } else if (profiles.length === 0) {
-    localStorage.removeItem(STORAGE_KEYS.ACTIVE_PROFILE);
+    await cloudRemove(STORAGE_KEYS.ACTIVE_PROFILE);
   }
 };
 
-export const getActiveProfileId = (): string | null => {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(STORAGE_KEYS.ACTIVE_PROFILE);
+export const getActiveProfileId = async (): Promise<string | null> => {
+  return cloudGet<string>(STORAGE_KEYS.ACTIVE_PROFILE);
 };
 
-export const setActiveProfileId = (id: string): void => {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE, id);
+export const setActiveProfileId = async (id: string): Promise<void> => {
+  await cloudSet(STORAGE_KEYS.ACTIVE_PROFILE, id);
 };
 
-export const getActiveProfile = (): Profile | null => {
-  const profiles = getProfiles();
-  const activeId = getActiveProfileId();
+export const getActiveProfile = async (): Promise<Profile | null> => {
+  const profiles = await getProfiles();
+  const activeId = await getActiveProfileId();
   if (activeId) {
     const activeProfile = profiles.find((p) => p.id === activeId);
     if (activeProfile) return activeProfile;
   }
-  // Return first profile if no active set
   return profiles[0] ?? null;
 };
 
-export const getProfileById = (id: string): Profile | null => {
-  const profiles = getProfiles();
+export const getProfileById = async (id: string): Promise<Profile | null> => {
+  const profiles = await getProfiles();
   return profiles.find((p) => p.id === id) || null;
 };
 
-export const getNextProfileColor = (): string => {
-  const profiles = getProfiles();
+export const getNextProfileColor = async (): Promise<string> => {
+  const profiles = await getProfiles();
   return PROFILE_COLORS[profiles.length % PROFILE_COLORS.length] ?? "#6366f1";
 };

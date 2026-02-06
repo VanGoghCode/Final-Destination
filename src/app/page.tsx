@@ -294,80 +294,84 @@ export default function Home() {
     }
   }, []);
 
-  // Load data from localStorage on mount
+  // Load data from cloud storage on mount
   useEffect(() => {
-    // Load profiles first
-    const loadedProfiles = getProfiles();
-    setProfiles(loadedProfiles);
-    const activeId = getActiveProfileId();
-    setActiveProfileIdState(activeId);
+    const loadData = async () => {
+      // Load profiles first
+      const loadedProfiles = await getProfiles();
+      setProfiles(loadedProfiles);
+      const activeId = await getActiveProfileId();
+      setActiveProfileIdState(activeId);
 
-    // Load templates
-    const resumes = getResumeTemplates();
-    const coverLetters = getCoverLetterTemplates();
-    setResumeTemplates(resumes);
-    setCoverLetterTemplates(coverLetters);
-    setDefaultResumeIdState(getDefaultResumeId());
-    setDefaultCoverLetterIdState(getDefaultCoverLetterId());
+      // Load templates
+      const resumes = await getResumeTemplates();
+      const coverLetters = await getCoverLetterTemplates();
+      setResumeTemplates(resumes);
+      setCoverLetterTemplates(coverLetters);
+      setDefaultResumeIdState(await getDefaultResumeId());
+      setDefaultCoverLetterIdState(await getDefaultCoverLetterId());
 
-    // If we have an active profile, use its data
-    const activeProfile = loadedProfiles.find((p) => p.id === activeId);
-    if (activeProfile) {
-      setFirstName(activeProfile.firstName);
-      setLastName(activeProfile.lastName);
-      // Load profile's default resume
-      if (activeProfile.defaultResumeId) {
-        const profileResume = resumes.find(
-          (t) => t.id === activeProfile.defaultResumeId,
-        );
-        if (profileResume) {
-          setResumeLatex(profileResume.content);
-          setSelectedResumeTemplateId(profileResume.id);
+      // If we have an active profile, use its data
+      const activeProfile = loadedProfiles.find((p) => p.id === activeId);
+      if (activeProfile) {
+        setFirstName(activeProfile.firstName);
+        setLastName(activeProfile.lastName);
+        // Load profile's default resume
+        if (activeProfile.defaultResumeId) {
+          const profileResume = resumes.find(
+            (t) => t.id === activeProfile.defaultResumeId,
+          );
+          if (profileResume) {
+            setResumeLatex(profileResume.content);
+            setSelectedResumeTemplateId(profileResume.id);
+          }
+        }
+        // Load profile's default cover letter
+        if (activeProfile.defaultCoverLetterId) {
+          const profileCoverLetter = coverLetters.find(
+            (t) => t.id === activeProfile.defaultCoverLetterId,
+          );
+          if (profileCoverLetter) {
+            setCoverLetterLatex(profileCoverLetter.content);
+            setSelectedCoverLetterTemplateId(profileCoverLetter.id);
+          }
+        }
+      } else if (loadedProfiles.length === 0) {
+        // No profiles exist - check legacy personal details
+        const savedDetails = await getPersonalDetails();
+        if (savedDetails) {
+          setFirstName(savedDetails.firstName);
+          setLastName(savedDetails.lastName);
+        } else {
+          setShowPersonalDetailsModal(true);
+        }
+        // Load default templates
+        if (!resumeLatex) {
+          const defaultResume = await getDefaultResumeTemplate();
+          if (defaultResume) {
+            setResumeLatex(defaultResume.content);
+            setSelectedResumeTemplateId(defaultResume.id);
+          }
+        }
+        if (!coverLetterLatex) {
+          const defaultCoverLetter = await getDefaultCoverLetterTemplate();
+          if (defaultCoverLetter) {
+            setCoverLetterLatex(defaultCoverLetter.content);
+            setSelectedCoverLetterTemplateId(defaultCoverLetter.id);
+          }
         }
       }
-      // Load profile's default cover letter
-      if (activeProfile.defaultCoverLetterId) {
-        const profileCoverLetter = coverLetters.find(
-          (t) => t.id === activeProfile.defaultCoverLetterId,
-        );
-        if (profileCoverLetter) {
-          setCoverLetterLatex(profileCoverLetter.content);
-          setSelectedCoverLetterTemplateId(profileCoverLetter.id);
-        }
-      }
-    } else if (loadedProfiles.length === 0) {
-      // No profiles exist - check legacy personal details
-      const savedDetails = getPersonalDetails();
-      if (savedDetails) {
-        setFirstName(savedDetails.firstName);
-        setLastName(savedDetails.lastName);
-      } else {
-        setShowPersonalDetailsModal(true);
-      }
-      // Load default templates
-      if (!resumeLatex) {
-        const defaultResume = getDefaultResumeTemplate();
-        if (defaultResume) {
-          setResumeLatex(defaultResume.content);
-          setSelectedResumeTemplateId(defaultResume.id);
-        }
-      }
-      if (!coverLetterLatex) {
-        const defaultCoverLetter = getDefaultCoverLetterTemplate();
-        if (defaultCoverLetter) {
-          setCoverLetterLatex(defaultCoverLetter.content);
-          setSelectedCoverLetterTemplateId(defaultCoverLetter.id);
-        }
-      }
-    }
+    };
+
+    loadData();
   }, []);
 
-  const handleSavePersonalDetails = () => {
+  const handleSavePersonalDetails = async () => {
     if (!tempFirstName.trim() || !tempLastName.trim()) {
       alert("Please enter both first name and last name.");
       return;
     }
-    savePersonalDetails({
+    await savePersonalDetails({
       firstName: tempFirstName.trim(),
       lastName: tempLastName.trim(),
     });
@@ -377,12 +381,12 @@ export default function Home() {
 
     // Also create a default profile if none exist
     if (profiles.length === 0) {
-      const newProfile = addProfile(
+      const newProfile = await addProfile(
         "Default",
         tempFirstName.trim(),
         tempLastName.trim(),
-        getDefaultResumeId(),
-        getDefaultCoverLetterId(),
+        await getDefaultResumeId(),
+        await getDefaultCoverLetterId(),
       );
       setProfiles([newProfile]);
       setActiveProfileIdState(newProfile.id);
@@ -454,14 +458,14 @@ export default function Home() {
     setShowProfileEditor(true);
   };
 
-  const handleAddResumeInProfile = () => {
+  const handleAddResumeInProfile = async () => {
     if (!newResumeNameInProfile.trim() || !newResumeContentInProfile.trim())
       return;
-    const newTemplate = addResumeTemplate(
+    const newTemplate = await addResumeTemplate(
       newResumeNameInProfile.trim(),
       newResumeContentInProfile.trim(),
     );
-    setResumeTemplates(getResumeTemplates());
+    setResumeTemplates(await getResumeTemplates());
     setProfileFormResumeId(newTemplate.id);
     setShowNewResumeInProfile(false);
     setNewResumeNameInProfile("");
@@ -469,17 +473,17 @@ export default function Home() {
     showNotification("Resume template created!");
   };
 
-  const handleAddCoverLetterInProfile = () => {
+  const handleAddCoverLetterInProfile = async () => {
     if (
       !newCoverLetterNameInProfile.trim() ||
       !newCoverLetterContentInProfile.trim()
     )
       return;
-    const newTemplate = addCoverLetterTemplate(
+    const newTemplate = await addCoverLetterTemplate(
       newCoverLetterNameInProfile.trim(),
       newCoverLetterContentInProfile.trim(),
     );
-    setCoverLetterTemplates(getCoverLetterTemplates());
+    setCoverLetterTemplates(await getCoverLetterTemplates());
     setProfileFormCoverLetterId(newTemplate.id);
     setShowNewCoverLetterInProfile(false);
     setNewCoverLetterNameInProfile("");
@@ -487,7 +491,7 @@ export default function Home() {
     showNotification("Cover letter template created!");
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (
       !profileFormName.trim() ||
       !profileFormFirstName.trim() ||
@@ -499,7 +503,7 @@ export default function Home() {
 
     if (editingProfile) {
       // Update existing profile
-      updateProfile(editingProfile.id, {
+      await updateProfile(editingProfile.id, {
         name: profileFormName.trim(),
         firstName: profileFormFirstName.trim(),
         lastName: profileFormLastName.trim(),
@@ -514,7 +518,7 @@ export default function Home() {
       }
     } else {
       // Create new profile
-      const newProfile = addProfile(
+      const newProfile = await addProfile(
         profileFormName.trim(),
         profileFormFirstName.trim(),
         profileFormLastName.trim(),
@@ -525,20 +529,20 @@ export default function Home() {
       // Select the new profile
       handleSelectProfile(newProfile);
     }
-    setProfiles(getProfiles());
+    setProfiles(await getProfiles());
     setShowProfileEditor(false);
     showNotification(editingProfile ? "Profile updated!" : "Profile created!");
   };
 
-  const handleDeleteProfile = (id: string) => {
+  const handleDeleteProfile = async (id: string) => {
     if (!confirm("Are you sure you want to delete this profile?")) return;
-    deleteProfile(id);
-    setProfiles(getProfiles());
+    await deleteProfile(id);
+    const updatedProfiles = await getProfiles();
+    setProfiles(updatedProfiles);
     // If deleted profile was active, switch to first available
     if (activeProfileId === id) {
-      const remainingProfiles = getProfiles();
-      const firstProfile = remainingProfiles[0];
-      if (remainingProfiles.length > 0 && firstProfile) {
+      const firstProfile = updatedProfiles[0];
+      if (updatedProfiles.length > 0 && firstProfile) {
         handleSelectProfile(firstProfile);
       } else {
         setActiveProfileIdState(null);
@@ -679,7 +683,7 @@ export default function Home() {
     setEditTemplateContent(template.content);
   };
 
-  const handleSaveTemplate = () => {
+  const handleSaveTemplate = async () => {
     if (!editingTemplate) return;
     if (!editTemplateName.trim() || !editTemplateContent.trim()) {
       alert("Please provide both a name and content for the template.");
@@ -689,39 +693,39 @@ export default function Home() {
 
     if (template) {
       if (type === "resume") {
-        updateResumeTemplate(template.id, {
+        await updateResumeTemplate(template.id, {
           name: editTemplateName.trim(),
           content: editTemplateContent,
         });
-        setResumeTemplates(getResumeTemplates());
+        setResumeTemplates(await getResumeTemplates());
         if (selectedResumeTemplateId === template.id)
           setResumeLatex(editTemplateContent);
       } else {
-        updateCoverLetterTemplate(template.id, {
+        await updateCoverLetterTemplate(template.id, {
           name: editTemplateName.trim(),
           content: editTemplateContent,
         });
-        setCoverLetterTemplates(getCoverLetterTemplates());
+        setCoverLetterTemplates(await getCoverLetterTemplates());
         if (selectedCoverLetterTemplateId === template.id)
           setCoverLetterLatex(editTemplateContent);
       }
     } else {
       if (type === "resume") {
-        const newTemplate = addResumeTemplate(
+        const newTemplate = await addResumeTemplate(
           editTemplateName.trim(),
           editTemplateContent,
         );
-        setResumeTemplates(getResumeTemplates());
-        setDefaultResumeIdState(getDefaultResumeId());
+        setResumeTemplates(await getResumeTemplates());
+        setDefaultResumeIdState(await getDefaultResumeId());
         setResumeLatex(editTemplateContent);
         setSelectedResumeTemplateId(newTemplate.id);
       } else {
-        const newTemplate = addCoverLetterTemplate(
+        const newTemplate = await addCoverLetterTemplate(
           editTemplateName.trim(),
           editTemplateContent,
         );
-        setCoverLetterTemplates(getCoverLetterTemplates());
-        setDefaultCoverLetterIdState(getDefaultCoverLetterId());
+        setCoverLetterTemplates(await getCoverLetterTemplates());
+        setDefaultCoverLetterIdState(await getDefaultCoverLetterId());
         setCoverLetterLatex(editTemplateContent);
         setSelectedCoverLetterTemplateId(newTemplate.id);
       }
@@ -730,15 +734,18 @@ export default function Home() {
     showNotification("Template saved!");
   };
 
-  const handleDeleteTemplate = (type: "resume" | "coverLetter", id: string) => {
+  const handleDeleteTemplate = async (
+    type: "resume" | "coverLetter",
+    id: string,
+  ) => {
     if (!confirm("Are you sure you want to delete this template?")) return;
 
     if (type === "resume") {
-      deleteResumeTemplate(id);
-      setResumeTemplates(getResumeTemplates());
-      setDefaultResumeIdState(getDefaultResumeId());
+      await deleteResumeTemplate(id);
+      setResumeTemplates(await getResumeTemplates());
+      setDefaultResumeIdState(await getDefaultResumeId());
       if (selectedResumeTemplateId === id) {
-        const defaultTemplate = getDefaultResumeTemplate();
+        const defaultTemplate = await getDefaultResumeTemplate();
         if (defaultTemplate) {
           setResumeLatex(defaultTemplate.content);
           setSelectedResumeTemplateId(defaultTemplate.id);
@@ -748,11 +755,11 @@ export default function Home() {
         }
       }
     } else {
-      deleteCoverLetterTemplate(id);
-      setCoverLetterTemplates(getCoverLetterTemplates());
-      setDefaultCoverLetterIdState(getDefaultCoverLetterId());
+      await deleteCoverLetterTemplate(id);
+      setCoverLetterTemplates(await getCoverLetterTemplates());
+      setDefaultCoverLetterIdState(await getDefaultCoverLetterId());
       if (selectedCoverLetterTemplateId === id) {
-        const defaultTemplate = getDefaultCoverLetterTemplate();
+        const defaultTemplate = await getDefaultCoverLetterTemplate();
         if (defaultTemplate) {
           setCoverLetterLatex(defaultTemplate.content);
           setSelectedCoverLetterTemplateId(defaultTemplate.id);
@@ -764,31 +771,36 @@ export default function Home() {
     }
   };
 
-  const handleSetDefault = (type: "resume" | "coverLetter", id: string) => {
+  const handleSetDefault = async (
+    type: "resume" | "coverLetter",
+    id: string,
+  ) => {
     if (type === "resume") {
-      setDefaultResumeId(id);
+      await setDefaultResumeId(id);
       setDefaultResumeIdState(id);
     } else {
-      setDefaultCoverLetterId(id);
+      await setDefaultCoverLetterId(id);
       setDefaultCoverLetterIdState(id);
     }
     showNotification("Default template updated!");
   };
 
-  const handleSaveCurrentResumeToTemplate = () => {
+  const handleSaveCurrentResumeToTemplate = async () => {
     if (selectedResumeTemplateId && resumeLatex) {
-      updateResumeTemplate(selectedResumeTemplateId, { content: resumeLatex });
-      setResumeTemplates(getResumeTemplates());
+      await updateResumeTemplate(selectedResumeTemplateId, {
+        content: resumeLatex,
+      });
+      setResumeTemplates(await getResumeTemplates());
       showNotification("Resume template updated!");
     }
   };
 
-  const handleSaveCurrentCoverLetterToTemplate = () => {
+  const handleSaveCurrentCoverLetterToTemplate = async () => {
     if (selectedCoverLetterTemplateId && coverLetterLatex) {
-      updateCoverLetterTemplate(selectedCoverLetterTemplateId, {
+      await updateCoverLetterTemplate(selectedCoverLetterTemplateId, {
         content: coverLetterLatex,
       });
-      setCoverLetterTemplates(getCoverLetterTemplates());
+      setCoverLetterTemplates(await getCoverLetterTemplates());
       showNotification("Cover letter template updated!");
     }
   };

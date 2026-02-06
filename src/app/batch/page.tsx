@@ -314,23 +314,26 @@ export default function BatchProcessPage() {
 
   // Load templates and profiles on mount
   useEffect(() => {
-    const defaultResume = getDefaultResumeTemplate();
-    const defaultCoverLetter = getDefaultCoverLetterTemplate();
-    if (defaultResume) setResumeTemplate(defaultResume);
-    if (defaultCoverLetter) setCoverLetterTemplate(defaultCoverLetter);
+    const loadData = async () => {
+      const defaultResume = await getDefaultResumeTemplate();
+      const defaultCoverLetter = await getDefaultCoverLetterTemplate();
+      if (defaultResume) setResumeTemplate(defaultResume);
+      if (defaultCoverLetter) setCoverLetterTemplate(defaultCoverLetter);
 
-    // Get profiles and sync to server
-    const localProfiles = getProfiles();
-    setProfiles(localProfiles);
+      // Get profiles and sync to server
+      const localProfiles = await getProfiles();
+      setProfiles(localProfiles);
 
-    // Sync to server so extension can see them
-    if (localProfiles.length > 0) {
-      fetch("/api/profiles", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(localProfiles),
-      }).catch((err) => console.error("Failed to sync profiles:", err));
-    }
+      // Sync to server so extension can see them
+      if (localProfiles.length > 0) {
+        fetch("/api/profiles", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(localProfiles),
+        }).catch((err) => console.error("Failed to sync profiles:", err));
+      }
+    };
+    loadData();
   }, []);
 
   // Add activity log
@@ -350,7 +353,7 @@ export default function BatchProcessPage() {
         if (profile) {
           // Use profile-specific templates if available
           if (profile.defaultResumeId) {
-            const allResumeTemplates = getResumeTemplates();
+            const allResumeTemplates = await getResumeTemplates();
             const profileResume = allResumeTemplates.find(
               (t) => t.id === profile.defaultResumeId,
             );
@@ -360,7 +363,7 @@ export default function BatchProcessPage() {
             }
           }
           if (profile.defaultCoverLetterId) {
-            const allCoverLetterTemplates = getCoverLetterTemplates();
+            const allCoverLetterTemplates = await getCoverLetterTemplates();
             const profileCoverLetter = allCoverLetterTemplates.find(
               (t) => t.id === profile.defaultCoverLetterId,
             );
