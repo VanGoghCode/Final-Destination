@@ -412,8 +412,10 @@ Match the semantic tone to the company's stage and culture:
 3. PRESERVE BASE DETAILS - DO NOT CHANGE:
    - Company names from work experience
    - Job titles held
+   - Experience section titles and role names
+   - Project titles and names
    - Dates and timelines
-   - Educational institutions and degrees
+   - Educational institutions, degrees, and education details
    - Personal information (name, contact, links)
 4. WHAT TO TAILOR:
    - Bullet point descriptions (rephrase with velocity signals and contextual clustering)
@@ -432,12 +434,13 @@ Match the semantic tone to the company's stage and culture:
    - MINIMUM/REQUIRED REQUIREMENTS: You MUST include 100% of ALL minimum requirements, required qualifications, and must-have skills mentioned in the job description. Every single required skill, technology, or qualification MUST appear in the resume - either in Skills section or woven into experience bullet points. DO NOT skip any required item.
    - PREFERRED/NICE-TO-HAVE REQUIREMENTS: Include 80% to 90% of preferred qualifications, nice-to-have skills, and bonus requirements from the job description. Prioritize those that the candidate is most likely to have based on their experience.
    - The candidate is assumed to have exposure to industry-standard tools, so include them even if not explicitly in the original resume.
-6. SKILLS FROM JOB DESCRIPTION (ADD ALL - CRITICAL): Extract ALL required, preferred, and nice-to-have skills mentioned in the job description and ADD them to the Skills section - even if they are NOT explicitly in the original resume. The candidate is assumed to have exposure to industry-standard tools. Include:
-   - ALL technical skills, programming languages, frameworks mentioned in JD
-   - ALL tools, platforms, cloud services mentioned
-   - ALL methodologies (Agile, Scrum, CI/CD, etc.)
+6. SKILLS SECTION OPTIMIZATION:
+   - ADD all required, preferred, and nice-to-have skills mentioned in the job description
+   - REMOVE skills that are NOT relevant to this job and NOT mentioned in the JD - the company doesn't care about them
+   - REMOVE outdated or generic skills that don't add value for this specific role
+   - The candidate is assumed to have exposure to industry-standard tools, so include them even if not explicitly in the original resume
    - Group related skills together to show contextual clustering
-   - Do NOT leave out ANY skill keyword from the job description
+   - PRIORITY: Skills from the JD > Industry-standard skills > Other skills (remove if space needed)
 7. SEMANTIC KEYWORDS: Naturally weave keywords and their technical adjacencies from the job description INTO existing bullet points.
 8. IMPACT: Quantify achievements (e.g., "Scaled system to handle 10x traffic") where possible, using velocity-signaling verbs.
 9. CLEAN OUTPUT: Return ONLY the complete LaTeX code. Do NOT wrap in markdown \`\`\`latex blocks. Do NOT include explanations.
@@ -445,6 +448,13 @@ Match the semantic tone to the company's stage and culture:
    - Do NOT use ** (double asterisks) anywhere in the LaTeX code. LaTeX does not recognize ** for bold text - it will print ** literally instead of making text bold.
    - For bold text in LaTeX, use \\textbf{text} command instead.
    - Do NOT use em dashes (—) or long dashes, use regular hyphens (-) or rewrite the sentence instead.
+11. WORD COUNT CONSTRAINT (CRITICAL FOR PAGE LENGTH):
+   - The original resume is EXACTLY ONE PAGE when compiled to PDF. You MUST maintain this.
+   - Keep the TOTAL word count of the tailored resume APPROXIMATELY THE SAME (within 5%) as the original resume.
+   - If you add content in one section, REMOVE or shorten content elsewhere to compensate.
+   - Do NOT add new bullet points without removing others. Do NOT make bullet points longer without trimming elsewhere.
+   - PRIORITY: Maintaining one-page length is MORE IMPORTANT than including every keyword. If something doesn't fit, cut it.
+   - Each bullet point should be 1-2 lines maximum. Avoid multi-line bullet points that wrap excessively.
 
 ## ORIGINAL RESUME (LaTeX):
 ${resumeLatex}
