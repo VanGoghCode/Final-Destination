@@ -3,7 +3,10 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import { JobQueueProvider } from "@/context/JobQueueContext";
+import { AuthProvider } from "@/context/AuthContext";
 import MouseGlow from "@/components/MouseGlow";
+import PasscodeModal from "@/components/PasscodeModal";
+import AuthGate from "@/components/AuthGate";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,9 +44,14 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <MouseGlow />
-        <AppProvider>
-          <JobQueueProvider>{children}</JobQueueProvider>
-        </AppProvider>
+        <AuthProvider>
+          <PasscodeModal />
+          <AuthGate>
+            <AppProvider>
+              <JobQueueProvider>{children}</JobQueueProvider>
+            </AppProvider>
+          </AuthGate>
+        </AuthProvider>
       </body>
     </html>
   );

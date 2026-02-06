@@ -5,19 +5,33 @@ function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, x-passcode",
   };
+}
+
+// Extract passcode from request headers
+function getPasscode(request: Request): string | null {
+  return request.headers.get("x-passcode");
 }
 
 export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders() });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const profiles = await getProfiles();
+    const passcode = getPasscode(request);
+    if (!passcode) {
+      return NextResponse.json(
+        { error: "Unauthorized: Passcode required" },
+        { status: 401, headers: corsHeaders() },
+      );
+    }
+
+    const profiles = await getProfiles(passcode);
     return NextResponse.json(profiles, { headers: corsHeaders() });
   } catch (error) {
+    console.error("Profiles GET error:", error);
     return NextResponse.json(
       { error: "Failed to fetch profiles" },
       { status: 500, headers: corsHeaders() },
@@ -28,6 +42,15 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const passcode = getPasscode(request);
+
+    if (!passcode) {
+      return NextResponse.json(
+        { error: "Unauthorized: Passcode required" },
+        { status: 401, headers: corsHeaders() },
+      );
+    }
+
     if (!Array.isArray(body)) {
       return NextResponse.json(
         { error: "Invalid body, expected array of profiles" },
@@ -45,9 +68,10 @@ export async function POST(request: Request) {
       avatarText: p.avatarText,
     }));
 
-    await setProfiles(profiles);
+    await setProfiles(profiles, passcode);
     return NextResponse.json({ success: true }, { headers: corsHeaders() });
   } catch (error) {
+    console.error("Profiles POST error:", error);
     return NextResponse.json(
       { error: "Failed to save profiles" },
       { status: 500, headers: corsHeaders() },

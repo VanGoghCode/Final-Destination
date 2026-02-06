@@ -104,6 +104,14 @@ const KEYS = {
   TIER_LOWEST: "data:tier:lowest",
 };
 
+// Get user-specific key for queue and profiles
+function getUserKey(baseKey: string, passcode?: string | null): string {
+  if (passcode) {
+    return `user:${passcode}:${baseKey}`;
+  }
+  return baseKey;
+}
+
 // Singleton Redis instance
 let redisInstance: Redis | null = null;
 
@@ -284,10 +292,11 @@ export async function deleteJob(jobId: string): Promise<boolean> {
 
 // ============== QUEUE ==============
 
-export async function getQueue(): Promise<QueuedJob[]> {
+export async function getQueue(passcode?: string | null): Promise<QueuedJob[]> {
   const redis = getRedis();
   try {
-    const queue = await redis.get<QueuedJob[]>(KEYS.QUEUE);
+    const key = getUserKey(KEYS.QUEUE, passcode);
+    const queue = await redis.get<QueuedJob[]>(key);
     return queue || [];
   } catch (error) {
     console.error("Failed to get queue from Redis:", error);
@@ -295,10 +304,14 @@ export async function getQueue(): Promise<QueuedJob[]> {
   }
 }
 
-export async function setQueue(queue: QueuedJob[]): Promise<boolean> {
+export async function setQueue(
+  queue: QueuedJob[],
+  passcode?: string | null,
+): Promise<boolean> {
   const redis = getRedis();
   try {
-    await redis.set(KEYS.QUEUE, queue);
+    const key = getUserKey(KEYS.QUEUE, passcode);
+    await redis.set(key, queue);
     return true;
   } catch (error) {
     console.error("Failed to save queue to Redis:", error);
@@ -306,20 +319,24 @@ export async function setQueue(queue: QueuedJob[]): Promise<boolean> {
   }
 }
 
-export async function addJobToQueue(job: QueuedJob): Promise<boolean> {
-  const queue = await getQueue();
+export async function addJobToQueue(
+  job: QueuedJob,
+  passcode?: string | null,
+): Promise<boolean> {
+  const queue = await getQueue(passcode);
   // Check for duplicates
   if (queue.some((j) => j.id === job.id)) return false;
 
   queue.push(job);
-  return setQueue(queue);
+  return setQueue(queue, passcode);
 }
 
 export async function updateJobInQueue(
   jobId: string,
   updates: Partial<QueuedJob>,
+  passcode?: string | null,
 ): Promise<QueuedJob | null> {
-  const queue = await getQueue();
+  const queue = await getQueue(passcode);
   const index = queue.findIndex((j) => j.id === jobId);
 
   if (index === -1) return null;
@@ -327,17 +344,20 @@ export async function updateJobInQueue(
   const updatedJob = { ...queue[index], ...updates } as QueuedJob;
   queue[index] = updatedJob;
 
-  await setQueue(queue);
+  await setQueue(queue, passcode);
   return updatedJob;
 }
 
-export async function removeJobFromQueue(jobId: string): Promise<boolean> {
-  const queue = await getQueue();
+export async function removeJobFromQueue(
+  jobId: string,
+  passcode?: string | null,
+): Promise<boolean> {
+  const queue = await getQueue(passcode);
   const newQueue = queue.filter((j) => j.id !== jobId);
 
   if (newQueue.length === queue.length) return false;
 
-  return setQueue(newQueue);
+  return setQueue(newQueue, passcode);
 }
 
 // ============== PROFILES ==============
@@ -354,10 +374,13 @@ export interface SavedProfile {
   avatarText?: string;
 }
 
-export async function getProfiles(): Promise<SavedProfile[]> {
+export async function getProfiles(
+  passcode?: string | null,
+): Promise<SavedProfile[]> {
   const redis = getRedis();
   try {
-    const profiles = await redis.get<SavedProfile[]>(KEYS.PROFILES);
+    const key = getUserKey(KEYS.PROFILES, passcode);
+    const profiles = await redis.get<SavedProfile[]>(key);
     return profiles || [];
   } catch (error) {
     console.error("Failed to get profiles from Redis:", error);
@@ -365,10 +388,14 @@ export async function getProfiles(): Promise<SavedProfile[]> {
   }
 }
 
-export async function setProfiles(profiles: SavedProfile[]): Promise<boolean> {
+export async function setProfiles(
+  profiles: SavedProfile[],
+  passcode?: string | null,
+): Promise<boolean> {
   const redis = getRedis();
   try {
-    await redis.set(KEYS.PROFILES, profiles);
+    const key = getUserKey(KEYS.PROFILES, passcode);
+    await redis.set(key, profiles);
     return true;
   } catch (error) {
     console.error("Failed to save profiles to Redis:", error);

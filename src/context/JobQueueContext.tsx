@@ -90,22 +90,54 @@ interface JobQueueContextType {
   failedCount: number;
   pendingCount: number;
   totalCount: number;
+
+  // Polling control
+  pollingEnabled: boolean;
+  setPollingEnabled: (enabled: boolean) => void;
 }
 
 const JobQueueContext = createContext<JobQueueContextType | undefined>(
   undefined,
 );
 
+// Helper to get headers with passcode
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (typeof window !== "undefined") {
+    const passcode = localStorage.getItem("fd_passcode");
+    if (passcode) {
+      headers["x-passcode"] = passcode;
+    }
+  }
+  return headers;
+}
+
+// Helper for GET/DELETE requests (no Content-Type needed)
+function getPasscodeHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (typeof window !== "undefined") {
+    const passcode = localStorage.getItem("fd_passcode");
+    if (passcode) {
+      headers["x-passcode"] = passcode;
+    }
+  }
+  return headers;
+}
+
 export function JobQueueProvider({ children }: { children: ReactNode }) {
   const [queue, setQueue] = useState<QueuedJob[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [pollingEnabled, setPollingEnabled] = useState(false);
 
-  // Initial fetch
-  // Initial fetch and polling
+  // Initial fetch and polling (only when pollingEnabled)
   useEffect(() => {
+    if (!pollingEnabled) return;
+
     const fetchQueue = () => {
-      fetch("/api/queue")
+      fetch("/api/queue", { headers: getPasscodeHeaders() })
         .then((res) => res.json())
         .then((data) => {
           if (Array.isArray(data)) {
@@ -122,7 +154,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
     const interval = setInterval(fetchQueue, 3000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [pollingEnabled]);
 
   // Effect to auto-start processing when pending jobs exist and not processing
   useEffect(() => {
@@ -156,7 +188,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
       // Sync with server
       fetch("/api/queue", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify(newJob),
       }).catch((err) => {
         console.error("Failed to sync addJob:", err);
@@ -188,7 +220,10 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
   const removeJob = useCallback((id: string) => {
     setQueue((prev) => prev.filter((j) => j.id !== id));
 
-    fetch(`/api/queue?id=${id}`, { method: "DELETE" }).catch(console.error);
+    fetch(`/api/queue?id=${id}`, {
+      method: "DELETE",
+      headers: getPasscodeHeaders(),
+    }).catch(console.error);
   }, []);
 
   // Update job data
@@ -226,7 +261,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
 
       fetch("/api/queue", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ id, updates: fullUpdates }),
       }).catch(console.error);
     },
@@ -238,7 +273,10 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
     setQueue([]);
     setIsProcessing(false);
     setCurrentJobId(null);
-    fetch("/api/queue", { method: "DELETE" }).catch(console.error);
+    fetch("/api/queue", {
+      method: "DELETE",
+      headers: getPasscodeHeaders(),
+    }).catch(console.error);
   }, []);
 
   // Clear only completed jobs
@@ -251,7 +289,10 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
 
       // Delete each completed job from server
       completedIds.forEach((id) => {
-        fetch(`/api/queue?id=${id}`, { method: "DELETE" }).catch(console.error);
+        fetch(`/api/queue?id=${id}`, {
+          method: "DELETE",
+          headers: getPasscodeHeaders(),
+        }).catch(console.error);
       });
 
       return prev.filter((j) => j.status !== "completed");
@@ -280,7 +321,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
 
       fetch("/api/queue", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ id, updates }),
       }).catch(console.error);
     },
@@ -296,7 +337,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
 
       fetch("/api/queue", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ id, updates: results }),
       }).catch(console.error);
     },
@@ -346,7 +387,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
 
     fetch("/api/queue", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ id, updates }),
     }).catch(console.error);
   }, []);
@@ -379,6 +420,8 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
         failedCount,
         pendingCount,
         totalCount,
+        pollingEnabled,
+        setPollingEnabled,
       }}
     >
       {children}

@@ -5,18 +5,30 @@ import { getQueue, addJobToQueue, setQueue, QueuedJob } from "@/lib/db";
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, PATCH, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, x-passcode",
   };
+}
+
+// Extract passcode from request headers
+function getPasscode(request: Request): string | null {
+  return request.headers.get("x-passcode");
 }
 
 export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders() });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const queue = await getQueue();
+    const passcode = getPasscode(request);
+    if (!passcode) {
+      return NextResponse.json(
+        { error: "Unauthorized: Passcode required" },
+        { status: 401, headers: corsHeaders() },
+      );
+    }
+    const queue = await getQueue(passcode);
     return NextResponse.json(queue, { headers: corsHeaders() });
   } catch (error) {
     console.error("Queue GET error:", error);
@@ -30,6 +42,14 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const passcode = getPasscode(request);
+
+    if (!passcode) {
+      return NextResponse.json(
+        { error: "Unauthorized: Passcode required" },
+        { status: 401, headers: corsHeaders() },
+      );
+    }
 
     // Validate body
     if (
@@ -65,7 +85,7 @@ export async function POST(request: Request) {
       companyWebsite: body.companyWebsite,
     };
 
-    const success = await addJobToQueue(newJob);
+    const success = await addJobToQueue(newJob, passcode);
 
     if (!success) {
       return NextResponse.json(
@@ -91,19 +111,24 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
+    const passcode = getPasscode(request);
+
+    if (!passcode) {
+      return NextResponse.json(
+        { error: "Unauthorized: Passcode required" },
+        { status: 401, headers: corsHeaders() },
+      );
+    }
 
     if (id) {
       // Remove specific job
-      const queue = await getQueue();
+      const queue = await getQueue(passcode);
       const newQueue = queue.filter((j) => j.id !== id);
-      await setQueue(newQueue);
+      await setQueue(newQueue, passcode);
       return NextResponse.json({ success: true }, { headers: corsHeaders() });
     } else {
-      // Clear all pending? Or clear entire queue?
-      // For now, let's just clear the queue as requested by clearQueue context method
-      // But clearing ALL data might be too aggressive if we share Redis keys.
-      // queue context 'clearQueue' clears everything locally.
-      await setQueue([]);
+      // Clear entire queue for this user
+      await setQueue([], passcode);
       return NextResponse.json({ success: true }, { headers: corsHeaders() });
     }
   } catch (error) {
@@ -119,6 +144,14 @@ export async function PATCH(request: Request) {
   try {
     const body = await request.json();
     const { id, updates } = body;
+    const passcode = getPasscode(request);
+
+    if (!passcode) {
+      return NextResponse.json(
+        { error: "Unauthorized: Passcode required" },
+        { status: 401, headers: corsHeaders() },
+      );
+    }
 
     if (!id || !updates) {
       return NextResponse.json(
@@ -128,7 +161,7 @@ export async function PATCH(request: Request) {
     }
 
     const { updateJobInQueue } = await import("@/lib/db");
-    const updatedJob = await updateJobInQueue(id, updates);
+    const updatedJob = await updateJobInQueue(id, updates, passcode);
 
     if (!updatedJob) {
       return NextResponse.json(

@@ -140,7 +140,14 @@ export default function TailoredCompanyPage({
 
     setIsDeletingFromBatch(true);
     try {
-      await fetch(`/api/queue?id=${jobId}`, { method: "DELETE" });
+      const passcode = localStorage.getItem("fd_passcode");
+      const headers: Record<string, string> = {};
+      if (passcode) headers["x-passcode"] = passcode;
+
+      await fetch(`/api/queue?id=${jobId}`, {
+        method: "DELETE",
+        headers,
+      });
       // Remove from sessionStorage too
       sessionStorage.removeItem(`batch_job_${jobId}`);
       // Redirect to batch page

@@ -46,9 +46,36 @@ export const generateId = (): string => {
 
 // ============ Cloud Storage Helpers ============
 
+// Get passcode from localStorage (client-side only)
+function getPasscode(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("fd_passcode");
+}
+
+// Get headers with passcode
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const passcode = getPasscode();
+  if (passcode) {
+    headers["x-passcode"] = passcode;
+  }
+  return headers;
+}
+
 async function cloudGet<T>(key: string): Promise<T | null> {
   try {
-    const response = await fetch(`/api/storage?key=${encodeURIComponent(key)}`);
+    const passcode = getPasscode();
+    const headers: Record<string, string> = {};
+    if (passcode) headers["x-passcode"] = passcode;
+
+    const response = await fetch(
+      `/api/storage?key=${encodeURIComponent(key)}`,
+      {
+        headers,
+      },
+    );
     if (!response.ok) return null;
     const { data } = await response.json();
     return data as T | null;
@@ -61,7 +88,7 @@ async function cloudSet<T>(key: string, value: T): Promise<void> {
   try {
     await fetch("/api/storage", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ key, value }),
     });
   } catch (error) {
@@ -71,8 +98,13 @@ async function cloudSet<T>(key: string, value: T): Promise<void> {
 
 async function cloudRemove(key: string): Promise<void> {
   try {
+    const passcode = getPasscode();
+    const headers: Record<string, string> = {};
+    if (passcode) headers["x-passcode"] = passcode;
+
     await fetch(`/api/storage?key=${encodeURIComponent(key)}`, {
       method: "DELETE",
+      headers,
     });
   } catch (error) {
     console.error("Failed to remove from cloud:", error);

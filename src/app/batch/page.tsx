@@ -287,6 +287,7 @@ export default function BatchProcessPage() {
     failedCount,
     pendingCount,
     totalCount,
+    setPollingEnabled,
   } = useJobQueue();
 
   const { personalDetails: globalPersonalDetails } = useAppContext();
@@ -312,6 +313,12 @@ export default function BatchProcessPage() {
     queueRef.current = queue;
   }, [queue]);
 
+  // Enable queue polling only on this page
+  useEffect(() => {
+    setPollingEnabled(true);
+    return () => setPollingEnabled(false);
+  }, [setPollingEnabled]);
+
   // Load templates and profiles on mount
   useEffect(() => {
     const loadData = async () => {
@@ -324,11 +331,17 @@ export default function BatchProcessPage() {
       const localProfiles = await getProfiles();
       setProfiles(localProfiles);
 
-      // Sync to server so extension can see them
+      // Sync to server so extension can see them (with passcode)
       if (localProfiles.length > 0) {
+        const passcode = localStorage.getItem("fd_passcode");
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (passcode) headers["x-passcode"] = passcode;
+
         fetch("/api/profiles", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify(localProfiles),
         }).catch((err) => console.error("Failed to sync profiles:", err));
       }
