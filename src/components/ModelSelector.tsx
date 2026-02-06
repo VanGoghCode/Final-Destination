@@ -1,0 +1,139 @@
+"use client";
+
+import { useAppContext } from "@/context/AppContext";
+import type { AIProvider } from "@/lib/ai-providers/types";
+
+interface ProviderToggleProps {
+  label: string;
+  value: AIProvider;
+  onChange: (value: AIProvider) => void;
+}
+
+function ProviderToggle({ label, value, onChange }: ProviderToggleProps) {
+  const handleToggle = () => {
+    const newValue: AIProvider = value === "gemini" ? "claude" : "gemini";
+    onChange(newValue);
+  };
+
+  return (
+    <div className="provider-toggle">
+      <span className="provider-toggle__label">{label}</span>
+      <button
+        onClick={handleToggle}
+        className="provider-toggle__switch"
+        role="switch"
+        aria-checked={value === "claude"}
+        title={`Using ${value === "gemini" ? "Gemini" : "Claude"}`}
+      >
+        <span
+          className={`provider-toggle__option ${value === "gemini" ? "active" : ""}`}
+        >
+          Gemini
+        </span>
+        <span
+          className={`provider-toggle__option ${value === "claude" ? "active" : ""}`}
+        >
+          Claude
+        </span>
+        <div
+          className="provider-toggle__slider"
+          style={{
+            transform:
+              value === "claude" ? "translateX(100%)" : "translateX(0)",
+          }}
+        />
+      </button>
+
+      <style jsx>{`
+        .provider-toggle {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .provider-toggle__label {
+          font-size: 11px;
+          font-weight: 500;
+          color: #6b7280;
+        }
+
+        .provider-toggle__switch {
+          position: relative;
+          display: flex;
+          background: #f3f4f6;
+          border-radius: 6px;
+          padding: 2px;
+          border: 1px solid #e5e7eb;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .provider-toggle__switch:hover {
+          border-color: #d1d5db;
+        }
+
+        .provider-toggle__option {
+          position: relative;
+          z-index: 1;
+          padding: 4px 10px;
+          font-size: 11px;
+          font-weight: 500;
+          color: #9ca3af;
+          border-radius: 4px;
+          transition: color 0.2s ease;
+          white-space: nowrap;
+        }
+
+        .provider-toggle__option.active {
+          color: #111827;
+        }
+
+        .provider-toggle__slider {
+          position: absolute;
+          top: 2px;
+          left: 2px;
+          width: calc(50% - 2px);
+          height: calc(100% - 4px);
+          background: white;
+          border-radius: 4px;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+          transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export default function ModelSelector() {
+  const {
+    researchProvider,
+    tailoringProvider,
+    setResearchProvider,
+    setTailoringProvider,
+  } = useAppContext();
+
+  return (
+    <div className="model-selector">
+      <ProviderToggle
+        label="Research"
+        value={researchProvider}
+        onChange={setResearchProvider}
+      />
+      <ProviderToggle
+        label="Tailoring"
+        value={tailoringProvider}
+        onChange={setTailoringProvider}
+      />
+
+      <style jsx>{`
+        .model-selector {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          width: 100%;
+        }
+      `}</style>
+    </div>
+  );
+}

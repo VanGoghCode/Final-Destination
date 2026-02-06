@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode } from "react";
+import type { AIProvider } from "@/lib/ai-providers/types";
 
 interface AppState {
   // Personal details
@@ -40,6 +41,10 @@ interface AppState {
   // Loading states
   isGeneratingTailored: boolean;
   isGeneratingAnswers: boolean;
+
+  // AI Provider selection (separate for research and tailoring)
+  researchProvider: AIProvider;
+  tailoringProvider: AIProvider;
 }
 
 interface AppContextType extends AppState {
@@ -65,6 +70,8 @@ interface AppContextType extends AppState {
   setGeneratedAnswers: (value: string) => void;
   setIsGeneratingTailored: (value: boolean) => void;
   setIsGeneratingAnswers: (value: boolean) => void;
+  setResearchProvider: (value: AIProvider) => void;
+  setTailoringProvider: (value: AIProvider) => void;
   resetAll: () => void;
 }
 
@@ -91,12 +98,35 @@ const initialState: AppState = {
   generatedAnswers: "",
   isGeneratingTailored: false,
   isGeneratingAnswers: false,
+  researchProvider: "gemini", // Default: Gemini for research
+  tailoringProvider: "claude", // Default: Claude for tailoring
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const RESEARCH_PROVIDER_KEY = "resume-tailor-research-provider";
+const TAILORING_PROVIDER_KEY = "resume-tailor-tailoring-provider";
+
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AppState>(initialState);
+  const [state, setState] = useState<AppState>(() => {
+    // Initialize with saved providers from localStorage (client-side only)
+    if (typeof window !== "undefined") {
+      const savedResearch = localStorage.getItem(RESEARCH_PROVIDER_KEY);
+      const savedTailoring = localStorage.getItem(TAILORING_PROVIDER_KEY);
+      return {
+        ...initialState,
+        researchProvider:
+          savedResearch === "claude" || savedResearch === "gemini"
+            ? savedResearch
+            : "gemini",
+        tailoringProvider:
+          savedTailoring === "claude" || savedTailoring === "gemini"
+            ? savedTailoring
+            : "claude",
+      };
+    }
+    return initialState;
+  });
 
   const setFirstName = (value: string) =>
     setState((prev) => ({ ...prev, firstName: value }));
@@ -142,6 +172,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, isGeneratingTailored: value }));
   const setIsGeneratingAnswers = (value: boolean) =>
     setState((prev) => ({ ...prev, isGeneratingAnswers: value }));
+  const setResearchProvider = (value: AIProvider) => {
+    setState((prev) => ({ ...prev, researchProvider: value }));
+    if (typeof window !== "undefined") {
+      localStorage.setItem(RESEARCH_PROVIDER_KEY, value);
+    }
+  };
+  const setTailoringProvider = (value: AIProvider) => {
+    setState((prev) => ({ ...prev, tailoringProvider: value }));
+    if (typeof window !== "undefined") {
+      localStorage.setItem(TAILORING_PROVIDER_KEY, value);
+    }
+  };
   const resetAll = () => setState(initialState);
 
   return (
@@ -170,6 +212,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setGeneratedAnswers,
         setIsGeneratingTailored,
         setIsGeneratingAnswers,
+        setResearchProvider,
+        setTailoringProvider,
         resetAll,
       }}
     >

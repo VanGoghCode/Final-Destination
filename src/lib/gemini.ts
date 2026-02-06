@@ -6,9 +6,10 @@ import {
   type GenerateContentConfig,
 } from "@google/genai";
 import { isValidInput } from "./sanitize";
+import { AIProvider, getAIProvider } from "./ai-providers";
 
 const MODEL_NAME = "gemini-3-pro-preview";
-const MODEL_NAME_GROUNDED = "gemini-2.5-flash-lite";
+const MODEL_NAME_GROUNDED = "gemini-3-pro-preview";
 
 // Retry configuration
 const MAX_RETRIES = 3;
@@ -119,8 +120,18 @@ const groundedConfig: GenerateContentConfig = {
   ],
 };
 
-// Helper to generate content using Google GenAI with retry logic
-async function generateContent(prompt: string): Promise<string> {
+// Helper to generate content using selected AI provider with retry logic
+async function generateContent(
+  prompt: string,
+  provider?: AIProvider,
+): Promise<string> {
+  // If provider specified, use the provider abstraction
+  if (provider) {
+    const aiProvider = getAIProvider(provider);
+    return aiProvider.generateContent(prompt);
+  }
+
+  // Default: use Gemini directly (backward compatibility)
   // Validate input
   if (!isValidInput(prompt)) {
     throw new Error("Invalid input detected");
@@ -368,7 +379,9 @@ export async function tailorResume(
   jobDescription: string,
   personalDetails: string,
   companyInfo: string,
+  provider: AIProvider = "claude",
 ): Promise<string> {
+  // Use specified provider for resume tailoring (defaults to Claude)
   const prompt = `You are an human expert resume writer and career consultant specializing in Semantic Mapping and Multidisciplinary Positioning for modern ATS systems. Your task is to tailor the given LaTeX resume to match the job description while maintaining the EXACT same LaTeX format and structure.
 
 ## THE MULTIDISCIPLINARY ADVANTAGE (CRITICAL):
@@ -477,7 +490,7 @@ Use this company information to:
 ## OUTPUT:
 The complete, compilable LaTeX code with semantically aligned content that maximizes ATS compatibility, recruiter engagement, and shows MULTIDISCIPLINARY FIT with the company's actual work.`;
 
-  let result = await generateContent(prompt);
+  let result = await generateContent(prompt, provider);
   result = result.replace(/^```latex\n?|^```\n?/i, "").replace(/\n?```$/i, "");
 
   return result.trim();
@@ -488,6 +501,7 @@ export async function tailorCoverLetter(
   jobDescription: string,
   personalDetails: string,
   companyInfo: string,
+  provider: AIProvider = "claude",
 ): Promise<string> {
   const prompt = `You are an expert cover letter writer crafting a letter for a visionary technologist. Your task is to tailor the given LaTeX cover letter for the specified job.
 
@@ -559,7 +573,8 @@ Use this company information to:
 ## OUTPUT:
 The complete, compilable LaTeX code with tailored content that sounds like a visionary technologist who genuinely wants to help this company succeed and whose MULTIDISCIPLINARY background makes them uniquely qualified.`;
 
-  let result = await generateContent(prompt);
+  // Use specified provider for cover letter tailoring (defaults to Claude)
+  let result = await generateContent(prompt, provider);
   result = result.replace(/^```latex\n?|^```\n?/i, "").replace(/\n?```$/i, "");
 
   return result.trim();

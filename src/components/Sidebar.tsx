@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Button from "./Button";
+import ModelSelector from "./ModelSelector";
 
 interface SidebarProps {
   title: string;
@@ -10,7 +11,12 @@ interface SidebarProps {
   defaultOpen?: boolean;
 }
 
-export default function Sidebar({ title, subtitle, children, defaultOpen = true }: SidebarProps) {
+export default function Sidebar({
+  title,
+  subtitle,
+  children,
+  defaultOpen = true,
+}: SidebarProps) {
   const [sidebarOpen, setSidebarOpen] = useState(defaultOpen);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -49,7 +55,11 @@ export default function Sidebar({ title, subtitle, children, defaultOpen = true 
           {/* Sidebar Header with Logo and Toggle */}
           <div className="h-14 flex items-center justify-between px-3 border-b border-gray-100 bg-linear-to-r from-gray-50 to-white">
             <div className="flex items-center gap-2">
-              <img src="/logo.png?v=2" alt="Logo" className="w-8 h-8 rounded-lg" />
+              <img
+                src="/logo.png?v=2"
+                alt="Logo"
+                className="w-8 h-8 rounded-lg"
+              />
               <span className="font-bold text-sm gradient-text">{title}</span>
             </div>
             {!isMobile && (
@@ -65,10 +75,24 @@ export default function Sidebar({ title, subtitle, children, defaultOpen = true 
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
               </Button>
             )}
+          </div>
+
+          {/* AI Provider Selection */}
+          <div
+            className={`px-4 py-3 border-b border-gray-100 bg-gray-50/50 transition-opacity ${
+              sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+            }`}
+          >
+            <ModelSelector />
           </div>
 
           <div
@@ -84,9 +108,7 @@ export default function Sidebar({ title, subtitle, children, defaultOpen = true 
             )}
 
             {/* Sidebar Content */}
-            <div className="flex-1 overflow-y-auto">
-              {children}
-            </div>
+            <div className="flex-1 overflow-y-auto">{children}</div>
           </div>
         </div>
       </div>
@@ -97,7 +119,14 @@ export default function Sidebar({ title, subtitle, children, defaultOpen = true 
           onClick={() => setSidebarOpen(true)}
           className="fixed bottom-6 left-6 z-30 w-12 h-12 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
             <line x1="3" y1="12" x2="21" y2="12" />
             <line x1="3" y1="6" x2="21" y2="6" />
             <line x1="3" y1="18" x2="21" y2="18" />

@@ -1,26 +1,39 @@
 import { NextResponse } from "next/server";
 import { tailorResume, extractJobLocationInfo } from "@/lib/gemini";
-import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
-import { sanitizeLatex, sanitizeJobDescription, sanitizePersonalDetails, sanitizeForAI } from "@/lib/sanitize";
+import {
+  checkRateLimit,
+  getClientIdentifier,
+  RATE_LIMITS,
+} from "@/lib/rate-limit";
+import {
+  sanitizeLatex,
+  sanitizeJobDescription,
+  sanitizePersonalDetails,
+  sanitizeForAI,
+} from "@/lib/sanitize";
+import type { AIProvider } from "@/lib/ai-providers/types";
 
 export async function POST(request: Request) {
   try {
     // Rate limiting
     const clientId = getClientIdentifier(request);
-    const rateLimitResult = checkRateLimit(`tailor_${clientId}`, RATE_LIMITS.AI_GENERATION);
-    
+    const rateLimitResult = checkRateLimit(
+      `tailor_${clientId}`,
+      RATE_LIMITS.AI_GENERATION,
+    );
+
     if (!rateLimitResult.success) {
       return NextResponse.json(
-        { 
+        {
           error: `Rate limit exceeded. Please try again in ${rateLimitResult.retryAfter} seconds.`,
-          retryAfter: rateLimitResult.retryAfter 
+          retryAfter: rateLimitResult.retryAfter,
         },
-        { 
+        {
           status: 429,
           headers: {
             "Retry-After": String(rateLimitResult.retryAfter),
             "X-RateLimit-Remaining": String(rateLimitResult.remaining),
-          }
+          },
         },
       );
     }
@@ -32,6 +45,7 @@ export async function POST(request: Request) {
       personalDetails,
       companyInfo,
       companyName,
+      tailoringProvider,
     } = body;
 
     if (!resumeLatex || !jobDescription) {
@@ -41,10 +55,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validate tailoringProvider (default to claude)
+    const provider: AIProvider =
+      tailoringProvider === "claude" || tailoringProvider === "gemini"
+        ? tailoringProvider
+        : "claude";
+
     // Sanitize inputs
     const sanitizedResume = sanitizeLatex(resumeLatex);
     const sanitizedJobDescription = sanitizeJobDescription(jobDescription);
-    const sanitizedPersonalDetails = sanitizePersonalDetails(personalDetails || "");
+    const sanitizedPersonalDetails = sanitizePersonalDetails(
+      personalDetails || "",
+    );
     const sanitizedCompanyInfo = sanitizeForAI(companyInfo || "");
 
     // Run resume tailoring and location extraction in parallel
@@ -53,7 +75,8 @@ export async function POST(request: Request) {
         sanitizedResume,
         sanitizedJobDescription,
         sanitizedPersonalDetails,
-        sanitizedCompanyInfo
+        sanitizedCompanyInfo,
+        provider,
       ),
       extractJobLocationInfo(sanitizedJobDescription, companyName || ""),
     ]);
