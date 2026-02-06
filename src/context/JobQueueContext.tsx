@@ -243,7 +243,19 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
 
   // Clear only completed jobs
   const clearCompleted = useCallback(() => {
-    setQueue((prev) => prev.filter((j) => j.status !== "completed"));
+    // Get completed job IDs before clearing
+    setQueue((prev) => {
+      const completedIds = prev
+        .filter((j) => j.status === "completed")
+        .map((j) => j.id);
+
+      // Delete each completed job from server
+      completedIds.forEach((id) => {
+        fetch(`/api/queue?id=${id}`, { method: "DELETE" }).catch(console.error);
+      });
+
+      return prev.filter((j) => j.status !== "completed");
+    });
   }, []);
 
   // Update job status

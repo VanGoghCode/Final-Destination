@@ -492,6 +492,8 @@ The complete, compilable LaTeX code with semantically aligned content that maxim
 
   let result = await generateContent(prompt, provider);
   result = result.replace(/^```latex\n?|^```\n?/i, "").replace(/\n?```$/i, "");
+  // Strip any ** markers that slipped through (LaTeX doesn't support them)
+  result = result.replace(/\*\*/g, "");
 
   return result.trim();
 }
@@ -576,6 +578,8 @@ The complete, compilable LaTeX code with tailored content that sounds like a vis
   // Use specified provider for cover letter tailoring (defaults to Claude)
   let result = await generateContent(prompt, provider);
   result = result.replace(/^```latex\n?|^```\n?/i, "").replace(/\n?```$/i, "");
+  // Strip any ** markers that slipped through (LaTeX doesn't support them)
+  result = result.replace(/\*\*/g, "");
 
   return result.trim();
 }

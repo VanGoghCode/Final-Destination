@@ -9,6 +9,7 @@ interface SidebarProps {
   subtitle?: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  hideModelSelector?: boolean;
 }
 
 export default function Sidebar({
@@ -16,6 +17,7 @@ export default function Sidebar({
   subtitle,
   children,
   defaultOpen = true,
+  hideModelSelector = false,
 }: SidebarProps) {
   const [sidebarOpen, setSidebarOpen] = useState(defaultOpen);
   const [isMobile, setIsMobile] = useState(false);
@@ -87,13 +89,15 @@ export default function Sidebar({
           </div>
 
           {/* AI Provider Selection */}
-          <div
-            className={`px-4 py-3 border-b border-gray-100 bg-gray-50/50 transition-opacity ${
-              sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-            }`}
-          >
-            <ModelSelector />
-          </div>
+          {!hideModelSelector && (
+            <div
+              className={`px-4 py-3 border-b border-gray-100 bg-gray-50/50 transition-opacity ${
+                sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <ModelSelector />
+            </div>
+          )}
 
           <div
             className={`flex flex-col flex-1 overflow-hidden transition-opacity ${

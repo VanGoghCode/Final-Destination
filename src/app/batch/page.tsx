@@ -190,6 +190,27 @@ function EditJobModal({
   );
 }
 
+// Helper to get activity color based on type
+function getActivityColor(activity: string): { border: string; text: string } {
+  if (activity.startsWith("[Research]"))
+    return { border: "border-l-blue-500", text: "text-blue-700" };
+  if (activity.startsWith("[Tailor]") || activity.startsWith("[Resume]"))
+    return { border: "border-l-purple-500", text: "text-purple-700" };
+  if (activity.startsWith("[Cover]"))
+    return { border: "border-l-indigo-500", text: "text-indigo-700" };
+  if (activity.startsWith("[Complete]") || activity.startsWith("[Done]"))
+    return { border: "border-l-green-500", text: "text-green-700" };
+  if (activity.startsWith("[Error]") || activity.startsWith("[Failed]"))
+    return { border: "border-l-red-500", text: "text-red-600" };
+  if (activity.startsWith("[Paused]") || activity.startsWith("[Cancelled]"))
+    return { border: "border-l-orange-500", text: "text-orange-600" };
+  if (activity.startsWith("[Added]"))
+    return { border: "border-l-gray-400", text: "text-gray-600" };
+  if (activity.startsWith("[Started]") || activity.startsWith("[Profile]"))
+    return { border: "border-l-gray-500", text: "text-gray-600" };
+  return { border: "border-l-gray-300", text: "text-gray-500" };
+}
+
 // Live Activity Feed Component
 function ActivityFeed({
   currentJob,
@@ -213,25 +234,33 @@ function ActivityFeed({
           </span>
         )}
       </div>
-      <div className="space-y-1 max-h-24 overflow-y-auto">
+      <div className="space-y-1 max-h-32 overflow-y-auto">
         {currentJob && (
-          <div className="flex gap-2 text-gray-700">
+          <div className="flex gap-2 text-gray-700 pl-2 border-l-2 border-l-purple-500 bg-purple-50/50 py-0.5">
             <span className="text-gray-400">
               [{new Date().toLocaleTimeString()}]
             </span>
-            <span>Processing: {currentJob.companyName}</span>
+            <span className="text-purple-700">
+              Processing: {currentJob.companyName}
+            </span>
           </div>
         )}
-        {recentActivities.slice(0, 5).map((activity, i) => (
-          <div key={i} className="flex gap-2 text-gray-500">
-            <span className="text-gray-400">
-              [{new Date(Date.now() - i * 5000).toLocaleTimeString()}]
-            </span>
-            <span>{activity}</span>
-          </div>
-        ))}
+        {recentActivities.slice(0, 8).map((activity, i) => {
+          const colors = getActivityColor(activity);
+          return (
+            <div
+              key={i}
+              className={`flex gap-2 pl-2 border-l-2 ${colors.border} py-0.5`}
+            >
+              <span className="text-gray-400 shrink-0">
+                [{new Date(Date.now() - i * 5000).toLocaleTimeString()}]
+              </span>
+              <span className={colors.text}>{activity}</span>
+            </div>
+          );
+        })}
         {!currentJob && recentActivities.length === 0 && (
-          <div className="text-gray-400">Waiting for jobs...</div>
+          <div className="text-gray-400 italic">Waiting for jobs...</div>
         )}
       </div>
     </div>
@@ -327,7 +356,7 @@ export default function BatchProcessPage() {
             );
             if (profileResume) {
               jobResumeTemplate = profileResume;
-              addActivity(`📋 Using profile "${profile.name}" resume template`);
+              addActivity(`[Profile] Using "${profile.name}" resume template`);
             }
           }
           if (profile.defaultCoverLetterId) {
@@ -350,7 +379,7 @@ export default function BatchProcessPage() {
       try {
         // Step 1: Research company
         updateJobStatus(job.id, "researching", 10);
-        addActivity(`🔍 Researching ${job.companyName}...`);
+        addActivity(`[Research] Researching ${job.companyName}...`);
 
         const researchResponse = await fetch("/api/research", {
           method: "POST",
@@ -372,11 +401,11 @@ export default function BatchProcessPage() {
         const researchData = await researchResponse.json();
         updateJobResults(job.id, { companyResearch: researchData.research });
         updateJobStatus(job.id, "researching", 30);
-        addActivity(`✓ Research complete for ${job.companyName}`);
+        addActivity(`[Done] Research complete for ${job.companyName}`);
 
         // Step 2: Tailor resume
         updateJobStatus(job.id, "tailoring-resume", 40);
-        addActivity(`📝 Tailoring resume for ${job.positionTitle}...`);
+        addActivity(`[Tailor] Tailoring resume for ${job.positionTitle}...`);
 
         const tailorResponse = await fetch("/api/tailor", {
           method: "POST",
@@ -403,12 +432,14 @@ export default function BatchProcessPage() {
           jobWorkMode: tailorData.jobWorkMode,
         });
         updateJobStatus(job.id, "tailoring-resume", 60);
-        addActivity(`✓ Resume tailored for ${job.companyName}`);
+        addActivity(`[Done] Resume tailored for ${job.companyName}`);
 
         // Step 3: Tailor cover letter
         if (jobCoverLetterTemplate) {
           updateJobStatus(job.id, "tailoring-cover-letter", 70);
-          addActivity(`✉️ Generating cover letter for ${job.positionTitle}...`);
+          addActivity(
+            `[Cover] Generating cover letter for ${job.positionTitle}...`,
+          );
 
           const coverLetterResponse = await fetch("/api/tailor-cover-letter", {
             method: "POST",
@@ -431,21 +462,21 @@ export default function BatchProcessPage() {
           updateJobResults(job.id, {
             tailoredCoverLetter: coverLetterData.tailoredCoverLetter,
           });
-          addActivity(`✓ Cover letter generated for ${job.companyName}`);
+          addActivity(`[Done] Cover letter generated for ${job.companyName}`);
         }
 
         // Mark completed
         updateJobStatus(job.id, "completed", 100);
-        addActivity(`🎉 Completed: ${job.companyName} - ${job.positionTitle}`);
+        addActivity(`[Complete] ${job.companyName} - ${job.positionTitle}`);
       } catch (error) {
         if ((error as Error).name === "AbortError") {
-          addActivity(`⏸️ Cancelled: ${job.companyName}`);
+          addActivity(`[Paused] Cancelled: ${job.companyName}`);
           updateJobStatus(job.id, "pending", 0);
         } else {
           const message =
             error instanceof Error ? error.message : "Unknown error";
           setJobError(job.id, message);
-          addActivity(`❌ Failed: ${job.companyName} - ${message}`);
+          addActivity(`[Error] Failed: ${job.companyName} - ${message}`);
         }
       }
     },
@@ -511,9 +542,21 @@ export default function BatchProcessPage() {
 
   // Handle stop processing
   const handleStopProcessing = () => {
+    // Reset any currently processing job back to pending
+    const processingJobs = queue.filter(
+      (j) =>
+        j.status === "researching" ||
+        j.status === "tailoring-resume" ||
+        j.status === "tailoring-cover-letter",
+    );
+    processingJobs.forEach((job) => {
+      updateJobStatus(job.id, "pending", 0);
+    });
+
     abortControllerRef.current?.abort();
     stopProcessing();
     processingRef.current = false;
+    addActivity(`[Paused] Processing stopped by user`);
   };
 
   // Handle add job - auto starts processing
@@ -528,14 +571,14 @@ export default function BatchProcessPage() {
     profileColor?: string;
   }) => {
     addJob(jobData);
-    addActivity(`➕ Added: ${jobData.companyName} - ${jobData.positionTitle}`);
+    addActivity(`[Added] ${jobData.companyName} - ${jobData.positionTitle}`);
 
     // Auto-start processing if not already running
     // Use setTimeout to ensure state is updated before starting
     setTimeout(() => {
       if (!processingRef.current && resumeTemplate) {
         startProcessing();
-        addActivity(`▶️ Auto-started processing queue`);
+        addActivity(`[Started] Auto-started processing queue`);
       }
     }, 100);
   };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, use } from "react";
+import { useState, useRef, useEffect, use, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LaTeXEditor from "@/components/LaTeXEditor";
 import Sidebar from "@/components/Sidebar";
@@ -72,6 +72,12 @@ export default function TailoredCompanyPage({
   // Collapsible sections state
   const [showFilenames, setShowFilenames] = useState(false);
 
+  // Delete from batch state
+  const [isDeletingFromBatch, setIsDeletingFromBatch] = useState(false);
+
+  // Duplicate warning state
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+
   // Load job data from sessionStorage
   useEffect(() => {
     if (jobId) {
@@ -109,6 +115,43 @@ export default function TailoredCompanyPage({
       }
     }
   }, [jobId]);
+
+  // Beforeunload listener - remind user to log job before closing
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Only show warning if job is not logged yet
+      if (!alreadyLogged && jobData) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [alreadyLogged, jobData]);
+
+  // Handle delete from batch
+  const handleDeleteFromBatch = useCallback(async () => {
+    if (!jobId) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this job from the batch queue?",
+    );
+    if (!confirmed) return;
+
+    setIsDeletingFromBatch(true);
+    try {
+      await fetch(`/api/queue?id=${jobId}`, { method: "DELETE" });
+      // Remove from sessionStorage too
+      sessionStorage.removeItem(`batch_job_${jobId}`);
+      // Redirect to batch page
+      router.push("/batch");
+    } catch (err) {
+      console.error("Failed to delete job:", err);
+      alert("Failed to delete job from batch");
+    } finally {
+      setIsDeletingFromBatch(false);
+    }
+  }, [jobId, router]);
 
   // Generate formatted filenames
   const formatName = (str: string | undefined | null) =>
@@ -153,8 +196,9 @@ export default function TailoredCompanyPage({
     }
   };
 
-  const handleLogToSheet = async () => {
+  const handleLogToSheet = async (skipDuplicateCheck = false) => {
     setLogError("");
+    setDuplicateWarning(null);
     setIsLogging(true);
 
     const noteParts: string[] = [];
@@ -173,10 +217,19 @@ export default function TailoredCompanyPage({
           applicationLink: applicationLink.trim() || "N/A",
           notes: composedNotes,
           other: other.trim() || "",
+          skipDuplicateCheck,
         }),
       });
 
       const data = await response.json();
+
+      // Handle duplicate warning
+      if (data.warning) {
+        setDuplicateWarning(data.message);
+        setIsLogging(false);
+        return;
+      }
+
       if (!response.ok)
         throw new Error(data.error || "Failed to log application");
 
@@ -204,6 +257,7 @@ export default function TailoredCompanyPage({
         setApplicationLink("");
         setNotes("");
         setOther("");
+        setDuplicateWarning(null);
       }, 2000);
     } catch (err) {
       setLogError(err instanceof Error ? err.message : "An error occurred");
@@ -321,7 +375,7 @@ export default function TailoredCompanyPage({
 
   return (
     <div className="h-screen flex overflow-hidden">
-      <Sidebar title={companyName} subtitle={positionTitle}>
+      <Sidebar title={companyName} subtitle={positionTitle} hideModelSelector>
         {/* Step Navigation - Breadcrumbs */}
         <div className="p-3 border-b border-gray-100">
           <div className="flex items-center gap-1">
@@ -485,6 +539,33 @@ export default function TailoredCompanyPage({
             </div>
           )}
 
+          {/* Delete from Batch */}
+          {jobId && (
+            <div className="pt-4 border-t border-gray-200">
+              <Button
+                onClick={handleDeleteFromBatch}
+                disabled={isDeletingFromBatch}
+                variant="ghost"
+                className="w-full text-xs py-2 text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200"
+              >
+                <svg
+                  className="w-3.5 h-3.5 mr-1.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+                {isDeletingFromBatch ? "Deleting..." : "Delete from Batch"}
+              </Button>
+            </div>
+          )}
+
           {/* Collapsible Filenames Section */}
           <div>
             <button
@@ -628,7 +709,7 @@ export default function TailoredCompanyPage({
                 }
                 className="flex-1 px-2 py-1.5 text-xs font-medium text-muted bg-surface-hover hover:bg-gray-200 rounded-lg transition-colors border border-card-border/50"
               >
-                💰 Salary
+                Salary
               </button>
               <button
                 onClick={() =>
@@ -638,7 +719,7 @@ export default function TailoredCompanyPage({
                 }
                 className="flex-1 px-2 py-1.5 text-xs font-medium text-muted bg-surface-hover hover:bg-gray-200 rounded-lg transition-colors border border-card-border/50"
               >
-                🎯 Skills
+                Skills
               </button>
             </div>
 
@@ -807,6 +888,22 @@ export default function TailoredCompanyPage({
 
               {logError && <p className="text-xs text-red-500">{logError}</p>}
 
+              {/* Duplicate Warning */}
+              {duplicateWarning && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm mb-4">
+                  <p className="font-medium mb-1.5">Possible Duplicate</p>
+                  <p className="text-xs mb-2">{duplicateWarning}</p>
+                  <Button
+                    onClick={() => handleLogToSheet(true)}
+                    disabled={isLogging}
+                    variant="ghost"
+                    className="w-full text-xs py-1.5 border border-amber-300 text-amber-700 hover:bg-amber-100"
+                  >
+                    Log Anyway
+                  </Button>
+                </div>
+              )}
+
               <div className="flex gap-3 pt-2">
                 <Button
                   type="button"
@@ -817,8 +914,8 @@ export default function TailoredCompanyPage({
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleLogToSheet}
-                  disabled={isLogging}
+                  onClick={() => handleLogToSheet()}
+                  disabled={isLogging || !!duplicateWarning}
                   variant="primary"
                   className="flex-1"
                 >
