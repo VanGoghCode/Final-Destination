@@ -2,6 +2,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const container = document.getElementById('profileContainer');
     const addBtn = document.getElementById('addBtn');
     const statusEl = document.getElementById('status');
+    const companyNameInput = document.getElementById('companyName');
+    const positionTitleInput = document.getElementById('positionTitle');
+    const companyUrlInput = document.getElementById('companyUrl');
+    const jobUrlInput = document.getElementById('jobUrl');
+    const jobDescriptionInput = document.getElementById('jobDescription');
+    const profileIdInput = document.getElementById('profileId');
 
     if (!container || !addBtn) {
         console.error("Required elements not found");
@@ -17,21 +23,67 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("Failed to get tab", e);
     }
 
-    // Set job URL immediately
-    if (tab?.url) {
-        document.getElementById('jobUrl').value = tab.url;
+    // Storage key based on tab URL (so different jobs have different saved data)
+    const tabUrl = tab?.url || 'default';
+    const storageKey = `form_data_${btoa(tabUrl).slice(0, 50)}`;
+
+    // Load saved form data from storage
+    try {
+        const result = await chrome.storage.local.get(storageKey);
+        const savedData = result[storageKey];
+        if (savedData) {
+            if (savedData.companyName) companyNameInput.value = savedData.companyName;
+            if (savedData.positionTitle) positionTitleInput.value = savedData.positionTitle;
+            if (savedData.companyUrl) companyUrlInput.value = savedData.companyUrl;
+            if (savedData.jobUrl) jobUrlInput.value = savedData.jobUrl;
+            if (savedData.jobDescription) jobDescriptionInput.value = savedData.jobDescription;
+            if (savedData.profileId) profileIdInput.value = savedData.profileId;
+            statusEl.textContent = "📋 Restored saved data";
+            statusEl.className = "";
+        }
+    } catch (e) {
+        console.error("Failed to load saved data", e);
     }
+
+    // Set job URL if not already saved
+    if (!jobUrlInput.value && tab?.url) {
+        jobUrlInput.value = tab.url;
+    }
+
+    // Save form data on every input change
+    const saveFormData = () => {
+        const data = {
+            companyName: companyNameInput.value,
+            positionTitle: positionTitleInput.value,
+            companyUrl: companyUrlInput.value,
+            jobUrl: jobUrlInput.value,
+            jobDescription: jobDescriptionInput.value,
+            profileId: profileIdInput.value
+        };
+        chrome.storage.local.set({ [storageKey]: data }).catch(console.error);
+    };
+
+    // Attach save handler to all inputs
+    document.querySelectorAll('input, textarea').forEach(el => {
+        el.addEventListener('input', () => {
+            el.style.borderColor = "#E5E5E5";
+            saveFormData();
+        });
+    });
 
     // Load profiles
     let profiles = [];
     container.innerHTML = '<span style="font-size:11px;color:#999;">Loading...</span>';
 
     const updateSelection = (id) => {
-        document.getElementById('profileId').value = id;
+        profileIdInput.value = id;
         document.querySelectorAll('.profile').forEach(item => {
             if (item.dataset.id === id) item.classList.add('selected');
             else item.classList.remove('selected');
         });
+        // Clear profile error styling
+        container.style.borderColor = "";
+        saveFormData();
     };
 
     try {
@@ -41,11 +93,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             container.innerHTML = '';
 
             if (profiles.length > 0) {
-                document.getElementById('profileId').value = profiles[0].id;
+                // Don't auto-select any profile - leave profileId empty unless restored from storage
+                const savedProfileId = profileIdInput.value;
 
-                profiles.forEach((p, idx) => {
+                profiles.forEach((p) => {
                     const item = document.createElement('div');
-                    item.className = 'profile' + (idx === 0 ? ' selected' : '');
+                    // Only mark as selected if this was the saved profile
+                    const isSelected = savedProfileId === p.id;
+                    item.className = 'profile' + (isSelected ? ' selected' : '');
                     item.dataset.id = p.id;
                     item.onclick = () => updateSelection(p.id);
 
@@ -84,167 +139,55 @@ document.addEventListener('DOMContentLoaded', async () => {
         container.innerHTML = '<span style="font-size:11px;color:#999;">Offline</span>';
     }
 
-    // Show loading state for AI fields
-    const companyNameInput = document.getElementById('companyName');
-    const positionTitleInput = document.getElementById('positionTitle');
-    const companyUrlInput = document.getElementById('companyUrl');
-
-    companyNameInput.classList.add('loading-field');
-    positionTitleInput.classList.add('loading-field');
-    companyUrlInput.classList.add('loading-field');
-    statusEl.textContent = "🔍 AI analyzing page...";
-    statusEl.className = "loading";
-
-    // Get page content if possible
-    let pageContent = "";
-    if (tab?.id && tab?.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://')) {
+    // Basic extraction from URL (no AI)
+    if (!companyNameInput.value || !companyUrlInput.value) {
         try {
-            const results = await chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                function: () => {
-                    const selection = window.getSelection().toString();
-                    if (selection) return { selection, bodyText: "" };
-                    const mainContent = document.querySelector('main, article, [role="main"], .job-description, #job-description');
-                    const bodyText = mainContent ? mainContent.innerText : document.body.innerText;
-                    return { selection: "", bodyText: bodyText.slice(0, 3000) };
-                }
-            });
-
-            if (results && results[0]?.result) {
-                const { selection, bodyText } = results[0].result;
-                if (selection) {
-                    document.getElementById('jobDescription').value = selection;
-                }
-                pageContent = selection || bodyText;
-            }
-        } catch (e) {
-            console.log("Could not get page content", e);
-        }
-    }
-
-    // Helper to show confidence indicator
-    function showConfidence(input, level) {
-        const wrapper = input.parentElement;
-        let indicator = wrapper.querySelector('.confidence');
-        if (!indicator) {
-            indicator = document.createElement('span');
-            indicator.className = 'confidence';
-            wrapper.appendChild(indicator);
-        }
-
-        if (level === 'high') {
-            indicator.textContent = '✓';
-            indicator.style.color = '#10b981';
-            indicator.title = 'AI is confident';
-        } else if (level === 'medium') {
-            indicator.textContent = '?';
-            indicator.style.color = '#f59e0b';
-            indicator.title = 'Please verify';
-        } else {
-            indicator.textContent = '!';
-            indicator.style.color = '#ef4444';
-            indicator.title = 'Low confidence - verify this';
-        }
-    }
-
-    // Call AI API to extract job info
-    try {
-        const response = await fetch('https://final-destination-rose.vercel.app/api/extract-job', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                pageTitle: tab?.title || "",
-                pageUrl: tab?.url || "",
-                pageContent: pageContent
-            })
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-
-            if (data.companyName) {
-                companyNameInput.value = data.companyName;
-                showConfidence(companyNameInput, data.confidence?.companyName || 'low');
-            }
-            if (data.positionTitle) {
-                positionTitleInput.value = data.positionTitle;
-                showConfidence(positionTitleInput, data.confidence?.positionTitle || 'low');
-            }
-            if (data.companyUrl) {
-                companyUrlInput.value = data.companyUrl;
-                showConfidence(companyUrlInput, data.confidence?.companyUrl || 'low');
-            }
-
-            // Show overall status based on confidence
-            const lowConfidenceFields = [];
-            if (data.confidence?.companyName === 'low') lowConfidenceFields.push('Company');
-            if (data.confidence?.positionTitle === 'low') lowConfidenceFields.push('Position');
-            if (data.confidence?.companyUrl === 'low') lowConfidenceFields.push('Website');
-
-            if (lowConfidenceFields.length > 0) {
-                statusEl.textContent = `⚠️ Verify: ${lowConfidenceFields.join(', ')}`;
-                statusEl.className = "warning";
-            } else {
-                statusEl.textContent = "✓ Fields extracted";
-                statusEl.className = "success";
-            }
-        } else {
-            console.error("AI extraction failed");
-            statusEl.textContent = "⚠️ AI unavailable";
-            statusEl.className = "warning";
-            fallbackExtraction(tab?.title || "", tab?.url || "");
-        }
-    } catch (e) {
-        console.error("AI extraction error", e);
-        statusEl.textContent = "⚠️ Using fallback";
-        statusEl.className = "warning";
-        fallbackExtraction(tab?.title || "", tab?.url || "");
-    }
-
-    // Remove loading state
-    companyNameInput.classList.remove('loading-field');
-    positionTitleInput.classList.remove('loading-field');
-    companyUrlInput.classList.remove('loading-field');
-    companyNameInput.placeholder = "Company name";
-    positionTitleInput.placeholder = "Job title";
-    companyUrlInput.placeholder = "https://company.com";
-
-    // Fallback extraction function
-    function fallbackExtraction(title, url) {
-        try {
-            const hostname = new URL(url).hostname;
+            const hostname = new URL(tab?.url || '').hostname;
             const parts = hostname.replace(/^(www\.|careers\.|jobs\.|apply\.|hire\.)/, '').split('.');
             if (parts.length >= 1) {
                 const main = parts[0];
                 if (!companyNameInput.value) {
                     companyNameInput.value = main.charAt(0).toUpperCase() + main.slice(1);
+                    saveFormData();
                 }
                 if (!companyUrlInput.value) {
-                    companyUrlInput.value = `https://www.${parts.slice(0).join('.')}`;
+                    companyUrlInput.value = `https://www.${parts.join('.')}`;
+                    saveFormData();
                 }
             }
         } catch { }
+    }
 
-        if (title && !positionTitleInput.value) {
-            const cleaned = title.split(/[-–|]/)[0].trim()
-                .replace(/\s*at\s+\w+.*$/i, '')
-                .replace(/\s*\|\s*\w+.*$/i, '');
-            if (cleaned.length < 80) {
-                positionTitleInput.value = cleaned;
+    // Extract job description from page selection if available
+    if (!jobDescriptionInput.value && tab?.id && tab?.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://')) {
+        try {
+            const results = await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                function: () => {
+                    const selection = window.getSelection().toString();
+                    return selection || "";
+                }
+            });
+
+            if (results && results[0]?.result) {
+                jobDescriptionInput.value = results[0].result;
+                saveFormData();
             }
+        } catch (e) {
+            console.log("Could not get page selection", e);
         }
     }
 
     // Handle Add Button
     addBtn.addEventListener('click', async () => {
-        const selectedProfileId = document.getElementById('profileId').value;
+        const selectedProfileId = profileIdInput.value;
         const selectedProfile = profiles.find(p => p.id === selectedProfileId);
 
         const job = {
             companyName: companyNameInput.value.trim(),
             positionTitle: positionTitleInput.value.trim(),
-            companyUrl: document.getElementById('jobUrl').value.trim(),
-            jobDescription: document.getElementById('jobDescription').value.trim(),
+            companyUrl: jobUrlInput.value.trim(),
+            jobDescription: jobDescriptionInput.value.trim(),
             personalDetails: document.getElementById('personalDetails')?.value?.trim() || '',
             profileId: selectedProfileId || undefined,
             profileName: selectedProfile ? selectedProfile.name : undefined,
@@ -252,13 +195,49 @@ document.addEventListener('DOMContentLoaded', async () => {
             companyWebsite: companyUrlInput.value.trim()
         };
 
-        if (!job.companyName || !job.positionTitle || !job.companyUrl || !job.jobDescription) {
-            statusEl.textContent = "Fill all fields";
+        // Validation - check all required fields including profile
+        let hasErrors = false;
+        statusEl.textContent = "";
+        statusEl.className = "";
+
+        // Reset all border colors
+        companyNameInput.style.borderColor = "#E5E5E5";
+        positionTitleInput.style.borderColor = "#E5E5E5";
+        jobUrlInput.style.borderColor = "#E5E5E5";
+        jobDescriptionInput.style.borderColor = "#E5E5E5";
+        container.style.border = "";
+
+        // Validate profile first (mandatory)
+        if (!selectedProfileId) {
+            container.style.border = "2px solid #ef4444";
+            container.style.borderRadius = "8px";
+            statusEl.textContent = "Select a profile";
             statusEl.className = "error";
-            if (!job.companyName) companyNameInput.style.borderColor = "#ef4444";
-            if (!job.positionTitle) positionTitleInput.style.borderColor = "#ef4444";
-            if (!job.companyUrl) document.getElementById('jobUrl').style.borderColor = "#ef4444";
-            if (!job.jobDescription) document.getElementById('jobDescription').style.borderColor = "#ef4444";
+            hasErrors = true;
+        }
+
+        if (!job.companyName) {
+            companyNameInput.style.borderColor = "#ef4444";
+            hasErrors = true;
+        }
+        if (!job.positionTitle) {
+            positionTitleInput.style.borderColor = "#ef4444";
+            hasErrors = true;
+        }
+        if (!job.companyUrl) {
+            jobUrlInput.style.borderColor = "#ef4444";
+            hasErrors = true;
+        }
+        if (!job.jobDescription) {
+            jobDescriptionInput.style.borderColor = "#ef4444";
+            hasErrors = true;
+        }
+
+        if (hasErrors) {
+            if (!statusEl.textContent) {
+                statusEl.textContent = "Fill all fields";
+                statusEl.className = "error";
+            }
             return;
         }
 
@@ -274,6 +253,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             if (response.ok) {
+                // Clear saved data on successful submission
+                await chrome.storage.local.remove(storageKey);
+
                 statusEl.textContent = "✓ Added!";
                 statusEl.className = "success";
                 setTimeout(() => window.close(), 1000);
@@ -288,12 +270,5 @@ document.addEventListener('DOMContentLoaded', async () => {
             addBtn.disabled = false;
             addBtn.textContent = "Add to Queue";
         }
-    });
-
-    // Clear red borders on input
-    document.querySelectorAll('input, textarea').forEach(el => {
-        el.addEventListener('input', () => {
-            el.style.borderColor = "#E5E5E5";
-        });
     });
 });

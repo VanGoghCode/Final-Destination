@@ -5,7 +5,8 @@
     "description": "Scrape job data and add to processing queue",
     "permissions": [
         "activeTab",
-        "scripting"
+        "scripting",
+        "storage"
     ],
     "host_permissions": [
         "http://localhost:3000/*",
