@@ -49,6 +49,7 @@ export default function TailoredCompanyPage({
   const [isLogging, setIsLogging] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
   const [logError, setLogError] = useState("");
+  const [alreadyLogged, setAlreadyLogged] = useState(false);
   const [country, setCountry] = useState("");
   const [workMode, setWorkMode] = useState<
     "" | "Remote" | "Hybrid" | "On-site"
@@ -87,6 +88,22 @@ export default function TailoredCompanyPage({
         } catch {
           console.error("Failed to parse job data");
         }
+      }
+    }
+  }, [jobId]);
+
+  // Check if this job was already logged
+  useEffect(() => {
+    if (jobId) {
+      try {
+        const loggedJobs = JSON.parse(
+          localStorage.getItem("logged_jobs") || "[]",
+        );
+        if (loggedJobs.includes(jobId)) {
+          setAlreadyLogged(true);
+        }
+      } catch {
+        // Ignore parse errors
       }
     }
   }, [jobId]);
@@ -149,6 +166,23 @@ export default function TailoredCompanyPage({
         throw new Error(data.error || "Failed to log application");
 
       setLogSuccess(true);
+
+      // Mark this job as logged in localStorage
+      if (jobId) {
+        try {
+          const loggedJobs = JSON.parse(
+            localStorage.getItem("logged_jobs") || "[]",
+          );
+          if (!loggedJobs.includes(jobId)) {
+            loggedJobs.push(jobId);
+            localStorage.setItem("logged_jobs", JSON.stringify(loggedJobs));
+          }
+          setAlreadyLogged(true);
+        } catch {
+          // Ignore storage errors
+        }
+      }
+
       setTimeout(() => {
         setShowLogModal(false);
         setLogSuccess(false);
@@ -641,6 +675,32 @@ export default function TailoredCompanyPage({
               <p className="text-sm text-muted mt-1">
                 Record this application to your spreadsheet
               </p>
+              {alreadyLogged && (
+                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                  <svg
+                    className="w-5 h-5 text-amber-500 shrink-0 mt-0.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">
+                      Already logged
+                    </p>
+                    <p className="text-xs text-amber-600">
+                      This job was already added to your spreadsheet. Logging
+                      again will create a duplicate entry.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="p-6 space-y-4">

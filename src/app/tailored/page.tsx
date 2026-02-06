@@ -32,7 +32,8 @@ export default function TailoredPage() {
   const [copiedResume, setCopiedResume] = useState(false);
   const [copiedCoverLetter, setCopiedCoverLetter] = useState(false);
   const [copiedResumeDetailed, setCopiedResumeDetailed] = useState(false);
-  const [copiedCoverLetterDetailed, setCopiedCoverLetterDetailed] = useState(false);
+  const [copiedCoverLetterDetailed, setCopiedCoverLetterDetailed] =
+    useState(false);
 
   // Regeneration state
   const [isRegeneratingResume, setIsRegeneratingResume] = useState(false);
@@ -48,8 +49,11 @@ export default function TailoredPage() {
   const [isLogging, setIsLogging] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
   const [logError, setLogError] = useState("");
+  const [alreadyLogged, setAlreadyLogged] = useState(false);
   const [country, setCountry] = useState("");
-  const [workMode, setWorkMode] = useState<"" | "Remote" | "Hybrid" | "On-site">("");
+  const [workMode, setWorkMode] = useState<
+    "" | "Remote" | "Hybrid" | "On-site"
+  >("");
   const [editableCompanyName, setEditableCompanyName] = useState("");
   const [editablePositionTitle, setEditablePositionTitle] = useState("");
   const applicationLinkRef = useRef<HTMLInputElement>(null);
@@ -58,9 +62,13 @@ export default function TailoredPage() {
   const [generalQuestion, setGeneralQuestion] = useState("");
   const [generalAnswer, setGeneralAnswer] = useState("");
   const [isAskingQuestion, setIsAskingQuestion] = useState(false);
-  const [limitType, setLimitType] = useState<"none" | "words" | "characters">("none");
+  const [limitType, setLimitType] = useState<"none" | "words" | "characters">(
+    "none",
+  );
   const [limitValue, setLimitValue] = useState<number>(10);
-  const [searchMode, _setSearchMode] = useState<"context" | "context+internet" | "internet">("context");
+  const [searchMode, _setSearchMode] = useState<
+    "context" | "context+internet" | "internet"
+  >("context");
 
   // Collapsible sections state
   const [showFilenames, setShowFilenames] = useState(false);
@@ -72,6 +80,19 @@ export default function TailoredPage() {
     else if (newType === "characters") setLimitValue(200);
   };
 
+  // Generate unique job key from company, position, and part of job description
+  const getJobKey = () => {
+    const key = `${companyName}_${positionTitle}_${jobDescription.slice(0, 100)}`;
+    // Simple hash
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+      const char = key.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
+    }
+    return `single_${Math.abs(hash).toString(36)}`;
+  };
+
   // Initialize editable fields when modal opens - pre-fill with extracted values
   useEffect(() => {
     if (showLogModal) {
@@ -80,6 +101,18 @@ export default function TailoredPage() {
       // Pre-fill with extracted location info from context (extracted during tailoring)
       setCountry(jobCountry || "");
       setWorkMode(jobWorkMode || "");
+      // Check if this job was already logged
+      if (companyName && positionTitle) {
+        try {
+          const jobKey = getJobKey();
+          const loggedJobs = JSON.parse(
+            localStorage.getItem("logged_jobs") || "[]",
+          );
+          setAlreadyLogged(loggedJobs.includes(jobKey));
+        } catch {
+          // Ignore parse errors
+        }
+      }
       // Focus on application link field after modal opens
       setTimeout(() => {
         applicationLinkRef.current?.focus();
@@ -96,11 +129,11 @@ export default function TailoredPage() {
 
   // Use firstName and lastName from context, fallback to defaults
   const fullName = `${firstName || "First"}_${lastName || "Last"}`;
-  
+
   // Plain filenames (without company/role)
   const resumeFileNamePlain = `${fullName}_Resume`;
   const coverLetterFileNamePlain = `${fullName}_CoverLetter`;
-  
+
   // Detailed filenames (with company and role)
   const resumeFileNameDetailed = `${fullName}_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_Resume`;
   const coverLetterFileNameDetailed = `${fullName}_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_CoverLetter`;
@@ -168,6 +201,22 @@ export default function TailoredPage() {
       }
 
       setLogSuccess(true);
+
+      // Mark this job as logged in localStorage
+      try {
+        const jobKey = getJobKey();
+        const loggedJobs = JSON.parse(
+          localStorage.getItem("logged_jobs") || "[]",
+        );
+        if (!loggedJobs.includes(jobKey)) {
+          loggedJobs.push(jobKey);
+          localStorage.setItem("logged_jobs", JSON.stringify(loggedJobs));
+        }
+        setAlreadyLogged(true);
+      } catch {
+        // Ignore storage errors
+      }
+
       setTimeout(() => {
         setShowLogModal(false);
         setLogSuccess(false);
@@ -243,7 +292,7 @@ export default function TailoredPage() {
       console.error("Missing cover letter template or job description");
       return;
     }
-    
+
     setIsGeneratingCoverLetter(true);
     try {
       const response = await fetch("/api/tailor-cover-letter", {
@@ -277,24 +326,46 @@ export default function TailoredPage() {
               onClick={() => router.push("/")}
               className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
             >
-              <span className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+              <span className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center text-[10px] font-bold">
+                ✓
+              </span>
               Input
             </button>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted shrink-0">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-muted shrink-0"
+            >
               <polyline points="9 18 15 12 9 6" />
             </svg>
             <div className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-primary/10 border border-primary text-primary text-xs font-medium">
-              <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold">2</span>
+              <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold">
+                2
+              </span>
               Review
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted shrink-0">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-muted shrink-0"
+            >
               <polyline points="9 18 15 12 9 6" />
             </svg>
             <button
               onClick={() => router.push("/questions")}
               className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
             >
-              <span className="w-5 h-5 rounded-full bg-card-border text-muted flex items-center justify-center text-[10px] font-bold">3</span>
+              <span className="w-5 h-5 rounded-full bg-card-border text-muted flex items-center justify-center text-[10px] font-bold">
+                3
+              </span>
               Q&A
             </button>
           </div>
@@ -308,7 +379,14 @@ export default function TailoredPage() {
               variant="secondary"
               className="flex-1 text-xs py-2"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                 <line x1="3" y1="9" x2="21" y2="9" />
                 <line x1="9" y1="3" x2="9" y2="21" />
@@ -320,7 +398,14 @@ export default function TailoredPage() {
               variant="secondary"
               className="flex-1 text-xs py-2"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M20 7h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM10 4h4v3h-4V4z" />
               </svg>
               Companies
@@ -332,14 +417,25 @@ export default function TailoredPage() {
         <div className="flex-1 overflow-y-auto p-4 space-y-5 border-b border-gray-200 pb-4 mb-4">
           {/* Generate Cover Letter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Cover Letter</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Cover Letter
+            </label>
             {tailoredCoverLetter ? (
               <div className="space-y-2">
                 <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-200">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#16a34a"
+                    strokeWidth="2"
+                  >
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  <span className="text-xs text-green-700 font-medium">Generated</span>
+                  <span className="text-xs text-green-700 font-medium">
+                    Generated
+                  </span>
                 </div>
                 <Button
                   onClick={() => {
@@ -348,7 +444,14 @@ export default function TailoredPage() {
                   variant="secondary"
                   className="w-full text-xs py-2 border-b border-gray-200 pb-4 mb-4"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                   </svg>
@@ -367,7 +470,14 @@ export default function TailoredPage() {
                     </>
                   ) : (
                     <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
                         <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                         <path d="M3 3v5h5" />
                       </svg>
@@ -390,7 +500,14 @@ export default function TailoredPage() {
                   </>
                 ) : (
                   <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
                       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                     </svg>
                     Generate Cover Letter
@@ -412,7 +529,12 @@ export default function TailoredPage() {
               className="flex items-center justify-between w-full text-sm font-medium text-gray-700 hover:text-foreground py-2"
             >
               <span>📁 Filenames</span>
-              <svg className={`w-4 h-4 transition-transform ${showFilenames ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                className={`w-4 h-4 transition-transform ${showFilenames ? "rotate-180" : ""}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <path strokeWidth="2" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
@@ -420,14 +542,18 @@ export default function TailoredPage() {
               <div className="space-y-4 mt-3">
                 {/* Resume Filenames */}
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-2">Resume</label>
+                  <label className="block text-xs font-medium text-muted mb-2">
+                    Resume
+                  </label>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-[10px] font-mono text-foreground truncate">
                         {resumeFileNamePlain}
                       </code>
                       <Button
-                        onClick={() => copyToClipboard(resumeFileNamePlain, "resume")}
+                        onClick={() =>
+                          copyToClipboard(resumeFileNamePlain, "resume")
+                        }
                         variant="ghost"
                         className="copy-btn shrink-0 text-xs py-1 px-2"
                       >
@@ -439,7 +565,12 @@ export default function TailoredPage() {
                         {resumeFileNameDetailed}
                       </code>
                       <Button
-                        onClick={() => copyToClipboard(resumeFileNameDetailed, "resumeDetailed")}
+                        onClick={() =>
+                          copyToClipboard(
+                            resumeFileNameDetailed,
+                            "resumeDetailed",
+                          )
+                        }
                         variant="ghost"
                         className="copy-btn shrink-0 text-xs py-1 px-2"
                       >
@@ -451,14 +582,21 @@ export default function TailoredPage() {
 
                 {/* Cover Letter Filenames */}
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-2">Cover Letter</label>
+                  <label className="block text-xs font-medium text-muted mb-2">
+                    Cover Letter
+                  </label>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-[10px] font-mono text-foreground truncate">
                         {coverLetterFileNamePlain}
                       </code>
                       <Button
-                        onClick={() => copyToClipboard(coverLetterFileNamePlain, "coverLetter")}
+                        onClick={() =>
+                          copyToClipboard(
+                            coverLetterFileNamePlain,
+                            "coverLetter",
+                          )
+                        }
                         variant="ghost"
                         className="copy-btn shrink-0 text-xs py-1 px-2"
                       >
@@ -470,7 +608,12 @@ export default function TailoredPage() {
                         {coverLetterFileNameDetailed}
                       </code>
                       <Button
-                        onClick={() => copyToClipboard(coverLetterFileNameDetailed, "coverLetterDetailed")}
+                        onClick={() =>
+                          copyToClipboard(
+                            coverLetterFileNameDetailed,
+                            "coverLetterDetailed",
+                          )
+                        }
                         variant="ghost"
                         className="copy-btn shrink-0 text-xs py-1 px-2"
                       >
@@ -485,7 +628,9 @@ export default function TailoredPage() {
 
           {/* Quick Q&A */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Quick Question</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Quick Question
+            </label>
             <textarea
               value={generalQuestion}
               onChange={(e) => setGeneralQuestion(e.target.value)}
@@ -501,7 +646,11 @@ export default function TailoredPage() {
               ].map((opt) => (
                 <button
                   key={opt.value}
-                  onClick={() => handleLimitTypeChange(opt.value as "none" | "words" | "characters")}
+                  onClick={() =>
+                    handleLimitTypeChange(
+                      opt.value as "none" | "words" | "characters",
+                    )
+                  }
                   className={`flex-1 px-2 py-1 text-xs font-medium rounded-lg transition-all ${
                     limitType === opt.value
                       ? "bg-primary text-white"
@@ -516,7 +665,9 @@ export default function TailoredPage() {
               <input
                 type="number"
                 value={limitValue}
-                onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) =>
+                  setLimitValue(Math.max(1, parseInt(e.target.value) || 1))
+                }
                 className="w-full px-3 py-1.5 text-sm rounded-lg border border-card-border mb-2"
                 min="1"
               />
@@ -544,7 +695,12 @@ export default function TailoredPage() {
                   if (!response.ok) throw new Error(data.error);
                   setGeneralAnswer(data.answer);
                 } catch (err) {
-                  setGeneralAnswer("Error: " + (err instanceof Error ? err.message : "Failed to get answer"));
+                  setGeneralAnswer(
+                    "Error: " +
+                      (err instanceof Error
+                        ? err.message
+                        : "Failed to get answer"),
+                  );
                 } finally {
                   setIsAskingQuestion(false);
                 }
@@ -566,13 +722,21 @@ export default function TailoredPage() {
             {/* Quick Question Shortcuts */}
             <div className="flex gap-2 mt-2">
               <button
-                onClick={() => setGeneralQuestion("What is the salary range for this position?")}
+                onClick={() =>
+                  setGeneralQuestion(
+                    "What is the salary range for this position?",
+                  )
+                }
                 className="flex-1 px-2 py-1.5 text-xs font-medium text-muted bg-surface-hover hover:bg-gray-200 rounded-lg transition-colors border border-card-border/50"
               >
                 💰 Salary Range
               </button>
               <button
-                onClick={() => setGeneralQuestion("What are the key skills required for this role?")}
+                onClick={() =>
+                  setGeneralQuestion(
+                    "What are the key skills required for this role?",
+                  )
+                }
                 className="flex-1 px-2 py-1.5 text-xs font-medium text-muted bg-surface-hover hover:bg-gray-200 rounded-lg transition-colors border border-card-border/50"
               >
                 🎯 Key Skills
@@ -591,7 +755,9 @@ export default function TailoredPage() {
                     Copy
                   </Button>
                 </div>
-                <p className="text-xs text-foreground whitespace-pre-wrap">{generalAnswer}</p>
+                <p className="text-xs text-foreground whitespace-pre-wrap">
+                  {generalAnswer}
+                </p>
               </div>
             )}
           </div>
@@ -612,15 +778,15 @@ export default function TailoredPage() {
         />
       </main>
 
-        {/* Log to Sheet Modal */}
+      {/* Log to Sheet Modal */}
       {showLogModal && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowLogModal(false);
           }}
         >
-          <div 
+          <div
             className="glass-card p-6 max-w-md w-full fade-in relative"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey && !isLogging) {
@@ -635,7 +801,14 @@ export default function TailoredPage() {
               className="absolute top-4 right-4 p-1 text-muted hover:text-foreground transition-colors rounded-lg hover:bg-surface-hover"
               aria-label="Close"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -644,6 +817,33 @@ export default function TailoredPage() {
             <h3 className="text-xl font-bold text-foreground mb-4">
               Log Application to Sheet
             </h3>
+
+            {alreadyLogged && !logSuccess && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                <svg
+                  className="w-5 h-5 text-amber-500 shrink-0 mt-0.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+                <div>
+                  <p className="text-sm font-medium text-amber-800">
+                    Already logged
+                  </p>
+                  <p className="text-xs text-amber-600">
+                    This job was already added to your spreadsheet. Logging
+                    again will create a duplicate entry.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {logSuccess ? (
               <div className="text-center py-8">
@@ -715,7 +915,14 @@ export default function TailoredPage() {
                     </label>
                     {(jobCountry || jobWorkMode) && (
                       <span className="text-xs text-green-500 flex items-center gap-1">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                         Auto-filled
@@ -735,19 +942,23 @@ export default function TailoredPage() {
                     </div>
                     {/* Work Mode Buttons */}
                     <div className="flex gap-1">
-                      {(["Remote", "Hybrid", "On-site"] as const).map((mode) => (
-                        <button
-                          key={mode}
-                          onClick={() => setWorkMode(workMode === mode ? "" : mode)}
-                          className={`px-3 py-2 text-xs font-medium rounded-xl border transition-colors ${
-                            workMode === mode
-                              ? "bg-primary text-white border-primary"
-                              : "bg-surface-hover text-muted border-card-border hover:border-primary/50"
-                          }`}
-                        >
-                          {mode}
-                        </button>
-                      ))}
+                      {(["Remote", "Hybrid", "On-site"] as const).map(
+                        (mode) => (
+                          <button
+                            key={mode}
+                            onClick={() =>
+                              setWorkMode(workMode === mode ? "" : mode)
+                            }
+                            className={`px-3 py-2 text-xs font-medium rounded-xl border transition-colors ${
+                              workMode === mode
+                                ? "bg-primary text-white border-primary"
+                                : "bg-surface-hover text-muted border-card-border hover:border-primary/50"
+                            }`}
+                          >
+                            {mode}
+                          </button>
+                        ),
+                      )}
                     </div>
                   </div>
                 </div>
