@@ -14,11 +14,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // Check if chrome.storage is available
+    const hasStorage = typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local;
+
     // Get current tab
     let tab = null;
     try {
-        const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        tab = currentTab;
+        if (typeof chrome !== 'undefined' && chrome.tabs) {
+            const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            tab = currentTab;
+        }
     } catch (e) {
         console.error("Failed to get tab", e);
     }
@@ -28,21 +33,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     const storageKey = `form_data_${btoa(tabUrl).slice(0, 50)}`;
 
     // Load saved form data from storage
-    try {
-        const result = await chrome.storage.local.get(storageKey);
-        const savedData = result[storageKey];
-        if (savedData) {
-            if (savedData.companyName) companyNameInput.value = savedData.companyName;
-            if (savedData.positionTitle) positionTitleInput.value = savedData.positionTitle;
-            if (savedData.companyUrl) companyUrlInput.value = savedData.companyUrl;
-            if (savedData.jobUrl) jobUrlInput.value = savedData.jobUrl;
-            if (savedData.jobDescription) jobDescriptionInput.value = savedData.jobDescription;
-            if (savedData.profileId) profileIdInput.value = savedData.profileId;
-            statusEl.textContent = "📋 Restored saved data";
-            statusEl.className = "";
+    if (hasStorage) {
+        try {
+            const result = await chrome.storage.local.get(storageKey);
+            const savedData = result[storageKey];
+            if (savedData) {
+                if (savedData.companyName) companyNameInput.value = savedData.companyName;
+                if (savedData.positionTitle) positionTitleInput.value = savedData.positionTitle;
+                if (savedData.companyUrl) companyUrlInput.value = savedData.companyUrl;
+                if (savedData.jobUrl) jobUrlInput.value = savedData.jobUrl;
+                if (savedData.jobDescription) jobDescriptionInput.value = savedData.jobDescription;
+                if (savedData.profileId) profileIdInput.value = savedData.profileId;
+                statusEl.textContent = "📋 Restored saved data";
+                statusEl.className = "";
+            }
+        } catch (e) {
+            console.error("Failed to load saved data", e);
         }
-    } catch (e) {
-        console.error("Failed to load saved data", e);
     }
 
     // Set job URL if not already saved
@@ -50,8 +57,74 @@ document.addEventListener('DOMContentLoaded', async () => {
         jobUrlInput.value = tab.url;
     }
 
+    // Auto-extract position title from tab title (page name)
+    if (!positionTitleInput.value && tab?.title) {
+        // Clean up the title - remove common suffixes like "| Company" or "- Company"
+        let title = tab.title;
+        // Remove common job site suffixes
+        title = title.replace(/\s*[-|·•]\s*(LinkedIn|Indeed|Glassdoor|ZipRecruiter|Monster|Dice|Hired|AngelList|Wellfound|Lever|Greenhouse|Workday|Careers|Jobs).*$/i, '');
+        // Remove "Apply" or similar suffixes
+        title = title.replace(/\s*[-|·•]\s*(Apply|Application|Job Posting|Job Description).*$/i, '');
+        // Trim and set
+        positionTitleInput.value = title.trim();
+    }
+
+    // Extract company website from job URL
+    const extractCompanyWebsite = (jobUrl) => {
+        try {
+            const url = new URL(jobUrl);
+            const hostname = url.hostname.toLowerCase();
+
+            // Common ATS and job board patterns - extract company from path or subdomain
+            const atsPatterns = [
+                { domain: 'greenhouse.io', pathPattern: /^\/([^\/]+)/ },
+                { domain: 'lever.co', pathPattern: /^\/([^\/]+)/ },
+                { domain: 'ashbyhq.com', pathPattern: /^\/([^\/]+)/ },
+                { domain: 'jobs.lever.co', subdomainCompany: true },
+                { domain: 'boards.greenhouse.io', pathPattern: /^\/([^\/]+)/ },
+                { domain: 'workday.com', pathPattern: /^\/([^\/]+)/ },
+                { domain: 'myworkdayjobs.com', subdomainCompany: true },
+                { domain: 'icims.com', subdomainCompany: true },
+                { domain: 'smartrecruiters.com', pathPattern: /^\/([^\/]+)/ },
+                { domain: 'jobvite.com', subdomainCompany: true },
+            ];
+
+            // Check if it's a known ATS
+            for (const pattern of atsPatterns) {
+                if (hostname.includes(pattern.domain)) {
+                    if (pattern.subdomainCompany) {
+                        // Company is in subdomain (e.g., company.lever.co)
+                        const subdomain = hostname.split('.')[0];
+                        if (subdomain && subdomain !== 'www' && subdomain !== 'jobs' && subdomain !== 'careers') {
+                            return `https://www.${subdomain}.com`;
+                        }
+                    } else if (pattern.pathPattern) {
+                        // Company is in path
+                        const match = url.pathname.match(pattern.pathPattern);
+                        if (match && match[1]) {
+                            return `https://www.${match[1]}.com`;
+                        }
+                    }
+                }
+            }
+
+            // For job boards like LinkedIn, Indeed - can't extract company website
+            const jobBoards = ['linkedin.com', 'indeed.com', 'glassdoor.com', 'ziprecruiter.com', 'monster.com', 'dice.com'];
+            if (jobBoards.some(board => hostname.includes(board))) {
+                return ''; // Can't reliably extract company website from these
+            }
+
+            // For direct company career pages, extract the main domain
+            const cleanHostname = hostname.replace(/^(www\.|careers\.|jobs\.|apply\.|hire\.|recruiting\.)/, '');
+            return `https://www.${cleanHostname}`;
+        } catch {
+            return '';
+        }
+    };
+
     // Save form data on every input change
     const saveFormData = () => {
+        if (!hasStorage) return;
         const data = {
             companyName: companyNameInput.value,
             positionTitle: positionTitleInput.value,
@@ -142,7 +215,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Basic extraction from URL (no AI)
     if (!companyNameInput.value || !companyUrlInput.value) {
         try {
-            const hostname = new URL(tab?.url || '').hostname;
+            const jobUrl = tab?.url || '';
+            const hostname = new URL(jobUrl).hostname;
             const parts = hostname.replace(/^(www\.|careers\.|jobs\.|apply\.|hire\.)/, '').split('.');
             if (parts.length >= 1) {
                 const main = parts[0];
@@ -150,8 +224,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     companyNameInput.value = main.charAt(0).toUpperCase() + main.slice(1);
                     saveFormData();
                 }
+                // Use the smart extractCompanyWebsite function
                 if (!companyUrlInput.value) {
-                    companyUrlInput.value = `https://www.${parts.join('.')}`;
+                    const extractedWebsite = extractCompanyWebsite(jobUrl);
+                    if (extractedWebsite) {
+                        companyUrlInput.value = extractedWebsite;
+                    } else {
+                        // Fallback to basic extraction
+                        companyUrlInput.value = `https://www.${parts.join('.')}`;
+                    }
                     saveFormData();
                 }
             }
@@ -159,7 +240,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Extract job description from page selection if available
-    if (!jobDescriptionInput.value && tab?.id && tab?.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('chrome-extension://')) {
+    // Check for both Chrome and Edge internal URLs
+    const isInternalUrl = (url) => {
+        if (!url) return true;
+        return url.startsWith('chrome://') ||
+            url.startsWith('chrome-extension://') ||
+            url.startsWith('edge://') ||
+            url.startsWith('extension://') ||
+            url.startsWith('about:');
+    };
+
+    const hasScripting = typeof chrome !== 'undefined' && chrome.scripting;
+
+    if (!jobDescriptionInput.value && tab?.id && tab?.url && !isInternalUrl(tab.url) && hasScripting) {
         try {
             const results = await chrome.scripting.executeScript({
                 target: { tabId: tab.id },
@@ -254,7 +347,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (response.ok) {
                 // Clear saved data on successful submission
-                await chrome.storage.local.remove(storageKey);
+                if (hasStorage) {
+                    await chrome.storage.local.remove(storageKey);
+                }
 
                 statusEl.textContent = "✓ Added!";
                 statusEl.className = "success";
