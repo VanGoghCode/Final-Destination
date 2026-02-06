@@ -16,6 +16,8 @@ interface BatchJobData {
   companyResearch?: string;
   jobCountry?: string;
   jobWorkMode?: "" | "Remote" | "Hybrid" | "On-site";
+  profileFirstName?: string;
+  profileLastName?: string;
 }
 
 export default function TailoredCompanyPage({
@@ -115,14 +117,27 @@ export default function TailoredCompanyPage({
       .replace(/\s+/g, "_")
       .trim();
 
-  const fullName = "Resume";
+  // Use profile name if available, otherwise default to "Resume"
+  const firstName = jobData?.profileFirstName || "";
+  const lastName = jobData?.profileLastName || "";
+  const fullName =
+    firstName && lastName
+      ? `${formatName(firstName)}_${formatName(lastName)}`
+      : "";
   const companyName =
     jobData?.companyName || resolvedParams.company || "Company";
   const positionTitle = jobData?.positionTitle || "Position";
 
-  const resumeFileNamePlain = `${fullName}`;
-  const resumeFileNameDetailed = `${formatName(companyName)}_${formatName(positionTitle)}_Resume`;
-  const coverLetterFileNameDetailed = `${formatName(companyName)}_${formatName(positionTitle)}_CoverLetter`;
+  // Plain filename (just name or "Resume" if no profile)
+  const resumeFileNamePlain = fullName ? `${fullName}_Resume` : "Resume";
+
+  // Detailed filenames - format: FullName_Company_Position_Resume (matches /tailored page)
+  const resumeFileNameDetailed = fullName
+    ? `${fullName}_${formatName(companyName)}_${formatName(positionTitle)}_Resume`
+    : `${formatName(companyName)}_${formatName(positionTitle)}_Resume`;
+  const coverLetterFileNameDetailed = fullName
+    ? `${fullName}_${formatName(companyName)}_${formatName(positionTitle)}_CoverLetter`
+    : `${formatName(companyName)}_${formatName(positionTitle)}_CoverLetter`;
 
   const copyToClipboard = async (
     text: string,

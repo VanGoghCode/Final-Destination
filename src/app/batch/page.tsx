@@ -542,6 +542,17 @@ export default function BatchProcessPage() {
 
   // Handle view results - open in new tab
   const handleViewResults = (job: QueuedJob) => {
+    // Get profile firstName and lastName if available
+    let profileFirstName = "";
+    let profileLastName = "";
+    if (job.profileId) {
+      const profile = profiles.find((p) => p.id === job.profileId);
+      if (profile) {
+        profileFirstName = profile.firstName;
+        profileLastName = profile.lastName;
+      }
+    }
+
     // Save job data to sessionStorage for the new tab to read
     const jobKey = `batch_job_${job.id}`;
     sessionStorage.setItem(
@@ -556,6 +567,8 @@ export default function BatchProcessPage() {
         companyResearch: job.companyResearch,
         jobCountry: job.jobCountry,
         jobWorkMode: job.jobWorkMode,
+        profileFirstName,
+        profileLastName,
       }),
     );
 
