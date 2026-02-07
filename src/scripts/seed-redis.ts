@@ -98,35 +98,31 @@ async function main() {
   const token = process.env.KV_REST_API_TOKEN;
 
   if (!url || !token) {
-    console.error("Error: KV_REST_API_URL and KV_REST_API_TOKEN environment variables are required");
-    console.log("\nTo set them, create a .env.local file with:");
-    console.log("KV_REST_API_URL=your-upstash-redis-url");
-    console.log("KV_REST_API_TOKEN=your-upstash-redis-token");
+    console.error(
+      "Error: KV_REST_API_URL and KV_REST_API_TOKEN environment variables are required",
+    );
+
     process.exit(1);
   }
 
   const redis = new Redis({ url, token });
   const dataDir = path.join(process.cwd(), "data");
 
-  console.log("🚀 Starting Redis seeding...\n");
-
   // Seed companies.json
   const companiesPath = path.join(dataDir, "companies.json");
   if (fs.existsSync(companiesPath)) {
-    console.log("📦 Seeding companies...");
-    const companies: CompaniesData = JSON.parse(fs.readFileSync(companiesPath, "utf-8"));
-    const jsonSize = JSON.stringify(companies).length;
-    console.log(`   📊 Data size: ${(jsonSize / 1024 / 1024).toFixed(2)} MB`);
-    
+    const companies: CompaniesData = JSON.parse(
+      fs.readFileSync(companiesPath, "utf-8"),
+    );
     try {
       await redis.set(KEYS.COMPANIES, companies);
-      console.log(`   ✅ Seeded ${companies.totalCompanies} companies\n`);
     } catch (error) {
-      console.error(`   ❌ Failed to seed companies:`, error instanceof Error ? error.message : error);
-      console.log("   Attempting to seed tier files instead (smaller data)...\n");
+      console.error(
+        `   ❌ Failed to seed companies:`,
+        error instanceof Error ? error.message : error,
+      );
     }
   } else {
-    console.log("   ⚠️ companies.json not found, skipping\n");
   }
 
   // Seed tier files
@@ -140,56 +136,33 @@ async function main() {
   for (const { file, key, name } of tierFiles) {
     const filePath = path.join(dataDir, file);
     if (fs.existsSync(filePath)) {
-      console.log(`📦 Seeding ${name}...`);
       const tierData: TierData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-      const jsonSize = JSON.stringify(tierData).length;
-      console.log(`   📊 Data size: ${(jsonSize / 1024).toFixed(2)} KB`);
-      
+
       try {
         await redis.set(key, tierData);
-        console.log(`   ✅ Seeded ${tierData.count} ${name} companies\n`);
       } catch (error) {
-        console.error(`   ❌ Failed to seed ${name}:`, error instanceof Error ? error.message : error);
+        console.error(
+          `   ❌ Failed to seed ${name}:`,
+          error instanceof Error ? error.message : error,
+        );
       }
     } else {
-      console.log(`   ⚠️ ${file} not found, skipping\n`);
     }
   }
 
   // Seed jobs.json
   const jobsPath = path.join(dataDir, "jobs.json");
   if (fs.existsSync(jobsPath)) {
-    console.log("📦 Seeding jobs...");
     const jobs: JobsData = JSON.parse(fs.readFileSync(jobsPath, "utf-8"));
-    const jsonSize = JSON.stringify(jobs).length;
-    console.log(`   📊 Data size: ${(jsonSize / 1024).toFixed(2)} KB`);
-    
     try {
       await redis.set(KEYS.JOBS, jobs);
-      console.log(`   ✅ Seeded ${jobs.totalJobs} jobs\n`);
     } catch (error) {
-      console.error(`   ❌ Failed to seed jobs:`, error instanceof Error ? error.message : error);
+      console.error(
+        `   ❌ Failed to seed jobs:`,
+        error instanceof Error ? error.message : error,
+      );
     }
   } else {
-    console.log("   ⚠️ jobs.json not found, skipping\n");
-  }
-
-  console.log("🎉 Redis seeding complete!\n");
-
-  // Print summary
-  console.log("📊 Summary (verifying stored data):");
-  try {
-    const storedCompanies = await redis.get<CompaniesData>(KEYS.COMPANIES);
-    const storedJobs = await redis.get<JobsData>(KEYS.JOBS);
-    console.log(`   - Companies: ${storedCompanies?.totalCompanies || 0}`);
-    console.log(`   - Jobs: ${storedJobs?.totalJobs || 0}`);
-    
-    for (const { key, name } of tierFiles) {
-      const tierData = await redis.get<TierData>(key);
-      console.log(`   - ${name}: ${tierData?.count || 0}`);
-    }
-  } catch (error) {
-    console.error("   ❌ Error reading summary:", error instanceof Error ? error.message : error);
   }
 }
 

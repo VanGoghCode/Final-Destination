@@ -105,13 +105,6 @@ export class GeminiProvider implements AIProviderInterface {
       try {
         const ai = getGenAI();
 
-        if (attempt === 0) {
-          console.log(`[Gemini] Initializing model ${this.modelId}`);
-          console.log("[Gemini] Sending request to Google GenAI...");
-        } else {
-          console.log(`[Gemini] Retry attempt ${attempt}/${MAX_RETRIES}...`);
-        }
-
         const response = await ai.models.generateContent({
           model: this.modelId,
           contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -120,10 +113,6 @@ export class GeminiProvider implements AIProviderInterface {
 
         const text = response.text || "";
 
-        console.log(
-          "[Gemini] Successfully received response, length:",
-          text.length,
-        );
         return text;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
@@ -135,7 +124,7 @@ export class GeminiProvider implements AIProviderInterface {
         // Check if error is retryable and we have retries left
         if (isRetryableError(error) && attempt < MAX_RETRIES) {
           const delay = BASE_DELAY_MS * Math.pow(2, attempt);
-          console.log(`[Gemini] Retrying in ${delay}ms...`);
+
           await sleep(delay);
           continue;
         }

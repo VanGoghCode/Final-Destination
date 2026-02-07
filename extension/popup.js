@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 saveFormData();
             }
         } catch (e) {
-            console.log("Could not get page selection", e);
+
         }
     }
 

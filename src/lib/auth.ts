@@ -46,21 +46,15 @@ export function getCredentialsObject(): Record<string, unknown> | undefined {
     try {
       const rawValue = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
       // Log first chars for debugging (no sensitive data)
-      console.log(
-        "[Auth] Parsing GOOGLE_SERVICE_ACCOUNT_KEY, starts with:",
-        rawValue?.substring(0, 20),
-      );
+
       const parsed = JSON.parse(rawValue);
-      console.log(
-        "[Auth] Successfully parsed credentials for project:",
-        parsed.project_id,
-      );
+
       return parsed;
     } catch (e) {
       console.error("[Auth] Failed to parse credentials:", e);
       return undefined;
     }
   }
-  console.log("[Auth] No GOOGLE_SERVICE_ACCOUNT_KEY found, using default auth");
+
   return undefined;
 }

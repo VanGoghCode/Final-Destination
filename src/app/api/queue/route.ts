@@ -83,6 +83,7 @@ export async function POST(request: Request) {
       profileColor: body.profileColor,
       // Company website for research
       companyWebsite: body.companyWebsite,
+      includeCoverLetter: body.includeCoverLetter || false,
     };
 
     const success = await addJobToQueue(newJob, passcode);

@@ -576,7 +576,6 @@ export default function Home() {
     const cacheKey = getResearchCacheKey();
     const cachedResearch = getResearchCache(cacheKey);
     if (cachedResearch) {
-      console.log("[Research] Using cached research");
       setCompanyInfo(cachedResearch);
       if (resumeLatex && jobDescription) await triggerGenerate(cachedResearch);
       return;

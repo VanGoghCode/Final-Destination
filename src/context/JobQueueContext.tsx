@@ -176,7 +176,6 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
     // Check if we have any pending jobs
     const hasPending = queue.some((j) => j.status === "pending");
     if (hasPending && !isProcessing && !currentJobId) {
-      console.log("Auto-starting processing for valid pending jobs...");
       setIsProcessing(true);
     }
   }, [queue, isProcessing, currentJobId, processingPaused]);

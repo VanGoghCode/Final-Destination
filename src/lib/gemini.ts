@@ -144,10 +144,8 @@ async function generateContent(
       const ai = getGenAI();
 
       if (attempt === 0) {
-        console.log(`[Gemini] Initializing model ${MODEL_NAME}`);
-        console.log("[Gemini] Sending request to Google GenAI...");
       } else {
-        console.log(`[Gemini] Retry attempt ${attempt}/${MAX_RETRIES}...`);
+        // Retry attempt
       }
 
       const response = await ai.models.generateContent({
@@ -158,10 +156,6 @@ async function generateContent(
 
       const text = response.text || "";
 
-      console.log(
-        "[Gemini] Successfully received response, length:",
-        text.length,
-      );
       return text;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
@@ -173,7 +167,7 @@ async function generateContent(
       // Check if error is retryable and we have retries left
       if (isRetryableError(error) && attempt < MAX_RETRIES) {
         const delay = BASE_DELAY_MS * Math.pow(2, attempt);
-        console.log(`[Gemini] Retrying in ${delay}ms...`);
+
         await sleep(delay);
         continue;
       }
@@ -200,12 +194,8 @@ async function generateContentWithSearch(prompt: string): Promise<string> {
       const ai = getGenAI();
 
       if (attempt === 0) {
-        console.log(
-          `[Gemini] Initializing grounded model ${MODEL_NAME_GROUNDED}`,
-        );
-        console.log("[Gemini] Sending request with Google Search grounding...");
       } else {
-        console.log(`[Gemini] Retry attempt ${attempt}/${MAX_RETRIES}...`);
+        // Retry attempt
       }
 
       const response = await ai.models.generateContent({
@@ -216,10 +206,6 @@ async function generateContentWithSearch(prompt: string): Promise<string> {
 
       const text = response.text || "";
 
-      console.log(
-        "[Gemini] Successfully received grounded response, length:",
-        text.length,
-      );
       return text;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
@@ -230,7 +216,7 @@ async function generateContentWithSearch(prompt: string): Promise<string> {
 
       if (isRetryableError(error) && attempt < MAX_RETRIES) {
         const delay = BASE_DELAY_MS * Math.pow(2, attempt);
-        console.log(`[Gemini] Retrying in ${delay}ms...`);
+
         await sleep(delay);
         continue;
       }

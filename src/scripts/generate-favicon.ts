@@ -13,7 +13,7 @@ async function generateRoundedFavicon() {
 
   // Create a circular mask
   const roundedCorners = Buffer.from(
-    `<svg><rect x="0" y="0" width="${size}" height="${size}" rx="${size / 2}" ry="${size / 2}"/></svg>`
+    `<svg><rect x="0" y="0" width="${size}" height="${size}" rx="${size / 2}" ry="${size / 2}"/></svg>`,
   );
 
   // Resize and apply rounded mask
@@ -38,7 +38,7 @@ async function generateRoundedFavicon() {
     .composite([
       {
         input: Buffer.from(
-          `<svg><rect x="0" y="0" width="32" height="32" rx="16" ry="16"/></svg>`
+          `<svg><rect x="0" y="0" width="32" height="32" rx="16" ry="16"/></svg>`,
         ),
         blend: "dest-in",
       },
@@ -51,7 +51,7 @@ async function generateRoundedFavicon() {
     .composite([
       {
         input: Buffer.from(
-          `<svg><rect x="0" y="0" width="192" height="192" rx="96" ry="96"/></svg>`
+          `<svg><rect x="0" y="0" width="192" height="192" rx="96" ry="96"/></svg>`,
         ),
         blend: "dest-in",
       },
@@ -64,7 +64,7 @@ async function generateRoundedFavicon() {
     .composite([
       {
         input: Buffer.from(
-          `<svg><rect x="0" y="0" width="512" height="512" rx="256" ry="256"/></svg>`
+          `<svg><rect x="0" y="0" width="512" height="512" rx="256" ry="256"/></svg>`,
         ),
         blend: "dest-in",
       },
@@ -78,15 +78,13 @@ async function generateRoundedFavicon() {
     .composite([
       {
         input: Buffer.from(
-          `<svg><rect x="0" y="0" width="180" height="180" rx="40" ry="40"/></svg>`
+          `<svg><rect x="0" y="0" width="180" height="180" rx="40" ry="40"/></svg>`,
         ),
         blend: "dest-in",
       },
     ])
     .png()
     .toFile(path.join(publicDir, "apple-touch-icon.png"));
-
-  console.log("✓ Generated rounded favicon and icons!");
 }
 
 generateRoundedFavicon().catch(console.error);

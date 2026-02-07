@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  scrapeAllCompanies,
-} from "@/lib/scrapers";
-import { 
-  getJobs, 
-  setJobs,
-  type JobsData,
-} from "@/lib/db";
+import { scrapeAllCompanies } from "@/lib/scrapers";
+import { getJobs, setJobs, type JobsData } from "@/lib/db";
 
 /**
  * GET /api/jobs - Get all scraped jobs
@@ -19,13 +13,14 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get("limit") || "100");
 
     const jobsData = await getJobs();
-    
+
     if (!jobsData) {
       return NextResponse.json({
         lastScraped: null,
         totalJobs: 0,
         jobs: [],
-        message: "No jobs in database. Click 'Refresh Jobs' to trigger scraping.",
+        message:
+          "No jobs in database. Click 'Refresh Jobs' to trigger scraping.",
       });
     }
 
@@ -57,8 +52,11 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error loading jobs:", error);
     return NextResponse.json(
-      { error: "Failed to load jobs", details: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        error: "Failed to load jobs",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }
@@ -68,8 +66,6 @@ export async function GET(request: Request) {
  */
 export async function POST() {
   try {
-    console.log("Starting job scrape...");
-
     const { jobs: scrapedJobs, summary } = await scrapeAllCompanies();
 
     // Filter for last 10 days
@@ -84,7 +80,6 @@ export async function POST() {
 
     // Update summary with filtered count
     const removedCount = scrapedJobs.length - recentJobs.length;
-    console.log(`Removed ${removedCount} jobs older than 10 days`);
 
     // Prepare data to save
     const jobsData: JobsData = {
@@ -95,8 +90,6 @@ export async function POST() {
 
     // Save to Redis
     await setJobs(jobsData);
-
-    console.log(`Saved ${recentJobs.length} jobs to Redis`);
 
     return NextResponse.json({
       success: true,

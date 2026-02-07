@@ -31,8 +31,6 @@ interface CompanyData {
 }
 
 function parseCSV(filePath: string): Map<string, CompanyData> {
-  console.log(`📂 Reading CSV: ${filePath}`);
-
   const content = fs.readFileSync(filePath, "utf-8");
   const lines = content.split("\n");
   const headerLine = lines[0];
@@ -41,8 +39,6 @@ function parseCSV(filePath: string): Map<string, CompanyData> {
     return new Map();
   }
   const headers = headerLine.split(",").map((h) => h.trim().replace(/"/g, ""));
-
-  console.log(`📊 Total rows: ${(lines.length - 1).toLocaleString()}`);
 
   const cols: Record<string, number> = {};
   headers.forEach((h, i) => (cols[h] = i));
@@ -58,16 +54,22 @@ function parseCSV(filePath: string): Map<string, CompanyData> {
     const fields = parseCSVLine(line.trim());
 
     const employerNameCol = getCol("EMPLOYER_NAME");
-    const employerName = (employerNameCol >= 0 ? fields[employerNameCol] ?? "" : "")
+    const employerName = (
+      employerNameCol >= 0 ? (fields[employerNameCol] ?? "") : ""
+    )
       .trim()
       .toUpperCase();
     if (!employerName) continue;
 
     const caseStatusCol = getCol("CASE_STATUS");
-    const status = (caseStatusCol >= 0 ? fields[caseStatusCol] ?? "" : "").toUpperCase();
+    const status = (
+      caseStatusCol >= 0 ? (fields[caseStatusCol] ?? "") : ""
+    ).toUpperCase();
     const isCertified = status.includes("CERTIFIED");
     const quarterCol = getCol("QUARTER");
-    const quarter = (quarterCol >= 0 ? fields[quarterCol] ?? "" : "").toUpperCase();
+    const quarter = (
+      quarterCol >= 0 ? (fields[quarterCol] ?? "") : ""
+    ).toUpperCase();
 
     if (!companies.has(employerName)) {
       const cityCol = getCol("EMPLOYER_CITY");
@@ -77,7 +79,8 @@ function parseCSV(filePath: string): Map<string, CompanyData> {
       const pocEmailCol = getCol("EMPLOYER_POC_EMAIL");
       const pocPhoneCol = getCol("EMPLOYER_POC_PHONE");
       companies.set(employerName, {
-        name: (employerNameCol >= 0 ? fields[employerNameCol] : "")?.trim() || "",
+        name:
+          (employerNameCol >= 0 ? fields[employerNameCol] : "")?.trim() || "",
         city: (cityCol >= 0 ? fields[cityCol] : "")?.trim() || "",
         state: (stateCol >= 0 ? fields[stateCol] : "")?.trim() || "",
         lcaCount: 0,
@@ -86,7 +89,8 @@ function parseCSV(filePath: string): Map<string, CompanyData> {
         lcaQ2: 0,
         lcaQ3: 0,
         lcaQ4: 0,
-        pocFirstName: (pocFirstCol >= 0 ? fields[pocFirstCol] : "")?.trim() || "",
+        pocFirstName:
+          (pocFirstCol >= 0 ? fields[pocFirstCol] : "")?.trim() || "",
         pocLastName: (pocLastCol >= 0 ? fields[pocLastCol] : "")?.trim() || "",
         pocEmail: (pocEmailCol >= 0 ? fields[pocEmailCol] : "")?.trim() || "",
         pocPhone: (pocPhoneCol >= 0 ? fields[pocPhoneCol] : "")?.trim() || "",
@@ -104,7 +108,6 @@ function parseCSV(filePath: string): Map<string, CompanyData> {
     else if (quarter === "Q4") company.lcaQ4++;
   }
 
-  console.log(`🏢 Unique companies: ${companies.size.toLocaleString()}\n`);
   return companies;
 }
 
@@ -161,29 +164,17 @@ function rankCompanies(companyData: Map<string, CompanyData>): Company[] {
   }
 
   companies.sort((a, b) => b.priorityScore - a.priorityScore);
-
-  const topCount = companies.filter((c) => c.tier === "top").length;
-  console.log(
-    `⭐ Top companies (>= ${TOP_COMPANY_THRESHOLD} LCAs): ${topCount}`,
-  );
-  console.log(`📊 Regular companies: ${companies.length - topCount}\n`);
-
   return companies;
 }
 
 function main(): void {
-  console.log("🚀 DOL LCA Parser (2025 Full Year)\n");
-  console.log("=".repeat(50) + "\n");
-
   const dataDir = path.join(process.cwd(), "data");
 
   // Try 2025 full year file first, fallback to Q4 only
   let inputFile = path.join(dataDir, "lca_filtered_2025.csv");
   if (!fs.existsSync(inputFile)) {
     inputFile = path.join(dataDir, "lca_filtered.csv");
-    console.log("⚠️ Using Q4 only (lca_filtered.csv)\n");
   } else {
-    console.log("✅ Using full year data (lca_filtered_2025.csv)\n");
   }
 
   const outputFile = path.join(dataDir, "companies.json");
@@ -206,21 +197,6 @@ function main(): void {
     };
 
     fs.writeFileSync(outputFile, JSON.stringify(output, null, 2));
-    console.log(`💾 Saved to: ${outputFile}`);
-
-    console.log("\n📊 Top 10 Companies:\n");
-    console.log("| Company | Total | Q1 | Q2 | Q3 | Q4 | Score |");
-    console.log("|---------|-------|----|----|----|----|-------|");
-    for (let i = 0; i < Math.min(10, companies.length); i++) {
-      const c = companies[i];
-      if (c) {
-        console.log(
-          `| ${c.name.substring(0, 25).padEnd(25)} | ${c.lcaCount.toString().padStart(5)} | ${c.lcaQ1?.toString().padStart(3) || "0"} | ${c.lcaQ2?.toString().padStart(3) || "0"} | ${c.lcaQ3?.toString().padStart(3) || "0"} | ${c.lcaQ4?.toString().padStart(3) || "0"} | ${c.priorityScore.toFixed(0).padStart(5)} |`,
-        );
-      }
-    }
-
-    console.log("\n✅ Done!");
   } catch (error) {
     console.error("❌ Error:", error);
     process.exit(1);

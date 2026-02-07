@@ -115,9 +115,8 @@ export async function scrapeAllCompanies(): Promise<{
   };
 
   // 1. Load and scrape from tier JSON files (Primary Source)
-  console.log("Loading companies from tier files...");
+
   const tierCompanies = loadTierCompanies();
-  console.log(`Found ${tierCompanies.length} companies with platform data`);
 
   for (const company of tierCompanies) {
     let result: ScrapeResult | null = null;
@@ -184,12 +183,6 @@ export async function scrapeAllCompanies(): Promise<{
   const targetRoles = getTargetRoles();
   const excludedKeywords = getExcludedKeywords();
   const filteredJobs = filterJobs(allJobs, targetRoles, excludedKeywords);
-
-  console.log(`\nScraping complete:`);
-  console.log(`  Companies scraped: ${companiesScraped}`);
-  console.log(`  Companies with jobs: ${companiesWithJobs}`);
-  console.log(`  Total jobs found: ${allJobs.length}`);
-  console.log(`  Jobs after filtering: ${filteredJobs.length}`);
 
   return {
     jobs: filteredJobs,

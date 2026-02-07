@@ -110,13 +110,6 @@ export class BedrockClaudeProvider implements AIProviderInterface {
       try {
         const client = getBedrockClient();
 
-        if (attempt === 0) {
-          console.log(`[Bedrock] Using inference profile: ${this.modelId}`);
-          console.log("[Bedrock] Sending request to AWS Bedrock...");
-        } else {
-          console.log(`[Bedrock] Retry attempt ${attempt}/${MAX_RETRIES}...`);
-        }
-
         // Use Converse API which supports inference profiles
         const command = new ConverseCommand({
           modelId: this.modelId,
@@ -137,10 +130,6 @@ export class BedrockClaudeProvider implements AIProviderInterface {
         // Extract text from Converse API response
         const text = apiResponse.output?.message?.content?.[0]?.text || "";
 
-        console.log(
-          "[Bedrock] Successfully received response, length:",
-          text.length,
-        );
         return text;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
@@ -152,7 +141,7 @@ export class BedrockClaudeProvider implements AIProviderInterface {
         // Check if error is retryable and we have retries left
         if (isRetryableError(error) && attempt < MAX_RETRIES) {
           const delay = BASE_DELAY_MS * Math.pow(2, attempt);
-          console.log(`[Bedrock] Retrying in ${delay}ms...`);
+
           await sleep(delay);
           continue;
         }
