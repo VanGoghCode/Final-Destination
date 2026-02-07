@@ -435,55 +435,37 @@ export default function TailoredCompanyPage({
           </div>
         </div>
 
-        {/* Job Info Header */}
-        <div className="p-4 border-b border-gray-100 bg-purple-50">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
-              {companyName[0]?.toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm">{companyName}</h3>
-              <p className="text-xs text-muted truncate">{positionTitle}</p>
-            </div>
-          </div>
-          {jobData?.companyUrl && (
-            <a
-              href={jobData.companyUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-lg transition-colors w-full"
-            >
-              <svg
-                className="w-3 h-3 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-              <span className="truncate">{jobData.companyUrl}</span>
-            </a>
-          )}
-          {!jobData?.companyUrl && (
-            <p className="text-[10px] text-purple-600">From Batch Processing</p>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="p-4 border-b border-gray-100 space-y-2">
+        {/* Actions Row - Swapped Order */}
+        <div className="p-4 border-b border-gray-100 flex gap-2">
           <Button
-            onClick={() => setShowLogModal(true)}
+            onClick={() => window.open(`/questions?jobId=${jobId}`, "_blank")}
             variant="secondary"
-            className="w-full text-xs py-2"
+            className="flex-1 text-xs py-2 h-10 cursor-pointer"
           >
             <svg
               width="14"
               height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="mr-1.5"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            Questions
+          </Button>
+          <Button
+            onClick={() => setShowLogModal(true)}
+            variant="secondary"
+            className="w-10 h-10 p-0 flex items-center justify-center shrink-0 cursor-pointer"
+            title="Log to Sheet"
+          >
+            <svg
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -493,78 +475,62 @@ export default function TailoredCompanyPage({
               <line x1="3" y1="9" x2="21" y2="9" />
               <line x1="9" y1="3" x2="9" y2="21" />
             </svg>
-            Log to Sheet
-          </Button>
-          <Button
-            onClick={() => window.open(`/questions?jobId=${jobId}`, "_blank")}
-            variant="secondary"
-            className="w-full text-xs py-2"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
-            Answer Questions
           </Button>
         </div>
 
         {/* Sidebar Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {/* Cover Letter Section */}
+          {/* Cover Letter Section - Refined UI */}
           {tailoredCoverLetter && (
-            <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-green-700">
-                  Cover Letter Ready
-                </span>
+            <div className="p-4 bg-green-50/50 rounded-2xl border border-green-200 transition-all hover:shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-xs font-bold text-green-700 tracking-tight">
+                    COVER LETTER READY
+                  </span>
+                </div>
                 <Button
                   onClick={() =>
                     navigator.clipboard.writeText(tailoredCoverLetter)
                   }
                   variant="ghost"
-                  className="text-xs py-1 px-2"
+                  className="text-[10px] py-1 px-2.5 bg-green-100/50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors cursor-pointer"
                 >
-                  Copy
+                  COPY
                 </Button>
               </div>
               <Button
                 onClick={() => handleRegenerateCoverLetter("Improve it")}
                 disabled={isRegeneratingCoverLetter}
                 variant="ghost"
-                className="w-full text-xs py-1.5 border border-green-300"
+                className="w-full text-xs py-2 border border-green-200 bg-white hover:bg-green-50 text-green-700 transition-all cursor-pointer shadow-none"
               >
-                {isRegeneratingCoverLetter ? "Regenerating..." : "Regenerate"}
+                {isRegeneratingCoverLetter
+                  ? "Regenerating..."
+                  : "Regenerate Content"}
               </Button>
             </div>
           )}
 
-          {/* Delete from Batch */}
+          {/* Delete from Batch - Solid Red UI */}
           {jobId && (
-            <div className="pt-4 border-t border-gray-200">
+            <div className="border-t border-gray-100 cursor-default">
               <Button
                 onClick={handleDeleteFromBatch}
                 disabled={isDeletingFromBatch}
-                variant="ghost"
-                className="w-full text-xs py-2 text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-200"
+                className="w-full text-[11px] font-bold py-2.5 !bg-red-600 !text-white !border-red-600 hover:!bg-red-700 hover:!border-red-700 shadow-sm transition-all duration-300 group"
               >
                 <svg
-                  className="w-3.5 h-3.5 mr-1.5"
+                  className="w-3.5 h-3.5 mr-2 transition-transform group-hover:rotate-12"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
                   <path
-                    strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    strokeWidth="2"
                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                   />
                 </svg>
@@ -761,6 +727,7 @@ export default function TailoredCompanyPage({
           showPreview={true}
           fullHeight={true}
           downloadFileNames={[resumeFileNamePlain, resumeFileNameDetailed]}
+          jobUrl={jobData?.companyUrl}
         />
       </main>
 

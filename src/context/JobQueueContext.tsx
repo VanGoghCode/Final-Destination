@@ -25,6 +25,7 @@ export interface QueuedJob {
   positionTitle: string;
   jobDescription: string;
   personalDetails: string;
+  includeCoverLetter: boolean;
   status: JobStatus;
   progress: number; // 0-100
   error?: string;
@@ -72,6 +73,7 @@ interface JobQueueContextType {
         | "positionTitle"
         | "jobDescription"
         | "personalDetails"
+        | "includeCoverLetter"
       >
     >,
   ) => void;

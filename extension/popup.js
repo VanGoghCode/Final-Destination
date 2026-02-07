@@ -410,7 +410,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             profileId: selectedProfileId || undefined,
             profileName: selectedProfile ? selectedProfile.name : undefined,
             profileColor: selectedProfile ? selectedProfile.color : undefined,
-            companyWebsite: companyUrlInput.value.trim()
+            companyWebsite: companyUrlInput.value.trim(),
+            includeCoverLetter: false
         };
 
         // Validation - check all required fields including profile and passcode

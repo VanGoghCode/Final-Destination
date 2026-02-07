@@ -66,6 +66,7 @@ export interface QueuedJob {
   positionTitle: string;
   jobDescription: string;
   personalDetails: string;
+  includeCoverLetter: boolean;
   status:
     | "pending"
     | "researching"

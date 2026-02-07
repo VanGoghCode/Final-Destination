@@ -10,6 +10,7 @@ interface JobFormProps {
     jobDescription: string;
     personalDetails: string;
     profileId: string;
+    includeCoverLetter: boolean;
   };
   profiles: Profile[];
   onSubmit: (data: {
@@ -18,6 +19,7 @@ interface JobFormProps {
     positionTitle: string;
     jobDescription: string;
     personalDetails: string;
+    includeCoverLetter: boolean;
     profileId?: string;
     profileName?: string;
     profileColor?: string;
@@ -35,6 +37,7 @@ export default function JobForm({
     jobDescription: "",
     personalDetails: "",
     profileId: "",
+    includeCoverLetter: false,
   },
   profiles,
   onSubmit,
@@ -55,6 +58,9 @@ export default function JobForm({
   );
   const [selectedProfileId, setSelectedProfileId] = useState<string>(
     initialValues.profileId || "",
+  );
+  const [includeCoverLetter, setIncludeCoverLetter] = useState(
+    initialValues.includeCoverLetter || false,
   );
   const [showAdvanced, setShowAdvanced] = useState(
     !!initialValues.personalDetails,
@@ -78,6 +84,7 @@ export default function JobForm({
       positionTitle: positionTitle.trim(),
       jobDescription: jobDescription.trim(),
       personalDetails: personalDetails.trim(),
+      includeCoverLetter,
       profileId: selectedProfileId || undefined,
       profileName: selectedProfile?.name,
       profileColor: selectedProfile?.color,
@@ -206,6 +213,22 @@ export default function JobForm({
         </svg>
         Advanced Options
       </button>
+
+      <div className="flex items-center gap-2 px-1">
+        <input
+          type="checkbox"
+          id="includeCoverLetter"
+          checked={includeCoverLetter}
+          onChange={(e) => setIncludeCoverLetter(e.target.checked)}
+          className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
+        />
+        <label
+          htmlFor="includeCoverLetter"
+          className="text-xs font-medium text-gray-700 cursor-pointer"
+        >
+          Generate Cover Letter
+        </label>
+      </div>
 
       {showAdvanced && (
         <div className="space-y-4 pl-4 border-l-2 border-gray-100">

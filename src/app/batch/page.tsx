@@ -159,6 +159,7 @@ function EditJobModal({
             jobDescription: job.jobDescription,
             personalDetails: job.personalDetails,
             profileId: job.profileId || "",
+            includeCoverLetter: job.includeCoverLetter || false,
           }}
           onCancel={onClose}
           onSubmit={(data) => {
@@ -453,7 +454,7 @@ export default function BatchProcessPage() {
         addActivity(`[Done] Resume tailored for ${job.companyName}`);
 
         // Step 3: Tailor cover letter
-        if (jobCoverLetterTemplate) {
+        if (job.includeCoverLetter && jobCoverLetterTemplate) {
           updateJobStatus(job.id, "tailoring-cover-letter", 70);
           addActivity(
             `[Cover] Generating cover letter for ${job.positionTitle}...`,
@@ -481,6 +482,10 @@ export default function BatchProcessPage() {
             tailoredCoverLetter: coverLetterData.tailoredCoverLetter,
           });
           addActivity(`[Done] Cover letter generated for ${job.companyName}`);
+        } else if (jobCoverLetterTemplate) {
+          addActivity(
+            `[Skip] Cover letter skipped for ${job.companyName} (default)`,
+          );
         }
 
         // Mark completed
@@ -601,11 +606,15 @@ export default function BatchProcessPage() {
     profileId?: string;
     profileName?: string;
     profileColor?: string;
+    includeCoverLetter?: boolean;
   }) => {
     // Clear paused state when adding new jobs
     setProcessingPaused(false);
 
-    addJob(jobData);
+    addJob({
+      ...jobData,
+      includeCoverLetter: jobData.includeCoverLetter || false,
+    });
     addActivity(`[Added] ${jobData.companyName} - ${jobData.positionTitle}`);
 
     // Auto-start processing if not already running
