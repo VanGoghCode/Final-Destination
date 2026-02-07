@@ -9,13 +9,93 @@ document.addEventListener('DOMContentLoaded', async () => {
     const jobDescriptionInput = document.getElementById('jobDescription');
     const profileIdInput = document.getElementById('profileId');
 
-    if (!container || !addBtn) {
+    const passcodeInput = document.getElementById('passcode');
+    const copyBtn = document.getElementById('copyBtn');
+    const pasteBtn = document.getElementById('pasteBtn');
+
+    if (!container || !addBtn || !passcodeInput) {
         console.error("Required elements not found");
         return;
     }
 
     // Check if chrome.storage is available
     const hasStorage = typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local;
+
+    // Copy/Paste storage key (global, not tab-specific)
+    const CLIPBOARD_STORAGE_KEY = 'fd_clipboard';
+
+    // Copy button handler
+    if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+            const data = {
+                companyName: companyNameInput.value.trim(),
+                companyUrl: companyUrlInput.value.trim()
+            };
+
+            if (!data.companyName && !data.companyUrl) {
+                statusEl.textContent = "Nothing to copy";
+                statusEl.className = "error";
+                setTimeout(() => { statusEl.textContent = ""; statusEl.className = ""; }, 1500);
+                return;
+            }
+
+            if (hasStorage) {
+                try {
+                    await chrome.storage.local.set({ [CLIPBOARD_STORAGE_KEY]: data });
+                    copyBtn.classList.add('success');
+                    statusEl.textContent = "✓ Copied!";
+                    statusEl.className = "success";
+                    setTimeout(() => {
+                        copyBtn.classList.remove('success');
+                        statusEl.textContent = "";
+                        statusEl.className = "";
+                    }, 1500);
+                } catch (e) {
+                    console.error("Failed to copy", e);
+                    statusEl.textContent = "Copy failed";
+                    statusEl.className = "error";
+                }
+            }
+        });
+    }
+
+    // Paste button handler
+    if (pasteBtn) {
+        pasteBtn.addEventListener('click', async () => {
+            if (hasStorage) {
+                try {
+                    const result = await chrome.storage.local.get(CLIPBOARD_STORAGE_KEY);
+                    const data = result[CLIPBOARD_STORAGE_KEY];
+
+                    if (data) {
+                        if (data.companyName) {
+                            companyNameInput.value = data.companyName;
+                        }
+                        if (data.companyUrl) {
+                            companyUrlInput.value = data.companyUrl;
+                        }
+                        saveFormData();
+                        pasteBtn.classList.add('success');
+                        statusEl.textContent = "✓ Pasted!";
+                        statusEl.className = "success";
+                        setTimeout(() => {
+                            pasteBtn.classList.remove('success');
+                            statusEl.textContent = "";
+                            statusEl.className = "";
+                        }, 1500);
+                    } else {
+                        statusEl.textContent = "Nothing to paste";
+                        statusEl.className = "warning";
+                        setTimeout(() => { statusEl.textContent = ""; statusEl.className = ""; }, 1500);
+                    }
+                } catch (e) {
+                    console.error("Failed to paste", e);
+                    statusEl.textContent = "Paste failed";
+                    statusEl.className = "error";
+                }
+            }
+        });
+    }
 
     // Get current tab
     let tab = null;
@@ -28,13 +108,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("Failed to get tab", e);
     }
 
+    // Global storage key for passcode (same for all tabs)
+    const PASSCODE_STORAGE_KEY = 'fd_passcode';
     // Storage key based on tab URL (so different jobs have different saved data)
     const tabUrl = tab?.url || 'default';
     const storageKey = `form_data_${btoa(tabUrl).slice(0, 50)}`;
 
     // Load saved form data from storage
+    const passcodeField = document.getElementById('passcodeField');
     if (hasStorage) {
         try {
+            // Load global passcode
+            const passcodeResult = await chrome.storage.local.get(PASSCODE_STORAGE_KEY);
+            if (passcodeResult[PASSCODE_STORAGE_KEY]) {
+                passcodeInput.value = passcodeResult[PASSCODE_STORAGE_KEY];
+                // Hide passcode field if already stored
+                if (passcodeField) {
+                    passcodeField.style.display = 'none';
+                }
+            }
+
+            // Load tab-specific form data
             const result = await chrome.storage.local.get(storageKey);
             const savedData = result[storageKey];
             if (savedData) {
@@ -125,6 +219,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Save form data on every input change
     const saveFormData = () => {
         if (!hasStorage) return;
+
+        // Save global passcode
+        chrome.storage.local.set({ [PASSCODE_STORAGE_KEY]: passcodeInput.value }).catch(console.error);
+
+        // Save tab-specific data
         const data = {
             companyName: companyNameInput.value,
             positionTitle: positionTitleInput.value,
@@ -144,9 +243,85 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
+    // Refresh profiles when passcode changes
+    passcodeInput.addEventListener('input', () => {
+        if (passcodeInput.value.length === 8) {
+            loadProfiles();
+        }
+    });
+
     // Load profiles
     let profiles = [];
-    container.innerHTML = '<span style="font-size:11px;color:#999;">Loading...</span>';
+    const loadProfiles = async () => {
+        const passcode = passcodeInput.value;
+        if (!passcode) {
+            container.innerHTML = '<span style="font-size:11px;color:#999;">Enter passcode above</span>';
+            return;
+        }
+
+        if (passcode.length < 8) {
+            container.innerHTML = '<span style="font-size:11px;color:#999;">Need 8-digit passcode</span>';
+            return;
+        }
+
+        container.innerHTML = '<span style="font-size:11px;color:#999;">Loading...</span>';
+
+        try {
+            const res = await fetch('https://final-destination-rose.vercel.app/api/profiles', {
+                headers: { 'x-passcode': passcode }
+            });
+
+            if (res.ok) {
+                profiles = await res.json();
+                container.innerHTML = '';
+
+                if (profiles.length > 0) {
+                    const savedProfileId = profileIdInput.value;
+
+                    profiles.forEach((p) => {
+                        const item = document.createElement('div');
+                        const isSelected = savedProfileId === p.id;
+                        item.className = 'profile' + (isSelected ? ' selected' : '');
+                        item.dataset.id = p.id;
+                        item.onclick = () => updateSelection(p.id);
+
+                        let bg = "#3b82f6";
+                        if (p.color) {
+                            if (p.color.includes("red")) bg = "#ef4444";
+                            else if (p.color.includes("orange")) bg = "#f97316";
+                            else if (p.color.includes("green")) bg = "#10b981";
+                            else if (p.color.includes("teal")) bg = "#14b8a6";
+                            else if (p.color.includes("blue")) bg = "#3b82f6";
+                            else if (p.color.includes("indigo")) bg = "#6366f1";
+                            else if (p.color.includes("purple")) bg = "#8b5cf6";
+                            else if (p.color.includes("pink")) bg = "#ec4899";
+                        }
+
+                        const dot = document.createElement('div');
+                        dot.className = 'dot';
+                        dot.style.background = bg;
+                        dot.textContent = p.avatarText || (p.firstName ? p.firstName[0] : "?");
+
+                        const name = document.createElement('span');
+                        name.textContent = p.name;
+
+                        item.appendChild(dot);
+                        item.appendChild(name);
+                        container.appendChild(item);
+                    });
+                } else {
+                    container.innerHTML = '<span style="font-size:11px;color:#666;">No profiles found</span>';
+                }
+            } else if (res.status === 401) {
+                container.innerHTML = '<span style="font-size:11px;color:#ef4444;">Invalid passcode</span>';
+            } else {
+                container.innerHTML = '<span style="font-size:11px;color:#666;">Error loading profiles</span>';
+            }
+        } catch (e) {
+            console.error("Failed to load profiles", e);
+            container.innerHTML = '<span style="font-size:11px;color:#999;">Offline</span>';
+        }
+    };
 
     const updateSelection = (id) => {
         profileIdInput.value = id;
@@ -154,63 +329,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (item.dataset.id === id) item.classList.add('selected');
             else item.classList.remove('selected');
         });
-        // Clear profile error styling
         container.style.borderColor = "";
         saveFormData();
     };
 
-    try {
-        const res = await fetch('https://final-destination-rose.vercel.app/api/profiles');
-        if (res.ok) {
-            profiles = await res.json();
-            container.innerHTML = '';
-
-            if (profiles.length > 0) {
-                // Don't auto-select any profile - leave profileId empty unless restored from storage
-                const savedProfileId = profileIdInput.value;
-
-                profiles.forEach((p) => {
-                    const item = document.createElement('div');
-                    // Only mark as selected if this was the saved profile
-                    const isSelected = savedProfileId === p.id;
-                    item.className = 'profile' + (isSelected ? ' selected' : '');
-                    item.dataset.id = p.id;
-                    item.onclick = () => updateSelection(p.id);
-
-                    let bg = "#3b82f6";
-                    if (p.color) {
-                        if (p.color.includes("red")) bg = "#ef4444";
-                        else if (p.color.includes("orange")) bg = "#f97316";
-                        else if (p.color.includes("green")) bg = "#10b981";
-                        else if (p.color.includes("teal")) bg = "#14b8a6";
-                        else if (p.color.includes("blue")) bg = "#3b82f6";
-                        else if (p.color.includes("indigo")) bg = "#6366f1";
-                        else if (p.color.includes("purple")) bg = "#8b5cf6";
-                        else if (p.color.includes("pink")) bg = "#ec4899";
-                    }
-
-                    const dot = document.createElement('div');
-                    dot.className = 'dot';
-                    dot.style.background = bg;
-                    dot.textContent = p.avatarText || (p.firstName ? p.firstName[0] : "?");
-
-                    const name = document.createElement('span');
-                    name.textContent = p.name;
-
-                    item.appendChild(dot);
-                    item.appendChild(name);
-                    container.appendChild(item);
-                });
-            } else {
-                container.innerHTML = '<span style="font-size:11px;color:#666;">No profiles</span>';
-            }
-        } else {
-            container.innerHTML = '<span style="font-size:11px;color:#666;">No profiles</span>';
-        }
-    } catch (e) {
-        console.error("Failed to load profiles", e);
-        container.innerHTML = '<span style="font-size:11px;color:#999;">Offline</span>';
-    }
+    // Initial load
+    await loadProfiles();
 
     // Basic extraction from URL (no AI)
     if (!companyNameInput.value || !companyUrlInput.value) {
@@ -273,6 +397,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Handle Add Button
     addBtn.addEventListener('click', async () => {
+        const passcode = passcodeInput.value.trim();
         const selectedProfileId = profileIdInput.value;
         const selectedProfile = profiles.find(p => p.id === selectedProfileId);
 
@@ -288,7 +413,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             companyWebsite: companyUrlInput.value.trim()
         };
 
-        // Validation - check all required fields including profile
+        // Validation - check all required fields including profile and passcode
         let hasErrors = false;
         statusEl.textContent = "";
         statusEl.className = "";
@@ -298,10 +423,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         positionTitleInput.style.borderColor = "#E5E5E5";
         jobUrlInput.style.borderColor = "#E5E5E5";
         jobDescriptionInput.style.borderColor = "#E5E5E5";
+        passcodeInput.style.borderColor = "#E5E5E5";
         container.style.border = "";
 
+        // Validate passcode
+        if (!passcode || passcode.length !== 8) {
+            passcodeInput.style.borderColor = "#ef4444";
+            statusEl.textContent = "8-digit passcode required";
+            statusEl.className = "error";
+            hasErrors = true;
+        }
+
         // Validate profile first (mandatory)
-        if (!selectedProfileId) {
+        if (!selectedProfileId && !hasErrors) {
             container.style.border = "2px solid #ef4444";
             container.style.borderRadius = "8px";
             statusEl.textContent = "Select a profile";
@@ -341,7 +475,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const response = await fetch('https://final-destination-rose.vercel.app/api/queue', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-passcode': passcode
+                },
                 body: JSON.stringify(job)
             });
 
@@ -354,6 +491,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 statusEl.textContent = "✓ Added!";
                 statusEl.className = "success";
                 setTimeout(() => window.close(), 1000);
+            } else if (response.status === 401) {
+                throw new Error("Invalid passcode");
             } else {
                 const err = await response.json();
                 throw new Error(err.error || "Server error");

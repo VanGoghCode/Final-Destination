@@ -9,6 +9,7 @@ interface JobQueueCardProps {
   onRetry?: () => void;
   onView?: () => void;
   onEdit?: () => void;
+  onCancel?: () => void;
   isCurrentJob?: boolean;
 }
 
@@ -146,6 +147,26 @@ const STATUS_CONFIG: Record<
       </svg>
     ),
   },
+  cancelled: {
+    label: "Cancelled",
+    color: "text-orange-700",
+    bgColor: "bg-orange-50",
+    icon: (
+      <svg
+        className="w-3.5 h-3.5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+        />
+      </svg>
+    ),
+  },
 };
 
 export default function JobQueueCard({
@@ -154,6 +175,7 @@ export default function JobQueueCard({
   onRetry,
   onView,
   onEdit,
+  onCancel,
   isCurrentJob,
 }: JobQueueCardProps) {
   const config = STATUS_CONFIG[job.status];
@@ -277,6 +299,11 @@ export default function JobQueueCard({
             <div className="mt-2 space-y-1.5">
               <p className="text-[10px] text-red-600 bg-red-100 px-2 py-1 rounded">
                 {job.error}
+                {job.retryCount && job.retryCount > 0 && (
+                  <span className="ml-1 text-red-500">
+                    (Retry #{job.retryCount})
+                  </span>
+                )}
               </p>
               {onRetry && (
                 <button
@@ -297,6 +324,15 @@ export default function JobQueueCard({
                   Retry
                 </button>
               )}
+            </div>
+          )}
+
+          {/* Cancelled message with retry option */}
+          {job.status === "cancelled" && (
+            <div className="mt-2">
+              <p className="text-[10px] text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                Processing was cancelled
+              </p>
             </div>
           )}
         </div>
@@ -359,6 +395,47 @@ export default function JobQueueCard({
                 <path
                   strokeWidth="2"
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            </button>
+          )}
+          {job.status === "cancelled" && onRetry && (
+            <button
+              onClick={onRetry}
+              className="p-1.5 rounded hover:bg-gray-100 text-orange-600 transition-colors"
+              title="Retry cancelled job"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeWidth="2"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            </button>
+          )}
+          {/* Cancel button shown during processing */}
+          {isProcessing && onCancel && (
+            <button
+              onClick={onCancel}
+              className="p-1.5 rounded hover:bg-red-100 text-red-500 hover:text-red-600 transition-colors"
+              title="Cancel processing"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
             </button>

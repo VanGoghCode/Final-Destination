@@ -15,7 +15,8 @@ export type JobStatus =
   | "tailoring-resume"
   | "tailoring-cover-letter"
   | "completed"
-  | "failed";
+  | "failed"
+  | "cancelled";
 
 export interface QueuedJob {
   id: string;
@@ -39,6 +40,8 @@ export interface QueuedJob {
   tailoredCoverLetter?: string;
   jobCountry?: string;
   jobWorkMode?: "" | "Remote" | "Hybrid" | "On-site";
+  // Retry tracking
+  retryCount?: number;
   // Timestamps
   addedAt: number;
   startedAt?: number;
@@ -78,7 +81,12 @@ interface JobQueueContextType {
   // Processing actions
   startProcessing: () => void;
   stopProcessing: () => void;
+  cancelJob: (id: string) => void;
   retryJob: (id: string) => void;
+
+  // Pause state (prevents auto-restart after explicit cancellation)
+  processingPaused: boolean;
+  setProcessingPaused: (paused: boolean) => void;
 
   // Job updates (internal use)
   updateJobStatus: (id: string, status: JobStatus, progress?: number) => void;
@@ -131,6 +139,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [pollingEnabled, setPollingEnabled] = useState(false);
+  const [processingPaused, setProcessingPaused] = useState(false);
 
   // Initial fetch and polling (only when pollingEnabled)
   useEffect(() => {
@@ -157,14 +166,18 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
   }, [pollingEnabled]);
 
   // Effect to auto-start processing when pending jobs exist and not processing
+  // Respects processingPaused to prevent restart after explicit user cancellation
   useEffect(() => {
+    // Don't auto-start if user has explicitly paused processing
+    if (processingPaused) return;
+
     // Check if we have any pending jobs
     const hasPending = queue.some((j) => j.status === "pending");
     if (hasPending && !isProcessing && !currentJobId) {
       console.log("Auto-starting processing for valid pending jobs...");
       setIsProcessing(true);
     }
-  }, [queue, isProcessing, currentJobId]);
+  }, [queue, isProcessing, currentJobId, processingPaused]);
 
   // Generate unique ID
   const generateId = () =>
@@ -371,6 +384,25 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
     setCurrentJobId(null);
   }, []);
 
+  // Cancel a specific job (sets to cancelled status, won't auto-restart)
+  const cancelJob = useCallback((id: string) => {
+    const updates = {
+      status: "cancelled" as JobStatus,
+      progress: 0,
+      completedAt: Date.now(),
+    };
+
+    setQueue((prev) =>
+      prev.map((job) => (job.id === id ? { ...job, ...updates } : job)),
+    );
+
+    fetch("/api/queue", {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ id, updates }),
+    }).catch(console.error);
+  }, []);
+
   // Retry failed job
   const retryJob = useCallback((id: string) => {
     const updates = {
@@ -412,6 +444,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
         clearCompleted,
         startProcessing,
         stopProcessing,
+        cancelJob,
         retryJob,
         updateJobStatus,
         updateJobResults,
@@ -422,6 +455,8 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
         totalCount,
         pollingEnabled,
         setPollingEnabled,
+        processingPaused,
+        setProcessingPaused,
       }}
     >
       {children}

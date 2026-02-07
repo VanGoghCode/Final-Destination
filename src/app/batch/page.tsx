@@ -279,6 +279,7 @@ export default function BatchProcessPage() {
     clearCompleted,
     startProcessing,
     stopProcessing,
+    cancelJob,
     retryJob,
     updateJobStatus,
     updateJobResults,
@@ -288,6 +289,7 @@ export default function BatchProcessPage() {
     pendingCount,
     totalCount,
     setPollingEnabled,
+    setProcessingPaused,
   } = useJobQueue();
 
   const { personalDetails: globalPersonalDetails } = useAppContext();
@@ -558,7 +560,10 @@ export default function BatchProcessPage() {
 
   // Handle stop processing
   const handleStopProcessing = () => {
-    // Reset any currently processing job back to pending
+    // Set processing paused flag to prevent auto-restart
+    setProcessingPaused(true);
+
+    // Cancel any currently processing jobs (sets to 'cancelled' status)
     const processingJobs = queue.filter(
       (j) =>
         j.status === "researching" ||
@@ -566,13 +571,24 @@ export default function BatchProcessPage() {
         j.status === "tailoring-cover-letter",
     );
     processingJobs.forEach((job) => {
-      updateJobStatus(job.id, "pending", 0);
+      cancelJob(job.id);
     });
 
     abortControllerRef.current?.abort();
     stopProcessing();
     processingRef.current = false;
-    addActivity(`[Paused] Processing stopped by user`);
+    addActivity(`[Cancelled] Processing stopped by user`);
+  };
+
+  // Handle cancel single job
+  const handleCancelJob = (jobId: string) => {
+    const job = queue.find((j) => j.id === jobId);
+    if (job) {
+      cancelJob(jobId);
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = new AbortController();
+      addActivity(`[Cancelled] ${job.companyName} - ${job.positionTitle}`);
+    }
   };
 
   // Handle add job - auto starts processing
@@ -586,6 +602,9 @@ export default function BatchProcessPage() {
     profileName?: string;
     profileColor?: string;
   }) => {
+    // Clear paused state when adding new jobs
+    setProcessingPaused(false);
+
     addJob(jobData);
     addActivity(`[Added] ${jobData.companyName} - ${jobData.positionTitle}`);
 
@@ -1114,6 +1133,7 @@ export default function BatchProcessPage() {
                     onRetry={() => retryJob(job.id)}
                     onView={() => handleViewResults(job)}
                     onEdit={() => setEditingJob(job)}
+                    onCancel={() => handleCancelJob(job.id)}
                     isCurrentJob={currentJob?.id === job.id}
                   />
                 ))}

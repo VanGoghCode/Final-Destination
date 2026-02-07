@@ -72,9 +72,11 @@ export interface QueuedJob {
     | "tailoring-resume"
     | "tailoring-cover-letter"
     | "completed"
-    | "failed";
+    | "failed"
+    | "cancelled";
   progress: number; // 0-100
   error?: string;
+  retryCount?: number;
   // Profile info
   profileId?: string;
   profileName?: string;
