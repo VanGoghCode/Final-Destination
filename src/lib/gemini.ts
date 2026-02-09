@@ -387,11 +387,11 @@ Modern ATS filters and recruiters look for Technical Adjacencies, not just keywo
 - Example: For a fintech role, emphasize any finance/accounting + tech combination
 - Example: For an Android role at a finance company, emphasize finance + Android experience
 
-### 2. Contextual Clustering
-Don't just list skills in isolation. Add semantic "Context Nouns" that signal expertise depth:
-- If listing "AWS" → include adjacencies like "Infrastructure-as-Code," "Cost Optimization," "Auto-scaling"
-- If listing "React" → include "Component Architecture," "State Management," "Performance Optimization"
-- This signals you're an architect, not just a user
+### 2. Contextual Clustering (CONCISE)
+Don't just list skills in isolation, but avoid being wordy. Add semantic "Context Nouns" ONLY if they provide real information and are not fluff:
+- If listing "AWS" → include adjacencies like "IaC," "Cost Optimization," "Auto-scaling" but not in the skills section because it makes skills section look too wordy. You can put these adjacencies in the project descriptions if needed and being best fit.
+- AVOID fluff phrases like "Interactive Web Applications" or "Component Architecture" if you already list "React," "Angular," or "Vue." Recruiters assume you know components if you know the framework.
+- This signals you're an architect but not just a user, while keeping the section readable.
 
 ### 3. Velocity Signals
 Use Growth Nouns that carry 10x more weight than passive language:
@@ -437,6 +437,7 @@ Match the semantic tone to the company's stage and culture:
    - ADD all required, preferred, and nice-to-have skills mentioned in the job description
    - REMOVE skills that are NOT relevant to this job and NOT mentioned in the JD - the company doesn't care about them
    - REMOVE outdated or generic skills that don't add value for this specific role
+   - AVOID WORDINESS: Use technical shorthands (e.g., "IaC" instead of "Infrastructure as Code") where appropriate. Do NOT add filler descriptions for obvious technologies.
    - The candidate is assumed to have exposure to industry-standard tools, so include them even if not explicitly in the original resume
    - Group related skills together to show contextual clustering
    - PRIORITY: Skills from the JD > Industry-standard skills > Other skills (remove if space needed)
