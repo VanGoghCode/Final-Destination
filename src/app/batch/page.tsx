@@ -18,6 +18,12 @@ import {
 } from "@/lib/storage";
 import JobForm from "@/components/JobForm";
 
+interface Activity {
+  id: string;
+  message: string;
+  timestamp: number;
+}
+
 // Add Job Modal Component with Profile Selection
 function AddJobModal({
   isOpen,
@@ -216,9 +222,11 @@ function getActivityColor(activity: string): { border: string; text: string } {
 function ActivityFeed({
   currentJob,
   recentActivities,
+  currentJobStartTime,
 }: {
   currentJob: QueuedJob | null;
-  recentActivities: string[];
+  recentActivities: Activity[];
+  currentJobStartTime: number | null;
 }) {
   return (
     <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 font-mono text-xs">
@@ -239,24 +247,26 @@ function ActivityFeed({
         {currentJob && (
           <div className="flex gap-2 text-gray-700 pl-2 border-l-2 border-l-purple-500 bg-purple-50/50 py-0.5">
             <span className="text-gray-400">
-              [{new Date().toLocaleTimeString()}]
+              [
+              {new Date(currentJobStartTime || Date.now()).toLocaleTimeString()}
+              ]
             </span>
             <span className="text-purple-700">
               Processing: {currentJob.companyName}
             </span>
           </div>
         )}
-        {recentActivities.slice(0, 8).map((activity, i) => {
-          const colors = getActivityColor(activity);
+        {recentActivities.map((activity) => {
+          const colors = getActivityColor(activity.message);
           return (
             <div
-              key={i}
+              key={activity.id}
               className={`flex gap-2 pl-2 border-l-2 ${colors.border} py-0.5`}
             >
               <span className="text-gray-400 shrink-0">
-                [{new Date(Date.now() - i * 5000).toLocaleTimeString()}]
+                [{new Date(activity.timestamp).toLocaleTimeString()}]
               </span>
-              <span className={colors.text}>{activity}</span>
+              <span className={colors.text}>{activity.message}</span>
             </div>
           );
         })}
@@ -297,7 +307,10 @@ export default function BatchProcessPage() {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingJob, setEditingJob] = useState<QueuedJob | null>(null);
-  const [recentActivities, setRecentActivities] = useState<string[]>([]);
+  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
+  const [currentJobStartTime, setCurrentJobStartTime] = useState<number | null>(
+    null,
+  );
   const [resumeTemplate, setResumeTemplate] = useState<Template | null>(null);
   const [coverLetterTemplate, setCoverLetterTemplate] =
     useState<Template | null>(null);
@@ -354,7 +367,14 @@ export default function BatchProcessPage() {
 
   // Add activity log
   const addActivity = useCallback((message: string) => {
-    setRecentActivities((prev) => [message, ...prev.slice(0, 19)]);
+    setRecentActivities((prev) => [
+      {
+        id: Math.random().toString(36).substr(2, 9),
+        message,
+        timestamp: Date.now(),
+      },
+      ...prev.slice(0, 19),
+    ]);
   }, []);
 
   // Process a single job
@@ -447,6 +467,8 @@ export default function BatchProcessPage() {
         const tailorData = await tailorResponse.json();
         updateJobResults(job.id, {
           tailoredResume: tailorData.tailoredResume,
+          resumeLatex: jobResumeTemplate.content,
+          coverLetterLatex: jobCoverLetterTemplate?.content,
           jobCountry: tailorData.jobCountry,
           jobWorkMode: tailorData.jobWorkMode,
         });
@@ -647,6 +669,8 @@ export default function BatchProcessPage() {
       JSON.stringify({
         tailoredResume: job.tailoredResume,
         tailoredCoverLetter: job.tailoredCoverLetter,
+        resumeLatex: job.resumeLatex,
+        coverLetterLatex: job.coverLetterLatex,
         companyName: job.companyName,
         companyUrl: job.companyUrl,
         positionTitle: job.positionTitle,
@@ -698,6 +722,17 @@ export default function BatchProcessPage() {
       j.status,
     ),
   );
+
+  // Track current job start time for stable display
+  useEffect(() => {
+    if (currentJob) {
+      if (!currentJobStartTime) {
+        setCurrentJobStartTime(Date.now());
+      }
+    } else {
+      setCurrentJobStartTime(null);
+    }
+  }, [currentJob?.id, !!currentJob, currentJobStartTime]);
 
   // Filter jobs by status
   const getProcessingCount = () =>
@@ -1062,6 +1097,7 @@ export default function BatchProcessPage() {
           <ActivityFeed
             currentJob={currentJob || null}
             recentActivities={recentActivities}
+            currentJobStartTime={currentJobStartTime}
           />
 
           {/* Queue List */}

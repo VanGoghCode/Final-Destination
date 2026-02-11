@@ -9,6 +9,8 @@ import Button from "@/components/Button";
 interface BatchJobData {
   tailoredResume?: string;
   tailoredCoverLetter?: string;
+  resumeLatex?: string;
+  coverLetterLatex?: string;
   companyName: string;
   companyUrl?: string;
   positionTitle: string;
@@ -68,6 +70,9 @@ export default function TailoredCompanyPage({
     "none",
   );
   const [limitValue, setLimitValue] = useState<number>(10);
+  const [searchMode, setSearchMode] = useState<
+    "context" | "context+internet" | "internet"
+  >("context");
 
   // Collapsible sections state
   const [showFilenames, setShowFilenames] = useState(false);
@@ -100,6 +105,15 @@ export default function TailoredCompanyPage({
     }
   }, [jobId]);
 
+  // Focus on application link field after modal opens
+  useEffect(() => {
+    if (showLogModal) {
+      setTimeout(() => {
+        applicationLinkRef.current?.focus();
+      }, 100);
+    }
+  }, [showLogModal]);
+
   // Check if this job was already logged
   useEffect(() => {
     if (jobId) {
@@ -130,35 +144,40 @@ export default function TailoredCompanyPage({
   }, [alreadyLogged, jobData]);
 
   // Handle delete from batch
-  const handleDeleteFromBatch = useCallback(async () => {
-    if (!jobId) return;
+  const handleDeleteFromBatch = useCallback(
+    async (skipConfirm = false) => {
+      if (!jobId) return;
 
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this job from the batch queue?",
-    );
-    if (!confirmed) return;
+      if (!skipConfirm) {
+        const confirmed = window.confirm(
+          "Are you sure you want to delete this job from the batch queue?",
+        );
+        if (!confirmed) return;
+      }
 
-    setIsDeletingFromBatch(true);
-    try {
-      const passcode = localStorage.getItem("fd_passcode");
-      const headers: Record<string, string> = {};
-      if (passcode) headers["x-passcode"] = passcode;
+      setIsDeletingFromBatch(true);
+      try {
+        const passcode = localStorage.getItem("fd_passcode");
+        const headers: Record<string, string> = {};
+        if (passcode) headers["x-passcode"] = passcode;
 
-      await fetch(`/api/queue?id=${jobId}`, {
-        method: "DELETE",
-        headers,
-      });
-      // Remove from sessionStorage too
-      sessionStorage.removeItem(`batch_job_${jobId}`);
-      // Redirect to batch page
-      router.push("/batch");
-    } catch (err) {
-      console.error("Failed to delete job:", err);
-      alert("Failed to delete job from batch");
-    } finally {
-      setIsDeletingFromBatch(false);
-    }
-  }, [jobId, router]);
+        await fetch(`/api/queue?id=${jobId}`, {
+          method: "DELETE",
+          headers,
+        });
+        // Remove from sessionStorage too
+        sessionStorage.removeItem(`batch_job_${jobId}`);
+        // Redirect to batch page
+        router.push("/batch");
+      } catch (err) {
+        console.error("Failed to delete job:", err);
+        alert("Failed to delete job from batch");
+      } finally {
+        setIsDeletingFromBatch(false);
+      }
+    },
+    [jobId, router],
+  );
 
   // Generate formatted filenames
   const formatName = (str: string | undefined | null) =>
@@ -273,6 +292,76 @@ export default function TailoredCompanyPage({
     }
   };
 
+  const handleLogAndDelete = async () => {
+    // First log to sheet
+    setLogError("");
+    setDuplicateWarning(null);
+    setIsLogging(true);
+
+    const noteParts: string[] = [];
+    if (country) noteParts.push(`Country: ${country}`);
+    if (workMode) noteParts.push(`Work Mode: ${workMode}`);
+    if (notes.trim()) noteParts.push(notes.trim());
+    const composedNotes = noteParts.join(" | ");
+
+    try {
+      const response = await fetch("/api/sheets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: editableCompanyName || companyName,
+          positionTitle: editablePositionTitle || positionTitle,
+          applicationLink: applicationLink.trim() || "N/A",
+          notes: composedNotes,
+          other: other.trim() || "",
+          skipDuplicateCheck: true,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.error || "Failed to log application");
+
+      setLogSuccess(true);
+
+      // Mark this job as logged in localStorage
+      if (jobId) {
+        try {
+          const loggedJobs = JSON.parse(
+            localStorage.getItem("logged_jobs") || "[]",
+          );
+          if (!loggedJobs.includes(jobId)) {
+            loggedJobs.push(jobId);
+            localStorage.setItem("logged_jobs", JSON.stringify(loggedJobs));
+          }
+          setAlreadyLogged(true);
+        } catch {
+          // Ignore storage errors
+        }
+      }
+
+      // Then delete from batch (no confirm needed as it's a "Log & Delete" action)
+      const passcode = localStorage.getItem("fd_passcode");
+      const headers: Record<string, string> = {};
+      if (passcode) headers["x-passcode"] = passcode;
+
+      await fetch(`/api/queue?id=${jobId}`, {
+        method: "DELETE",
+        headers,
+      });
+      sessionStorage.removeItem(`batch_job_${jobId}`);
+
+      setTimeout(() => {
+        setIsLogging(false);
+        setShowLogModal(false);
+        router.push("/batch");
+      }, 1500);
+    } catch (err) {
+      setLogError(err instanceof Error ? err.message : "An error occurred");
+      setIsLogging(false);
+    }
+  };
+
   const handleRegenerateResume = async (comment: string) => {
     setIsRegeneratingResume(true);
     try {
@@ -283,6 +372,7 @@ export default function TailoredCompanyPage({
           type: "resume",
           currentContent: tailoredResume,
           comment,
+          resumeLatex: jobData?.resumeLatex,
           jobDescription: jobData?.jobDescription,
           companyInfo: jobData?.companyResearch,
         }),
@@ -307,6 +397,7 @@ export default function TailoredCompanyPage({
           type: "coverLetter",
           currentContent: tailoredCoverLetter,
           comment,
+          coverLetterLatex: jobData?.coverLetterLatex,
           jobDescription: jobData?.jobDescription,
           companyInfo: jobData?.companyResearch,
         }),
@@ -517,7 +608,7 @@ export default function TailoredCompanyPage({
           {jobId && (
             <div className="border-t border-gray-100 cursor-default">
               <Button
-                onClick={handleDeleteFromBatch}
+                onClick={() => handleDeleteFromBatch()}
                 disabled={isDeletingFromBatch}
                 className="w-full text-[11px] font-bold py-2.5 !bg-red-600 !text-white !border-red-600 hover:!bg-red-700 hover:!border-red-700 shadow-sm transition-all duration-300 group"
               >
@@ -602,6 +693,29 @@ export default function TailoredCompanyPage({
               className="w-full px-3 py-2 border border-card-border rounded-lg text-sm resize-none"
               rows={2}
             />
+            <div className="flex gap-1 my-2">
+              {[
+                { value: "context", label: "Context" },
+                { value: "context+internet", label: "Web+Context" },
+                { value: "internet", label: "Web Only" },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() =>
+                    setSearchMode(
+                      opt.value as "context" | "context+internet" | "internet",
+                    )
+                  }
+                  className={`flex-1 px-1 py-1 text-[9px] font-bold rounded transition-all border ${
+                    searchMode === opt.value
+                      ? "bg-primary/10 text-primary border-primary"
+                      : "bg-white text-muted border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
             <div className="flex gap-1 my-2">
               {[
                 { value: "none", label: "No Limit" },
@@ -893,12 +1007,25 @@ export default function TailoredCompanyPage({
                   variant="primary"
                   className="flex-1"
                 >
-                  {isLogging
+                  {isLogging && !logSuccess && !duplicateWarning
                     ? "Logging..."
                     : logSuccess
                       ? "✓ Logged!"
-                      : "Log Application"}
+                      : "Log Only"}
                 </Button>
+                {jobId && (
+                  <Button
+                    onClick={() => handleLogAndDelete()}
+                    disabled={isLogging}
+                    className="flex-1 !bg-red-600 !text-white !border-red-600 hover:!bg-red-700 hover:!border-red-700"
+                  >
+                    {isLogging && !logSuccess && !duplicateWarning
+                      ? "Processing..."
+                      : logSuccess
+                        ? "✓ Success!"
+                        : "Log & Delete"}
+                  </Button>
+                )}
               </div>
             </div>
           </div>

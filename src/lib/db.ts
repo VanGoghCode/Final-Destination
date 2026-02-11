@@ -88,6 +88,8 @@ export interface QueuedJob {
   companyResearch?: string;
   tailoredResume?: string;
   tailoredCoverLetter?: string;
+  resumeLatex?: string;
+  coverLetterLatex?: string;
   jobCountry?: string;
   jobWorkMode?: "" | "Remote" | "Hybrid" | "On-site";
   // Timestamps
