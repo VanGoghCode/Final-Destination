@@ -1,56 +1,65 @@
-import type { ScrapeResult } from "./types";
+import type { Job, ScrapeResult } from "./types";
 
 /**
  * Known Workday domains and their configurations
  */
 export const WORKDAY_COMPANIES: Record<
   string,
-  { id: string; name: string; domain: string }
+  { id: string; name: string; domain: string; site: string }
 > = {
   salesforce: {
     id: "SALESFORCE,_INC.",
     name: "Salesforce",
     domain: "salesforce.wd12.myworkdayjobs.com",
+    site: "External_Career_Site",
   },
   adobe: {
     id: "ADOBE_INC.",
     name: "Adobe",
     domain: "adobe.wd5.myworkdayjobs.com",
+    site: "external_experienced",
   },
   nvidia: {
     id: "NVIDIA_CORPORATION",
     name: "NVIDIA",
     domain: "nvidia.wd5.myworkdayjobs.com",
+    site: "NVIDIAExternalCareerSite",
   },
   paypal: {
     id: "PAYPAL,_INC.",
     name: "PayPal",
     domain: "paypal.wd1.myworkdayjobs.com",
+    site: "jobs",
   },
   vmware: {
     id: "VMWARE",
     name: "VMware",
     domain: "vmware.wd1.myworkdayjobs.com",
+    site: "VMware_Careers",
   },
   qualcomm: {
     id: "QUALCOMM",
     name: "Qualcomm",
     domain: "qualcomm.wd5.myworkdayjobs.com",
+    site: "External",
   },
   visa: {
     id: "VISA",
     name: "Visa",
     domain: "visa.wd5.myworkdayjobs.com",
+    site: "Visa_Inc_External",
   },
   intuit: {
     id: "INTUIT",
     name: "Intuit",
     domain: "intuit.wd1.myworkdayjobs.com",
+    site: "Jobs",
   },
   anduril: {
     id: "ANDURIL",
     name: "Anduril",
     domain: "anduril.wd1.myworkdayjobs.com",
+    site: "Anduril",
   },
 };
 
@@ -60,7 +69,7 @@ export const WORKDAY_COMPANIES: Record<
  */
 export async function scrapeWorkday(
   companyKey: string,
-  _companyId: string,
+  companyId: string,
   companyName: string,
 ): Promise<ScrapeResult> {
   const config = WORKDAY_COMPANIES[companyKey];
@@ -73,49 +82,95 @@ export async function scrapeWorkday(
   }
 
   try {
-    // Workday uses a specific search endpoint format
-    // This tries to fetch the job listings from their search API
-    const searchUrl = `https://${config.domain}/en-US/External_Career_Site`;
+    const jobs: Job[] = [];
+    const limit = 20;
+    let offset = 0;
+    let hasMore = true;
+    let total = 0;
 
-    // For Workday, we need to use their internal faceted search
-    // Since direct API access is limited, we'll attempt a basic fetch
-    const response = await fetch(searchUrl, {
-      headers: {
-        Accept: "text/html",
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      },
-    });
+    // Extract tenant from domain (e.g., salesforce.wd12.myworkdayjobs.com -> salesforce)
+    // Most Workday domains are formatted as {tenant}.{cluster}.myworkdayjobs.com
+    const tenant = config.domain.split(".")[0];
+    const baseUrl = `https://${config.domain}/wday/cxs/${tenant}/${config.site}/jobs`;
 
-    if (!response.ok) {
-      return {
-        success: false,
-        jobs: [],
-        error: `Workday fetch failed: ${response.status}`,
-      };
-    }
+    while (hasMore) {
+      const response = await fetch(baseUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        },
+        body: JSON.stringify({
+          limit,
+          offset,
+          searchText: "",
+        }),
+      });
 
-    // Workday pages contain job data in script tags
-    // This is a simplified approach - full parsing would require more work
-    const html = await response.text();
+      if (!response.ok) {
+        // If we have collected some jobs, return partial success
+        if (jobs.length > 0) {
+          console.warn(
+            `Workday scrape partial failure for ${companyName}: ${response.status}`,
+          );
+          hasMore = false;
+          continue;
+        }
+        return {
+          success: false,
+          jobs: [],
+          error: `Workday fetch failed: ${response.status}`,
+        };
+      }
 
-    // Try to extract job count from page
-    const jobCountMatch = html.match(/(\d+)\s*(?:jobs?|results?)/i);
-    const hasJobs = jobCountMatch && jobCountMatch[1] && parseInt(jobCountMatch[1]) > 0;
+      const data = await response.json();
+      const jobPostings = data.jobPostings || [];
 
-    // For now, return a placeholder indicating Workday is reachable
-    // Full implementation would parse the embedded JSON or use Playwright
-    if (hasJobs) {
-      return {
-        success: true,
-        jobs: [],
-        error: `Workday site reachable for ${companyName} - full parsing requires browser automation`,
-      };
+      // Capture total from the first request
+      if (offset === 0) {
+        total = data.total || 0;
+      }
+
+      for (const posting of jobPostings) {
+        // Extract ID from bulletFields (usually first item) or fallback to externalPath
+        const id =
+          posting.bulletFields && posting.bulletFields.length > 0
+            ? posting.bulletFields[0]
+            : posting.externalPath.split("_").pop() || "unknown";
+
+        jobs.push({
+          id,
+          companyId,
+          companyName,
+          title: posting.title,
+          location: posting.locationsText || "Remote",
+          url: `https://${config.domain}${posting.externalPath}`,
+          postedAt: posting.postedOn,
+          scrapedAt: new Date().toISOString(),
+          platform: "workday",
+        });
+      }
+
+      offset += limit;
+
+      // Break if no more jobs returned or we've reached the total
+      if (jobPostings.length === 0) {
+        hasMore = false;
+      } else if (total > 0 && offset >= total) {
+        hasMore = false;
+      }
+
+      // Safety break to prevent infinite loops or excessive scraping
+      if (offset > 2000) {
+        hasMore = false;
+      }
     }
 
     return {
       success: true,
-      jobs: [],
+      jobs,
     };
   } catch (error) {
     return {
@@ -125,12 +180,3 @@ export async function scrapeWorkday(
     };
   }
 }
-
-/**
- * Note: Full Workday scraping requires either:
- * 1. Browser automation (Playwright/Puppeteer) - Workday uses heavy JS
- * 2. Their official API (requires partnership)
- *
- * The Greenhouse and Lever APIs are more reliable for automated scraping.
- * Workday jobs can be manually tracked or scraped via browser extension.
- */
