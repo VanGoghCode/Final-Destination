@@ -41,7 +41,7 @@ export default function Sidebar({
         className={`shrink-0 overflow-visible ${
           isMobile
             ? `fixed inset-0 z-40 ${sidebarOpen ? "bg-black/50" : "pointer-events-none"}`
-            : `h-screen ${sidebarOpen ? "w-80" : "w-12"}`
+            : `h-screen sticky top-0 ${sidebarOpen ? "w-80" : "w-12"}`
         }`}
         onClick={(e) => {
           if (isMobile && e.target === e.currentTarget) setSidebarOpen(false);
