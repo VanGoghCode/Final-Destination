@@ -121,20 +121,27 @@ function getUserKey(baseKey: string, passcode?: string | null): string {
 let redisInstance: Redis | null = null;
 
 function getRedis(): Redis {
+  if (redisInstance) {
+    return redisInstance;
+  }
+
   if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
     throw new Error(
       "Redis is not configured. Please set KV_REST_API_URL and KV_REST_API_TOKEN environment variables.",
     );
   }
 
-  if (!redisInstance) {
-    redisInstance = new Redis({
-      url: process.env.KV_REST_API_URL,
-      token: process.env.KV_REST_API_TOKEN,
-    });
-  }
+  redisInstance = new Redis({
+    url: process.env.KV_REST_API_URL,
+    token: process.env.KV_REST_API_TOKEN,
+  });
 
   return redisInstance;
+}
+
+// For testing purposes only
+export function setRedisInstance(redis: Redis) {
+  redisInstance = redis;
 }
 
 // ============== TIER DATA ==============
@@ -185,11 +192,12 @@ export async function getAllTierData(): Promise<
   Record<string, TierData | null>
 > {
   const tiers = ["top", "middle", "lower", "lowest"] as const;
-  const result: Record<string, TierData | null> = {};
+  const results = await Promise.all(tiers.map((tier) => getTierData(tier)));
 
-  for (const tier of tiers) {
-    result[tier] = await getTierData(tier);
-  }
+  const result: Record<string, TierData | null> = {};
+  tiers.forEach((tier, index) => {
+    result[tier] = results[index];
+  });
 
   return result;
 }
@@ -594,12 +602,15 @@ export async function getDataStats(): Promise<{
   const tierCounts: Record<string, number> = {};
   let totalCompanies = 0;
 
-  for (const tier of tiers) {
-    const tierData = await getTierData(tier);
+  const tierDataPromises = tiers.map((tier) => getTierData(tier));
+  const tierDataResults = await Promise.all(tierDataPromises);
+
+  tiers.forEach((tier, index) => {
+    const tierData = tierDataResults[index];
     hasTiers[tier] = tierData !== null;
     tierCounts[tier] = tierData?.count || 0;
     totalCompanies += tierCounts[tier];
-  }
+  });
 
   return {
     hasJobs: jobs !== null,
