@@ -108,19 +108,40 @@ export async function POST(request: NextRequest) {
     } as const;
 
     seedData.tiers = {};
-    for (const [tier, file] of Object.entries(tierFiles)) {
+
+    const tierPromises = Object.entries(tierFiles).map(async ([tier, file]) => {
       const filePath = path.join(dataDir, file);
-      if (fs.existsSync(filePath)) {
-        seedData.tiers[tier as keyof typeof tierFiles] = JSON.parse(
-          fs.readFileSync(filePath, "utf-8")
-        );
+      try {
+        const content = await fs.promises.readFile(filePath, "utf-8");
+        return { tier, data: JSON.parse(content) };
+      } catch {
+        return null;
+      }
+    });
+
+    const jobsPromise = (async () => {
+      const jobsPath = path.join(dataDir, "jobs.json");
+      try {
+        const content = await fs.promises.readFile(jobsPath, "utf-8");
+        return JSON.parse(content);
+      } catch {
+        return null;
+      }
+    })();
+
+    const [tierResults, jobsResult] = await Promise.all([
+      Promise.all(tierPromises),
+      jobsPromise,
+    ]);
+
+    for (const result of tierResults) {
+      if (result) {
+        seedData.tiers[result.tier as keyof typeof tierFiles] = result.data;
       }
     }
 
-    // Load jobs.json
-    const jobsPath = path.join(dataDir, "jobs.json");
-    if (fs.existsSync(jobsPath)) {
-      seedData.jobs = JSON.parse(fs.readFileSync(jobsPath, "utf-8"));
+    if (jobsResult) {
+      seedData.jobs = jobsResult;
     }
 
     const result = await seedAllData(seedData);
