@@ -63,6 +63,10 @@ export async function GET(request: Request) {
 
       const result: Record<string, unknown> = {};
 
+      // Collect keys to fetch in batch
+      const keysToFetch: string[] = [];
+      const shortKeys: string[] = [];
+
       for (const pattern of patterns) {
         const keys = await redis.keys(pattern);
         for (const fullKey of keys) {
@@ -82,9 +86,24 @@ export async function GET(request: Request) {
             continue;
           }
 
-          const value = await redis.get(fullKey);
-          result[shortKey] = value;
+          keysToFetch.push(fullKey);
+          shortKeys.push(shortKey);
         }
+      }
+
+      if (keysToFetch.length > 0) {
+        // Fetch all values in parallel
+        const values = await redis.mget<unknown[]>(...keysToFetch);
+
+        // Map values back to short keys
+        // mget returns values in the same order as keys
+        values.forEach((value: unknown, index: number) => {
+          const shortKey = shortKeys[index];
+          if (shortKey !== undefined) {
+            // Later values override earlier values for the same shortKey
+            result[shortKey] = value;
+          }
+        });
       }
 
       return NextResponse.json({ success: true, data: result });
