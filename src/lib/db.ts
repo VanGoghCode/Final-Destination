@@ -199,8 +199,14 @@ export async function getCompanyFromTiers(
 ): Promise<{ company: Company; tier: string } | null> {
   const tiers = ["top", "middle", "lower", "lowest"] as const;
 
-  for (const tier of tiers) {
-    const data = await getTierData(tier);
+  const results = await Promise.all(
+    tiers.map(async (tier) => {
+      const data = await getTierData(tier);
+      return { tier, data };
+    }),
+  );
+
+  for (const { tier, data } of results) {
     if (data) {
       const company = data.companies.find((c) => c.id === companyId);
       if (company) {
