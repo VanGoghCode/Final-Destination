@@ -372,6 +372,35 @@
 
       <input type="hidden" id="personalDetails" value="" />
 
+      <style>
+        .checkbox-field {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin: 4px 0;
+          cursor: pointer;
+          user-select: none;
+        }
+        .checkbox-field input {
+          width: 14px !important;
+          height: 14px !important;
+          cursor: pointer;
+        }
+        .checkbox-field label {
+          font-size: 11px !important;
+          font-weight: 500 !important;
+          color: var(--text) !important;
+          text-transform: none !important;
+          letter-spacing: normal !important;
+          cursor: pointer;
+        }
+      </style>
+
+      <div class="checkbox-field">
+        <input type="checkbox" id="includeCoverLetter" />
+        <label for="includeCoverLetter">Include Cover Letter</label>
+      </div>
+
       <button id="addBtn">Add to Queue</button>
     </div>
 

@@ -40,6 +40,7 @@ export default function TailoredPage() {
   const [isRegeneratingCoverLetter, setIsRegeneratingCoverLetter] =
     useState(false);
   const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
+  const [showCoverLetterPreview, setShowCoverLetterPreview] = useState(false);
 
   // Sheet logging state
   const [showLogModal, setShowLogModal] = useState(false);
@@ -49,7 +50,6 @@ export default function TailoredPage() {
   const [isLogging, setIsLogging] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
   const [logError, setLogError] = useState("");
-  const [alreadyLogged, setAlreadyLogged] = useState(false);
   const [country, setCountry] = useState("");
   const [workMode, setWorkMode] = useState<
     "" | "Remote" | "Hybrid" | "On-site"
@@ -80,19 +80,6 @@ export default function TailoredPage() {
     else if (newType === "characters") setLimitValue(200);
   };
 
-  // Generate unique job key from company, position, and part of job description
-  const getJobKey = () => {
-    const key = `${companyName}_${positionTitle}_${jobDescription.slice(0, 100)}`;
-    // Simple hash
-    let hash = 0;
-    for (let i = 0; i < key.length; i++) {
-      const char = key.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash;
-    }
-    return `single_${Math.abs(hash).toString(36)}`;
-  };
-
   // Initialize editable fields when modal opens - pre-fill with extracted values
   useEffect(() => {
     if (showLogModal) {
@@ -101,18 +88,6 @@ export default function TailoredPage() {
       // Pre-fill with extracted location info from context (extracted during tailoring)
       setCountry(jobCountry || "");
       setWorkMode(jobWorkMode || "");
-      // Check if this job was already logged
-      if (companyName && positionTitle) {
-        try {
-          const jobKey = getJobKey();
-          const loggedJobs = JSON.parse(
-            localStorage.getItem("logged_jobs") || "[]",
-          );
-          setAlreadyLogged(loggedJobs.includes(jobKey));
-        } catch {
-          // Ignore parse errors
-        }
-      }
       // Focus on application link field after modal opens
       setTimeout(() => {
         applicationLinkRef.current?.focus();
@@ -201,21 +176,6 @@ export default function TailoredPage() {
       }
 
       setLogSuccess(true);
-
-      // Mark this job as logged in localStorage
-      try {
-        const jobKey = getJobKey();
-        const loggedJobs = JSON.parse(
-          localStorage.getItem("logged_jobs") || "[]",
-        );
-        if (!loggedJobs.includes(jobKey)) {
-          loggedJobs.push(jobKey);
-          localStorage.setItem("logged_jobs", JSON.stringify(loggedJobs));
-        }
-        setAlreadyLogged(true);
-      } catch {
-        // Ignore storage errors
-      }
 
       setTimeout(() => {
         setShowLogModal(false);
@@ -437,54 +397,66 @@ export default function TailoredPage() {
                     Generated
                   </span>
                 </div>
-                <Button
-                  onClick={() => {
-                    navigator.clipboard.writeText(tailoredCoverLetter);
-                  }}
-                  variant="secondary"
-                  className="w-full text-xs py-2 border-b border-gray-200 pb-4 mb-4"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                  Copy Cover Letter
-                </Button>
-                <Button
-                  onClick={handleRegenerateCoverLetter.bind(null, "Improve it")}
-                  disabled={isRegeneratingCoverLetter}
-                  variant="secondary"
-                  className="w-full text-xs py-2"
-                >
-                  {isRegeneratingCoverLetter ? (
-                    <>
-                      <span className="spinner-small" />
-                      Regenerating...
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
+                <div className="p-4 bg-green-50/50 rounded-lg border border-green-200 mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      <span className="text-xs font-bold text-green-700 tracking-tight">
+                        COVER LETTER READY
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        onClick={() => setShowCoverLetterPreview(true)}
+                        variant="ghost"
+                        className="text-[10px] py-1 px-2.5 bg-green-100/50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors cursor-pointer"
                       >
-                        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                        <path d="M3 3v5h5" />
-                      </svg>
-                      Regenerate
-                    </>
-                  )}
-                </Button>
+                        PREVIEW
+                      </Button>
+                      <Button
+                        onClick={() =>
+                          navigator.clipboard.writeText(tailoredCoverLetter)
+                        }
+                        variant="ghost"
+                        className="text-[10px] py-1 px-2.5 bg-green-100/50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors cursor-pointer"
+                      >
+                        COPY
+                      </Button>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleRegenerateCoverLetter.bind(
+                      null,
+                      "Improve it",
+                    )}
+                    disabled={isRegeneratingCoverLetter}
+                    variant="ghost"
+                    className="w-full text-xs py-2 border border-green-200 bg-white hover:bg-green-50 text-green-700 transition-all cursor-pointer shadow-none"
+                  >
+                    {isRegeneratingCoverLetter ? (
+                      <>
+                        <span className="spinner-small" />
+                        Regenerating...
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          className="mr-1.5"
+                        >
+                          <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                          <path d="M3 3v5h5" />
+                        </svg>
+                        Regenerate
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             ) : (
               <Button
@@ -818,33 +790,6 @@ export default function TailoredPage() {
               Log Application to Sheet
             </h3>
 
-            {alreadyLogged && !logSuccess && (
-              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
-                <svg
-                  className="w-5 h-5 text-amber-500 shrink-0 mt-0.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
-                <div>
-                  <p className="text-sm font-medium text-amber-800">
-                    Already logged
-                  </p>
-                  <p className="text-xs text-amber-600">
-                    This job was already added to your spreadsheet. Logging
-                    again will create a duplicate entry.
-                  </p>
-                </div>
-              </div>
-            )}
-
             {logSuccess ? (
               <div className="text-center py-8">
                 <svg
@@ -1022,6 +967,45 @@ export default function TailoredPage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+      {/* Cover Letter Preview Modal */}
+      {showCoverLetterPreview && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 sm:p-8">
+          <div className="bg-white rounded-2xl shadow-2xl w-full h-full max-w-6xl flex flex-col overflow-hidden relative">
+            <button
+              onClick={() => setShowCoverLetterPreview(false)}
+              className="absolute top-4 right-4 z-[70] p-2 bg-white/80 hover:bg-white rounded-full shadow-md text-gray-500 hover:text-gray-800 transition-all border border-gray-100"
+              title="Close Preview"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <div className="flex-1 min-h-0">
+              <LaTeXEditor
+                title="Cover Letter Preview"
+                code={tailoredCoverLetter}
+                onCodeChange={setTailoredCoverLetter}
+                onRegenerate={handleRegenerateCoverLetter}
+                isRegenerating={isRegeneratingCoverLetter}
+                showPreview={true}
+                fullHeight={true}
+                downloadFileNames={[
+                  coverLetterFileNamePlain,
+                  coverLetterFileNameDetailed,
+                ]}
+              />
+            </div>
           </div>
         </div>
       )}

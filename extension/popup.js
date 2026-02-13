@@ -138,6 +138,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (savedData.jobUrl) jobUrlInput.value = savedData.jobUrl;
                 if (savedData.jobDescription) jobDescriptionInput.value = savedData.jobDescription;
                 if (savedData.profileId) profileIdInput.value = savedData.profileId;
+                if (savedData.includeCoverLetter !== undefined) {
+                    document.getElementById('includeCoverLetter').checked = savedData.includeCoverLetter;
+                }
                 statusEl.textContent = "📋 Restored saved data";
                 statusEl.className = "";
             }
@@ -230,15 +233,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             companyUrl: companyUrlInput.value,
             jobUrl: jobUrlInput.value,
             jobDescription: jobDescriptionInput.value,
-            profileId: profileIdInput.value
+            profileId: profileIdInput.value,
+            includeCoverLetter: document.getElementById('includeCoverLetter').checked
         };
         chrome.storage.local.set({ [storageKey]: data }).catch(console.error);
     };
 
     // Attach save handler to all inputs
-    document.querySelectorAll('input, textarea').forEach(el => {
-        el.addEventListener('input', () => {
-            el.style.borderColor = "#E5E5E5";
+    document.querySelectorAll('input, textarea, input[type="checkbox"]').forEach(el => {
+        const eventType = el.type === 'checkbox' ? 'change' : 'input';
+        el.addEventListener(eventType, () => {
+            if (el.type !== 'checkbox') el.style.borderColor = "#E5E5E5";
             saveFormData();
         });
     });
@@ -411,7 +416,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             profileName: selectedProfile ? selectedProfile.name : undefined,
             profileColor: selectedProfile ? selectedProfile.color : undefined,
             companyWebsite: companyUrlInput.value.trim(),
-            includeCoverLetter: false
+            includeCoverLetter: document.getElementById('includeCoverLetter').checked
         };
 
         // Validation - check all required fields including profile and passcode

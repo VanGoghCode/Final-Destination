@@ -44,23 +44,7 @@ export default function TailoredCompanyPage({
   const [isRegeneratingResume, setIsRegeneratingResume] = useState(false);
   const [isRegeneratingCoverLetter, setIsRegeneratingCoverLetter] =
     useState(false);
-
-  // Sheet logging state
-  const [showLogModal, setShowLogModal] = useState(false);
-  const [applicationLink, setApplicationLink] = useState("");
-  const [notes, setNotes] = useState("");
-  const [other, setOther] = useState("");
-  const [isLogging, setIsLogging] = useState(false);
-  const [logSuccess, setLogSuccess] = useState(false);
-  const [logError, setLogError] = useState("");
-  const [alreadyLogged, setAlreadyLogged] = useState(false);
-  const [country, setCountry] = useState("");
-  const [workMode, setWorkMode] = useState<
-    "" | "Remote" | "Hybrid" | "On-site"
-  >("");
-  const [editableCompanyName, setEditableCompanyName] = useState("");
-  const [editablePositionTitle, setEditablePositionTitle] = useState("");
-  const applicationLinkRef = useRef<HTMLInputElement>(null);
+  const [showCoverLetterPreview, setShowCoverLetterPreview] = useState(false);
 
   // Q&A state
   const [generalQuestion, setGeneralQuestion] = useState("");
@@ -74,14 +58,27 @@ export default function TailoredCompanyPage({
     "context" | "context+internet" | "internet"
   >("context");
 
+  // Sheet logging state
+  const [showLogModal, setShowLogModal] = useState(false);
+  const [applicationLink, setApplicationLink] = useState("");
+  const [notes, setNotes] = useState("");
+  const [other, setOther] = useState("");
+  const [isLogging, setIsLogging] = useState(false);
+  const [logSuccess, setLogSuccess] = useState(false);
+  const [logError, setLogError] = useState("");
+  const [country, setCountry] = useState("");
+  const [workMode, setWorkMode] = useState<
+    "" | "Remote" | "Hybrid" | "On-site"
+  >("");
+  const [editableCompanyName, setEditableCompanyName] = useState("");
+  const [editablePositionTitle, setEditablePositionTitle] = useState("");
+  const applicationLinkRef = useRef<HTMLInputElement>(null);
+
   // Collapsible sections state
   const [showFilenames, setShowFilenames] = useState(false);
 
   // Delete from batch state
   const [isDeletingFromBatch, setIsDeletingFromBatch] = useState(false);
-
-  // Duplicate warning state
-  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
 
   // Load job data from sessionStorage
   useEffect(() => {
@@ -114,34 +111,18 @@ export default function TailoredCompanyPage({
     }
   }, [showLogModal]);
 
-  // Check if this job was already logged
-  useEffect(() => {
-    if (jobId) {
-      try {
-        const loggedJobs = JSON.parse(
-          localStorage.getItem("logged_jobs") || "[]",
-        );
-        if (loggedJobs.includes(jobId)) {
-          setAlreadyLogged(true);
-        }
-      } catch {
-        // Ignore parse errors
-      }
-    }
-  }, [jobId]);
-
   // Beforeunload listener - remind user to log job before closing
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Only show warning if job is not logged yet
-      if (!alreadyLogged && jobData) {
+      // Show warning before closing if job Data exists
+      if (jobData) {
         e.preventDefault();
       }
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [alreadyLogged, jobData]);
+  }, [jobData]);
 
   // Handle delete from batch
   const handleDeleteFromBatch = useCallback(
@@ -224,7 +205,6 @@ export default function TailoredCompanyPage({
 
   const handleLogToSheet = async (skipDuplicateCheck = false) => {
     setLogError("");
-    setDuplicateWarning(null);
     setIsLogging(true);
 
     const noteParts: string[] = [];
@@ -249,33 +229,10 @@ export default function TailoredCompanyPage({
 
       const data = await response.json();
 
-      // Handle duplicate warning
-      if (data.warning) {
-        setDuplicateWarning(data.message);
-        setIsLogging(false);
-        return;
-      }
-
       if (!response.ok)
         throw new Error(data.error || "Failed to log application");
 
       setLogSuccess(true);
-
-      // Mark this job as logged in localStorage
-      if (jobId) {
-        try {
-          const loggedJobs = JSON.parse(
-            localStorage.getItem("logged_jobs") || "[]",
-          );
-          if (!loggedJobs.includes(jobId)) {
-            loggedJobs.push(jobId);
-            localStorage.setItem("logged_jobs", JSON.stringify(loggedJobs));
-          }
-          setAlreadyLogged(true);
-        } catch {
-          // Ignore storage errors
-        }
-      }
 
       setTimeout(() => {
         setShowLogModal(false);
@@ -283,7 +240,6 @@ export default function TailoredCompanyPage({
         setApplicationLink("");
         setNotes("");
         setOther("");
-        setDuplicateWarning(null);
       }, 2000);
     } catch (err) {
       setLogError(err instanceof Error ? err.message : "An error occurred");
@@ -295,7 +251,6 @@ export default function TailoredCompanyPage({
   const handleLogAndDelete = async () => {
     // First log to sheet
     setLogError("");
-    setDuplicateWarning(null);
     setIsLogging(true);
 
     const noteParts: string[] = [];
@@ -323,22 +278,6 @@ export default function TailoredCompanyPage({
         throw new Error(data.error || "Failed to log application");
 
       setLogSuccess(true);
-
-      // Mark this job as logged in localStorage
-      if (jobId) {
-        try {
-          const loggedJobs = JSON.parse(
-            localStorage.getItem("logged_jobs") || "[]",
-          );
-          if (!loggedJobs.includes(jobId)) {
-            loggedJobs.push(jobId);
-            localStorage.setItem("logged_jobs", JSON.stringify(loggedJobs));
-          }
-          setAlreadyLogged(true);
-        } catch {
-          // Ignore storage errors
-        }
-      }
 
       // Then delete from batch (no confirm needed as it's a "Log & Delete" action)
       const passcode = localStorage.getItem("fd_passcode");
@@ -581,15 +520,24 @@ export default function TailoredCompanyPage({
                     COVER LETTER READY
                   </span>
                 </div>
-                <Button
-                  onClick={() =>
-                    navigator.clipboard.writeText(tailoredCoverLetter)
-                  }
-                  variant="ghost"
-                  className="text-[10px] py-1 px-2.5 bg-green-100/50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors cursor-pointer"
-                >
-                  COPY
-                </Button>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    onClick={() => setShowCoverLetterPreview(true)}
+                    variant="ghost"
+                    className="text-[10px] py-1 px-2.5 bg-green-100/50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors cursor-pointer"
+                  >
+                    PREVIEW
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      navigator.clipboard.writeText(tailoredCoverLetter)
+                    }
+                    variant="ghost"
+                    className="text-[10px] py-1 px-2.5 bg-green-100/50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors cursor-pointer"
+                  >
+                    COPY
+                  </Button>
+                </div>
               </div>
               <Button
                 onClick={() => handleRegenerateCoverLetter("Improve it")}
@@ -859,32 +807,6 @@ export default function TailoredCompanyPage({
               <p className="text-sm text-muted mt-1">
                 Record this application to your spreadsheet
               </p>
-              {alreadyLogged && (
-                <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
-                  <svg
-                    className="w-5 h-5 text-amber-500 shrink-0 mt-0.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
-                  <div>
-                    <p className="text-sm font-medium text-amber-800">
-                      Already logged
-                    </p>
-                    <p className="text-xs text-amber-600">
-                      This job was already added to your spreadsheet. Logging
-                      again will create a duplicate entry.
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="p-6 space-y-4">
@@ -976,22 +898,6 @@ export default function TailoredCompanyPage({
 
               {logError && <p className="text-xs text-red-500">{logError}</p>}
 
-              {/* Duplicate Warning */}
-              {duplicateWarning && (
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm mb-4">
-                  <p className="font-medium mb-1.5">Possible Duplicate</p>
-                  <p className="text-xs mb-2">{duplicateWarning}</p>
-                  <Button
-                    onClick={() => handleLogToSheet(true)}
-                    disabled={isLogging}
-                    variant="ghost"
-                    className="w-full text-xs py-1.5 border border-amber-300 text-amber-700 hover:bg-amber-100"
-                  >
-                    Log Anyway
-                  </Button>
-                </div>
-              )}
-
               <div className="flex gap-3 pt-2">
                 <Button
                   type="button"
@@ -1003,11 +909,11 @@ export default function TailoredCompanyPage({
                 </Button>
                 <Button
                   onClick={() => handleLogToSheet()}
-                  disabled={isLogging || !!duplicateWarning}
+                  disabled={isLogging}
                   variant="primary"
                   className="flex-1"
                 >
-                  {isLogging && !logSuccess && !duplicateWarning
+                  {isLogging && !logSuccess
                     ? "Logging..."
                     : logSuccess
                       ? "✓ Logged!"
@@ -1019,7 +925,7 @@ export default function TailoredCompanyPage({
                     disabled={isLogging}
                     className="flex-1 !bg-red-600 !text-white !border-red-600 hover:!bg-red-700 hover:!border-red-700"
                   >
-                    {isLogging && !logSuccess && !duplicateWarning
+                    {isLogging && !logSuccess
                       ? "Processing..."
                       : logSuccess
                         ? "✓ Success!"
@@ -1027,6 +933,45 @@ export default function TailoredCompanyPage({
                   </Button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Cover Letter Preview Modal */}
+      {showCoverLetterPreview && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 sm:p-8">
+          <div className="bg-white rounded-2xl shadow-2xl w-full h-full max-w-6xl flex flex-col overflow-hidden relative">
+            <button
+              onClick={() => setShowCoverLetterPreview(false)}
+              className="absolute top-4 right-4 z-[70] p-2 bg-white/80 hover:bg-white rounded-full shadow-md text-gray-500 hover:text-gray-800 transition-all border border-gray-100"
+              title="Close Preview"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            <div className="flex-1 min-h-0">
+              <LaTeXEditor
+                title="Cover Letter Preview"
+                code={tailoredCoverLetter}
+                onCodeChange={setTailoredCoverLetter}
+                onRegenerate={handleRegenerateCoverLetter}
+                isRegenerating={isRegeneratingCoverLetter}
+                showPreview={true}
+                fullHeight={true}
+                downloadFileNames={[
+                  `Cover_Letter_${companyName}`,
+                  `Cover_Letter_Detailed_${companyName}`,
+                ]}
+              />
             </div>
           </div>
         </div>
