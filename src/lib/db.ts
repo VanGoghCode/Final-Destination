@@ -226,8 +226,14 @@ export async function updateCompanyInTier(
 ): Promise<{ company: Company; tier: string } | null> {
   const tiers = ["top", "middle", "lower", "lowest"] as const;
 
-  for (const tier of tiers) {
-    const data = await getTierData(tier);
+  const results = await Promise.all(
+    tiers.map(async (tier) => {
+      const data = await getTierData(tier);
+      return { tier, data };
+    }),
+  );
+
+  for (const { tier, data } of results) {
     if (data) {
       const index = data.companies.findIndex((c) => c.id === companyId);
       if (index !== -1) {
