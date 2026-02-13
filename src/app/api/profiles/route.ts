@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     }
 
     // Map to SavedProfile to ensure clean data
-    const profiles: SavedProfile[] = body.map((p: any) => ({
+    const profiles: SavedProfile[] = body.map((p: SavedProfile) => ({
       id: p.id,
       name: p.name,
       firstName: p.firstName,

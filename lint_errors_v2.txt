@@ -1,0 +1,113 @@
+﻿
+> resume-tailor@0.1.0 lint
+> eslint
+
+
+D:\Code\final-destination\extension\popup.js
+  398:18  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Code\final-destination\src\app\batch\page.tsx
+  737:6   warning  React Hook useEffect has a missing dependency: 'currentJob'. Either include it or remove the dependency array                             react-hooks/exhaustive-deps
+  737:23  warning  React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked  react-hooks/exhaustive-deps
+
+D:\Code\final-destination\src\app\jobs\page.tsx
+   660:27  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  1137:27  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+D:\Code\final-destination\src\app\page.tsx
+  146:16  warning  '_firstName' is assigned a value but never used                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+  148:15  warning  '_lastName' is assigned a value but never used                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  176:21  warning  '_tailoredResume' is assigned a value but never used                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+  257:21  warning  '_isAutoSaving' is assigned a value but never used                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+  257:47  warning  '_lastAutoSaved' is assigned a value but never used                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  295:6   warning  React Hook useEffect has missing dependencies: 'companyName', 'companyUrl', 'jobDescription', 'personalDetails', 'positionTitle', 'setCompanyName', 'setCompanyUrl', 'setJobDescription', 'setPersonalDetails', and 'setPositionTitle'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  367:6   warning  React Hook useEffect has missing dependencies: 'coverLetterLatex', 'resumeLatex', 'setCoverLetterLatex', 'setFirstName', 'setLastName', 'setResumeLatex', 'setSelectedCoverLetterTemplateId', and 'setSelectedResumeTemplateId'. Either include them or remove the dependency array         react-hooks/exhaustive-deps
+
+D:\Code\final-destination\src\app\tailored\page.tsx
+  69:22  warning  '_setSearchMode' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+D:\Code\final-destination\src\components\LaTeXEditor.tsx
+  216:5  warning  React Hook useCallback has a missing dependency: 'scrollToMatch'. Either include it or remove the dependency array                              react-hooks/exhaustive-deps
+  344:6  warning  React Hook useEffect has missing dependencies: 'compileLatex', 'isCompiling', and 'pdfUrl'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  356:6  warning  React Hook useEffect has a missing dependency: 'pdfUrl'. Either include it or remove the dependency array                                       react-hooks/exhaustive-deps
+
+D:\Code\final-destination\src\components\ModelSelector.tsx
+  148:7  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Code\final-destination\src\components\ModelSelector.tsx:148:7
+  146 |     const unlocked = localStorage.getItem("model_selector_unlocked") === "true";
+  147 |     if (unlocked !== isUnlocked) {
+> 148 |       setIsUnlocked(unlocked);
+      |       ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  149 |     }
+  150 |
+  151 |     // If locked, force Gemini  react-hooks/set-state-in-effect
+  156:6  warning  React Hook useEffect has a missing dependency: 'isUnlocked'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/exhaustive-deps
+
+D:\Code\final-destination\src\components\Sidebar.tsx
+  60:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+D:\Code\final-destination\src\context\JobQueueContext.tsx
+  181:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Code\final-destination\src\context\JobQueueContext.tsx:181:7
+  179 |     const hasPending = queue.some((j) => j.status === "pending");
+  180 |     if (hasPending && !isProcessing && !currentJobId) {
+> 181 |       setIsProcessing((prev) => (prev ? prev : true));
+      |       ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  182 |     }
+  183 |   }, [queue, isProcessing, currentJobId, processingPaused]);
+  184 |  react-hooks/set-state-in-effect
+
+D:\Code\final-destination\src\lib\db.ts
+  583:16  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+  592:14  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Code\final-destination\src\lib\hooks.ts
+   71:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Code\final-destination\src\lib\hooks.ts:71:5
+  69 |     }
+  70 |
+> 71 |     setIsSaving((prev) => (prev ? prev : true));
+     |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  72 |
+  73 |     // Debounced save
+  74 |     timeoutRef.current = setTimeout(() => {                                                                                                                               react-hooks/set-state-in-effect
+  109:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+D:\Code\final-destination\src\lib\hooks.ts:109:9
+  107 |       if (stored) {
+  108 |         const parsed = JSON.parse(stored);
+> 109 |         setData((prev) => (JSON.stringify(prev) === stored ? prev : parsed));
+      |         ^^^^^^^ Avoid calling setState() directly within an effect
+  110 |       } else {
+  111 |         setData((prev) => (prev === defaultValue ? prev : defaultValue));
+  112 |       }  react-hooks/set-state-in-effect
+
+Γ£û 24 problems (4 errors, 20 warnings)
+

@@ -1,0 +1,2 @@
+﻿src/lib/db.ts(199,5): error TS2322: Type 'TierData | null | undefined' is not assignable to type 'TierData | null'.
+  Type 'undefined' is not assignable to type 'TierData | null'.

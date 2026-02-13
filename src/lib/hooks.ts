@@ -8,7 +8,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
  */
 export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   callback: T,
-  delay: number
+  delay: number,
 ): T {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const callbackRef = useRef(callback);
@@ -36,7 +36,7 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
         callbackRef.current(...args);
       }, delay);
     },
-    [delay]
+    [delay],
   ) as T;
 
   return debouncedCallback;
@@ -48,7 +48,7 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
 export function useAutoSave<T>(
   key: string,
   data: T,
-  delay: number = 1000
+  delay: number = 1000,
 ): { isSaving: boolean; lastSaved: Date | null } {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -68,7 +68,7 @@ export function useAutoSave<T>(
       clearTimeout(timeoutRef.current);
     }
 
-    setIsSaving(true);
+    Promise.resolve().then(() => setIsSaving(true));
 
     // Debounced save
     timeoutRef.current = setTimeout(() => {
@@ -96,25 +96,25 @@ export function useAutoSave<T>(
  */
 export function useLocalStorageLoad<T>(
   key: string,
-  defaultValue: T
+  defaultValue: T,
 ): [T | null, boolean] {
-  const [data, setData] = useState<T | null>(null);
+  const [data] = useState<T | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem(key);
+        return stored ? JSON.parse(stored) : defaultValue;
+      } catch (error) {
+        console.error("Failed to load from localStorage:", error);
+        return defaultValue;
+      }
+    }
+    return null;
+  });
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        setData(JSON.parse(stored));
-      } else {
-        setData(defaultValue);
-      }
-    } catch (error) {
-      console.error("Failed to load from localStorage:", error);
-      setData(defaultValue);
-    }
-    setIsLoaded(true);
-  }, [key, defaultValue]);
+    Promise.resolve().then(() => setIsLoaded(true));
+  }, []);
 
   return [data, isLoaded];
 }
@@ -126,22 +126,25 @@ export function useFieldWithSideEffect<T>(
   value: T,
   setValue: (value: T) => void,
   onChangeSideEffect: () => void,
-  debounceMs: number = 500
+  debounceMs: number = 500,
 ): (newValue: T) => void {
-  const debouncedSideEffect = useDebouncedCallback(onChangeSideEffect, debounceMs);
+  const debouncedSideEffect = useDebouncedCallback(
+    onChangeSideEffect,
+    debounceMs,
+  );
   const previousValueRef = useRef(value);
 
   const handleChange = useCallback(
     (newValue: T) => {
       setValue(newValue);
-      
+
       // Only trigger side effect if value actually changed
       if (previousValueRef.current !== newValue) {
         previousValueRef.current = newValue;
         debouncedSideEffect();
       }
     },
-    [setValue, debouncedSideEffect]
+    [setValue, debouncedSideEffect],
   );
 
   return handleChange;
@@ -158,7 +161,7 @@ export function useRetryWithBackoff() {
     async <T>(
       fn: () => Promise<T>,
       maxRetries: number = 3,
-      baseDelay: number = 1000
+      baseDelay: number = 1000,
     ): Promise<T> => {
       let lastError: Error | null = null;
 
@@ -172,7 +175,7 @@ export function useRetryWithBackoff() {
           return result;
         } catch (error) {
           lastError = error instanceof Error ? error : new Error(String(error));
-          
+
           if (i < maxRetries) {
             // Exponential backoff: 1s, 2s, 4s, 8s...
             const delay = baseDelay * Math.pow(2, i);
@@ -184,7 +187,7 @@ export function useRetryWithBackoff() {
       setIsRetrying(false);
       throw lastError;
     },
-    []
+    [],
   );
 
   return { executeWithRetry, attempt, isRetrying };
@@ -218,7 +221,7 @@ export function useCache<T>(keyPrefix: string, ttlMs: number = 30 * 60 * 1000) {
         return null;
       }
     },
-    [keyPrefix]
+    [keyPrefix],
   );
 
   const setInCache = useCallback(
@@ -235,7 +238,7 @@ export function useCache<T>(keyPrefix: string, ttlMs: number = 30 * 60 * 1000) {
         console.error("Failed to cache data:", error);
       }
     },
-    [keyPrefix, ttlMs]
+    [keyPrefix, ttlMs],
   );
 
   const removeFromCache = useCallback(
@@ -247,7 +250,7 @@ export function useCache<T>(keyPrefix: string, ttlMs: number = 30 * 60 * 1000) {
         // Ignore errors
       }
     },
-    [keyPrefix]
+    [keyPrefix],
   );
 
   const clearCache = useCallback((): void => {

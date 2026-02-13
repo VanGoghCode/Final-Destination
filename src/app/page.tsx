@@ -1802,8 +1802,8 @@ export default function Home() {
                   Template
                 </h2>
                 <p className="text-sm text-muted mt-1">
-                  Give it a memorable name like "Software Engineer" or "Cloud
-                  Role"
+                  Give it a memorable name like &quot;Software Engineer&quot; or
+                  &quot;Cloud Role&quot;
                 </p>
               </div>
               <button

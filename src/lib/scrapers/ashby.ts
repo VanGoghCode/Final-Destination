@@ -47,7 +47,7 @@ export async function scrapeAshby(
       url: job.jobPostingUrl,
       postedAt: job.publishedAt,
       scrapedAt: new Date().toISOString(),
-      platform: "ashby" as any, // Cast to any since we'll add 'ashby' to the type
+      platform: "ashby",
     }));
 
     return {

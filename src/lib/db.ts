@@ -196,7 +196,8 @@ export async function getAllTierData(): Promise<
 
   const result: Record<string, TierData | null> = {};
   tiers.forEach((tier, index) => {
-    result[tier] = results[index];
+    const data = results[index];
+    result[tier] = data || null;
   });
 
   return result;

@@ -215,8 +215,8 @@ export default function MigratePage() {
               (final-destination-rose.vercel.app)
             </li>
             <li>
-              Click "Migrate to Cloud" to copy your localStorage to Upstash
-              Redis
+              Click &quot;Migrate to Cloud&quot; to copy your localStorage to
+              Upstash Redis
             </li>
             <li>Once done, your data will be synced across all environments</li>
           </ol>

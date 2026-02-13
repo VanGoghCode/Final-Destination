@@ -134,12 +134,16 @@ export default function ModelSelector() {
     setTailoringProvider,
   } = useAppContext();
 
-  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isUnlocked, setIsUnlocked] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("model_selector_unlocked") === "true";
+    }
+    return false;
+  });
 
   // Check for unlock code in localStorage
   useEffect(() => {
     const unlocked = localStorage.getItem("model_selector_unlocked") === "true";
-    setIsUnlocked(unlocked);
 
     // If locked, force Gemini
     if (!unlocked) {

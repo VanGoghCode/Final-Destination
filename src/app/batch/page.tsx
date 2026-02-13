@@ -248,7 +248,9 @@ function ActivityFeed({
           <div className="flex gap-2 text-gray-700 pl-2 border-l-2 border-l-purple-500 bg-purple-50/50 py-0.5">
             <span className="text-gray-400">
               [
-              {new Date(currentJobStartTime || Date.now()).toLocaleTimeString()}
+              {currentJobStartTime
+                ? new Date(currentJobStartTime).toLocaleTimeString()
+                : "--:--:--"}
               ]
             </span>
             <span className="text-purple-700">
