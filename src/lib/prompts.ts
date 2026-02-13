@@ -1,0 +1,742 @@
+// ========================================
+// PROMPT TEMPLATES
+// ========================================
+
+/**
+ * Prompt to extract job location and work mode from a job description
+ */
+export function getJobLocationPrompt(
+  jobDescription: string,
+  companyName: string,
+): string {
+  return `Analyze this job description and extract location/work mode information.
+
+## JOB DESCRIPTION:
+${jobDescription}
+
+## COMPANY: ${companyName || "Not specified"}
+
+## TASK:
+Extract the following information from the job description:
+1. Country where the job is located (e.g., "USA", "United Kingdom", "Canada", "Germany", etc.)
+2. Work mode: Must be one of "Remote", "Hybrid", or "On-site"
+
+## RULES:
+- If the country is not explicitly mentioned, try to infer from:
+  - City names (e.g., "San Francisco" = USA, "London" = UK)
+  - Currency mentioned (e.g., USD = USA, GBP = UK, EUR = multiple EU countries)
+  - Company headquarters if well-known
+- If work mode is not specified, default to "On-site"
+- For "remote-first" or "fully remote", use "Remote"
+- For "hybrid" or "flexible", use "Hybrid"
+- For "in-office", "on-site", or "in-person", use "On-site"
+
+## OUTPUT FORMAT (JSON only, no markdown):
+{"country": "COUNTRY_NAME", "workMode": "Remote|Hybrid|On-site"}
+
+Output ONLY the JSON, nothing else:`;
+}
+
+/**
+ * Prompt to research a company and role for multidisciplinary fit
+ */
+export function getCompanyResearchPrompt(
+  companyName: string,
+  positionTitle: string,
+  jobDescription: string,
+  companyUrl: string | undefined,
+): string {
+  const companyUrlInfo = companyUrl
+    ? `\n\n## COMPANY WEBSITE:\nIMPORTANT: Use this URL to identify the EXACT company: ${companyUrl}\nThis URL is authoritative - use it to research the correct company and avoid confusion with other companies that may have similar names.`
+    : "";
+
+  return `You are an expert career researcher and strategist. Your task is to provide deep, actionable research about a company and role that will help a candidate stand out by showing MULTIDISCIPLINARY FIT.
+
+## THE MULTIDISCIPLINARY ADVANTAGE:
+In 2026, candidates get rejected not because of bad resumes, but because other candidates have backgrounds MORE SIMILAR to the work the company is already doing. The key to standing out is showing MULTIDISCIPLINARY expertise that combines two or more fields relevant to this role.
+
+## RESEARCH TASK:
+Provide comprehensive research on ${companyName} for the ${positionTitle} position.${companyUrlInfo}
+
+## JOB DESCRIPTION:
+${jobDescription}
+
+## REQUIRED RESEARCH OUTPUT:
+
+### 1. COMPANY DEEP DIVE
+- What they actually do: Core business, products/services, how they make money
+- Industry & Market: What industry/vertical are they in? Who are their competitors?
+- Tech Stack & Tools: What technologies, frameworks, tools do they use? (Research from job postings, engineering blogs, tech radar)
+- Company Stage: Startup, growth, enterprise? What does this mean for the role?
+- Recent News: Any recent funding, product launches, acquisitions, or strategic shifts?
+
+### 2. DEPARTMENT & ROLE CONTEXT
+- Where this role sits: Which department/team? How does it fit in the org structure?
+- What problems they're solving: Based on the JD, what challenges is this team facing?
+- Cross-functional work: What other teams/departments does this role interact with?
+- Success metrics: How would success be measured in this role?
+
+### 3. MULTIDISCIPLINARY FIT ANALYSIS (CRITICAL)
+Based on the job description and company context, identify:
+- Primary Domain: The main field/expertise required (e.g., Software Engineering, Data Science)
+- Secondary Domains: Adjacent fields that would make a candidate stand out:
+  - If it's a fintech company → Finance + Tech combination is powerful
+  - If they deal with healthcare → Healthcare domain knowledge + Tech
+  - If it's B2B SaaS → Sales/Business understanding + Engineering
+  - If it's consumer products → UX/Design thinking + Engineering
+- Industry-Specific Knowledge: What domain expertise would be valuable?
+- Recommended Skill Combinations: Specific 2-3 field combinations that would make someone IRRESISTIBLE for this role
+
+### 4. CULTURAL & VALUES ALIGNMENT
+- Company values: What do they emphasize in their culture?
+- Work style: Remote/hybrid/onsite? Fast-paced startup vs. structured enterprise?
+- What they look for: Beyond technical skills, what traits do they value?
+
+### 5. STRATEGIC TALKING POINTS
+- Why this company matters: What's their vision/mission? What problem are they solving for the world?
+- Why this role matters: How does this position contribute to the company's success?
+- Connection points: How can a candidate show their background DIRECTLY RELATES to what the company does?
+
+### 6. KEYWORDS & LANGUAGE
+- Industry jargon: Terms and phrases used in this industry
+- Company-specific language: Words and concepts from their website, blog, JD
+- Technical keywords: Specific technologies, methodologies, frameworks to mention
+
+## FORMATTING RULES (CRITICAL):
+- Do NOT use  (double asterisks) to bold text. Use plain text only.
+- Do NOT use em dashes (—). Use regular hyphens (-) or rewrite the sentence.
+- Keep formatting simple and clean.
+
+## OUTPUT FORMAT:
+Provide the research in a clear, structured format. Be specific and actionable - every piece of information should help the candidate tailor their application to show multidisciplinary fit.`;
+}
+
+/**
+ * Prompt to tailor a resume
+ */
+export function getResumeTailoringPrompt(
+  resumeLatex: string,
+  jobDescription: string,
+  personalDetails: string,
+  companyInfo: string,
+): string {
+  return `You are an human expert resume writer and career consultant specializing in Semantic Mapping and Multidisciplinary Positioning for modern ATS systems. Your task is to tailor the given LaTeX resume to match the job description while maintaining the EXACT same LaTeX format and structure.
+
+## THE MULTIDISCIPLINARY ADVANTAGE (CRITICAL):
+In 2026, candidates don't get rejected for bad resumes—they get rejected because another candidate's background is MORE SIMILAR to the work the company is already doing. The secret to standing out is showing MULTIDISCIPLINARY expertise.
+
+Key Insight: When two big fields combine (e.g., Finance + Engineering, Healthcare + ML, Business + Development), candidates become IRRESISTIBLE because their background matches what the company actually does.
+
+Your job is to position the candidate's experience to show how their COMBINATION of skills directly relates to the company's work.
+
+## SEMANTIC ALIGNMENT STRATEGY:
+Modern ATS filters and recruiters look for Technical Adjacencies, not just keywords. You must optimize for:
+
+### 1. Multidisciplinary Positioning
+- Identify the company's DOMAIN (fintech, healthcare, e-commerce, etc.)
+- Highlight experiences that show BOTH technical AND domain expertise
+- Frame projects to show cross-functional understanding
+- Example: For a fintech role, emphasize any finance/accounting + tech combination
+- Example: For an Android role at a finance company, emphasize finance + Android experience
+
+### 2. Contextual Clustering (CONCISE)
+Don't just list skills in isolation, but avoid being wordy. Add semantic "Context Nouns" ONLY if they provide real information and are not fluff:
+- If listing "AWS" → include adjacencies like "IaC," "Cost Optimization," "Auto-scaling" but not in the skills section because it makes skills section look too wordy. You can put these adjacencies in the project descriptions if needed and being best fit.
+- AVOID fluff phrases like "Interactive Web Applications" or "Component Architecture" if you already list "React," "Angular," or "Vue." Recruiters assume you know components if you know the framework.
+- This signals you're an architect but not just a user, while keeping the section readable.
+
+### 3. Velocity Signals
+Use Growth Nouns that carry 10x more weight than passive language:
+- PREFER: "Migrated," "Refactored," "Scaled," "Architected," "Optimized," "Accelerated," "Transformed"
+- AVOID: "Responsible for," "Worked on," "Helped with," "Assisted in"
+- Show momentum and ownership, not just participation
+
+### 4. Complexity Gap Matching
+Match the semantic tone to the company's stage and culture:
+- Startup JD → Use agile, fast-paced language: "shipped," "iterated," "pivoted," "owned end-to-end"
+- Enterprise JD → Use structured language: "governed," "standardized," "compliance," "cross-functional alignment"
+- Bridge the "Semantic Distance" between your experience and their context
+
+## CRITICAL INSTRUCTIONS:
+1. PRESERVE STRUCTURE: Keep the EXACT same LaTeX document structure, \\documentclass, \\usepackage, and custom commands. Do NOT change the layout.
+2. TAILOR CONTENT: Only modify the text content (bullet points, skills) to better and most align with the job requirements.
+3. PRESERVE BASE DETAILS - DO NOT CHANGE:
+   - Company names from work experience
+   - Job titles held
+   - Experience section titles and role names
+   - Project titles and names
+   - Dates and timelines
+   - Educational institutions, degrees, and education details
+   - Personal information (name, contact, links)
+4. WHAT TO TAILOR:
+   - Bullet point descriptions (rephrase with velocity signals and contextual clustering)
+   - Skills section (group with technical adjacencies, reorder for relevance, show domain expertise)
+   - How achievements are described (not the achievements themselves)
+   - Project/Work Descriptions (KEYWORD INTEGRATION WITH INTEGRITY - CRITICAL):
+     - You MUST weave relevant keywords from the job description into project and work experience bullet points to show PROOF OF WORK
+     - Emphasize different aspects of the same project that are more relevant to this role
+     - Add context about how the work relates to the target industry
+     - PRESERVE THE BASE IDEA: The fundamental concept, purpose, and core accomplishment of each project/experience MUST remain the same. The candidate should be able to explain every single point in detail during an interview.
+     - ALLOWED: Reword descriptions to highlight relevant skills, add industry context, use velocity verbs, emphasize technologies used that match the JD
+     - NOT ALLOWED: Change what the project actually did, invent new features, add technologies that weren't actually used in that specific project, or misrepresent the scope of work
+   - PROOF OF WORK RULE: Keywords should appear in CONTEXT within experience bullets, NOT just listed in skills. A recruiter should see relevant skills embedded in actual work descriptions, demonstrating real usage.
+   - INTERVIEW-READY RULE: Every bullet point must be something the candidate can confidently discuss in detail. If they can't explain it, don't write it.
+5. REQUIREMENTS COVERAGE (CRITICAL - MUST FOLLOW):
+   - MINIMUM/REQUIRED REQUIREMENTS: You MUST include 100% of ALL minimum requirements, required qualifications, and must-have skills mentioned in the job description. Every single required skill, technology, or qualification MUST appear in the resume - either in Skills section or woven into experience bullet points. DO NOT skip any required item.
+   - PREFERRED/NICE-TO-HAVE REQUIREMENTS: Include 80% to 90% of preferred qualifications, nice-to-have skills, and bonus requirements from the job description. Prioritize those that the candidate is most likely to have based on their experience.
+   - The candidate is assumed to have exposure to industry-standard tools, so include them even if not explicitly in the original resume.
+6. SKILLS SECTION OPTIMIZATION:
+   - ADD all required, preferred, and nice-to-have skills mentioned in the job description
+   - REMOVE skills that are NOT relevant to this job and NOT mentioned in the JD - the company doesn't care about them
+   - REMOVE outdated or generic skills that don't add value for this specific role
+   - AVOID WORDINESS: Use technical shorthands (e.g., "IaC" instead of "Infrastructure as Code") where appropriate. Do NOT add filler descriptions for obvious technologies.
+   - The candidate is assumed to have exposure to industry-standard tools, so include them even if not explicitly in the original resume
+   - Group related skills together to show contextual clustering
+   - PRIORITY: Skills from the JD > Industry-standard skills > Other skills (remove if space needed)
+7. SEMANTIC KEYWORDS: Naturally weave keywords and their technical adjacencies from the job description INTO existing bullet points.
+8. IMPACT: Quantify achievements (e.g., "Scaled system to handle 10x traffic") where possible, using velocity-signaling verbs.
+9. CLEAN OUTPUT: Return ONLY the complete LaTeX code. Do NOT wrap in markdown \`\`\`latex blocks. Do NOT include explanations.
+10. FORMATTING (VERY IMPORTANT - NO ASTERISKS):
+   - Do NOT use ** (double asterisks) anywhere in the LaTeX code. LaTeX does not recognize ** for bold text - it will print ** literally instead of making text bold.
+   - For bold text in LaTeX, use \\textbf{text} command instead.
+   - Do NOT use em dashes (—) or long dashes, use regular hyphens (-) or rewrite the sentence instead.
+11. WORD COUNT CONSTRAINT (CRITICAL FOR PAGE LENGTH):
+   - The original resume is EXACTLY ONE PAGE when compiled to PDF. You MUST maintain this.
+   - Keep the TOTAL word count of the tailored resume APPROXIMATELY THE SAME (within 5%) as the original resume.
+   - If you add content in one section, REMOVE or shorten content elsewhere to compensate.
+   - Do NOT add new bullet points without removing others. Do NOT make bullet points longer without trimming elsewhere.
+   - PRIORITY: Maintaining one-page length is MORE IMPORTANT than including every keyword. If something doesn't fit, cut it.
+   - Each bullet point should be 1-2 lines maximum. Avoid multi-line bullet points that wrap excessively.
+
+## ORIGINAL RESUME (LaTeX):
+${resumeLatex}
+
+## JOB DESCRIPTION:
+${jobDescription}
+
+## PERSONAL DETAILS:
+${personalDetails}
+
+## COMPANY INFO & RESEARCH (USE THIS TO POSITION MULTIDISCIPLINARY FIT):
+${companyInfo}
+
+Use this company information to:
+- Understand the company's domain and what they actually do
+- Identify the multidisciplinary skill combinations that would make the candidate stand out
+- Use industry-specific language and keywords
+- Frame the candidate's experience to show direct relevance to the company's work
+
+## OUTPUT:
+The complete, compilable LaTeX code with semantically aligned content that maximizes ATS compatibility, recruiter engagement, and shows MULTIDISCIPLINARY FIT with the company's actual work.`;
+}
+
+/**
+ * Prompt to tailor a cover letter
+ */
+export function getCoverLetterTailoringPrompt(
+  coverLetterLatex: string,
+  jobDescription: string,
+  personalDetails: string,
+  companyInfo: string,
+): string {
+  return `You are an expert cover letter writer crafting a letter for a visionary technologist. Your task is to tailor the given LaTeX cover letter for the specified job.
+
+## THE MULTIDISCIPLINARY ADVANTAGE (CRITICAL):
+In 2026, candidates don't get rejected for bad cover letters—they get rejected because another candidate's background is MORE SIMILAR to the work the company is already doing. The secret to standing out is showing MULTIDISCIPLINARY expertise.
+
+Key Insight: Emphasize how the candidate's COMBINATION of skills (e.g., Finance + Engineering, Healthcare + ML, Business + Development) makes them uniquely qualified for THIS specific role at THIS specific company.
+
+## CANDIDATE PERSONALITY & VALUES (MUST be reflected in the letter):
+- Passionate innovator: Loves playing with technology, building inventions, and exploring what's possible.
+- Mission-driven: Cares deeply about making life easier for humans and contributing to a better future.
+- Values innovation: Drawn to companies and people who drive real change and do something different.
+- Visionary mindset: Wants to be part of something meaningful, not just a job - wants to help the company achieve its vision.
+- Authentic enthusiasm: Genuine excitement about technology and its potential to help humanity.
+- Multidisciplinary thinker: Brings unique value through combination of different expertise areas.
+- The "Obsessed" Expert: You don't just "do" cloud work; you are fascinated by the architecture. You love talking about how things scale.
+- High-IQ / High-Initiative: Show you understand the "Why" behind the "How." You see the business impact, not just the code.
+- Direct & Honest: Use a "smart-casual" professional voice. Use conversational interjections like "To be honest," "The reality is," or "What I really love about this is..."
+- Founder Mentality: Frame past experiences through a lens of ownership. You don't just follow tickets; you build solutions that move the needle.
+
+## CRITICAL INSTRUCTIONS:
+1. PRESERVE STRUCTURE: Keep the EXACT same LaTeX format and commands.
+2. THE OPENING: DO NOT use "I am writing to express my interest." Start with a high-energy observation about the company's mission or a specific challenge they face.
+3. NO AI CLICHÉS: Strictly forbid words like "tapestry," "testament," "ever-evolving," "leverage," "passionate" (use 'obsessed' or 'fascinated'), and "I am confident that my unique blend of...".
+4. FOCUS ON WINS: Frame technical achievements as business wins. (e.g., "That 90% speed increase wasn't just a tech win; it allowed the team to stop worrying about setup and start innovating.")
+5. PRESERVE BASE DETAILS - DO NOT CHANGE:
+   - Project names mentioned (keep them exactly as they are)
+   - Project ideas/concepts (don't change what projects are about)
+   - Company names from past experience
+   - Job titles held
+   - Educational institutions and degrees
+   - Personal information (name, contact details)
+   - Specific achievements and their facts
+6. WHAT TO TAILOR:
+   - How experiences are framed and described
+   - Which aspects of projects/experience to emphasize
+   - Connecting past work to the job requirements
+   - The narrative around why this role/company is exciting
+   - MULTIDISCIPLINARY FIT: Explain how the combination of skills makes them perfect for this role
+7. TONE: 80% formal + 20% informal. Professional but human. Include occasional conversational phrases like "honestly," "what really excites me is," "I genuinely believe," etc.
+8. VISIONARY TONE: Write as if from someone who truly believes technology can change the world. Express genuine passion for innovation and building things that matter.
+9. COMPANY ALIGNMENT: Show how the candidate's vision aligns with the company's mission. Explain how they can help the company meet its goals and fulfill its vision.
+10. MULTIDISCIPLINARY NARRATIVE: Weave in how the candidate's unique combination of expertise (technical + domain knowledge) directly relates to what the company does. This is the KEY differentiator.
+11. PERSONAL TOUCH: Include phrases like "I am drawn to companies that...", "What excites me about [Company] is...", "I believe technology should...", "My background in [X] combined with [Y] uniquely positions me to...".
+12. HUMBLE CONFIDENCE: Confident about skills but humble about learning. Eager to contribute, not just take.
+13. AVOID GENERIC: No clichés. Make it feel written by a real person who genuinely cares.
+14. WORD COUNT: Keep the body between 250-350 words. Punchy and impactful.
+15. CLEAN OUTPUT: Return ONLY the complete LaTeX code. Do NOT wrap in markdown.
+16. FORMATTING: Do NOT use  (double asterisks) to bold text. Do NOT use em dashes (—) or long dashes, use regular hyphens (-) or rewrite instead.
+## ORIGINAL COVER LETTER (LaTeX):
+${coverLetterLatex}
+
+## JOB DESCRIPTION:
+${jobDescription}
+
+## PERSONAL DETAILS:
+${personalDetails}
+
+## COMPANY INFO & RESEARCH (USE THIS TO POSITION MULTIDISCIPLINARY FIT):
+${companyInfo}
+
+Use this company information to:
+- Understand exactly what the company does and their domain
+- Identify the multidisciplinary skill combinations that would make the candidate stand out
+- Use industry-specific language and concepts
+- Show deep understanding of the company's challenges and how the candidate can help
+- Frame the candidate's background as DIRECTLY RELEVANT to the company's actual work
+
+## OUTPUT:
+The complete, compilable LaTeX code with tailored content that sounds like a visionary technologist who genuinely wants to help this company succeed and whose MULTIDISCIPLINARY background makes them uniquely qualified.`;
+}
+
+/**
+ * Prompt to generate answers to application questions
+ */
+export function getAnswerGenerationPrompt(
+  questions: string,
+  tailoredResume: string,
+  tailoredCoverLetter: string | undefined,
+  jobDescription: string,
+  companyInfo: string,
+): string {
+  return `You are an expert career coach helping a visionary technologist answer application questions. Your answers should sound authentic, human, and passionate.
+
+## CANDIDATE PERSONALITY & VALUES (MUST be reflected in answers):
+- Passionate innovator: Loves playing with technology, building inventions, and exploring what's possible.
+- Mission-driven: Cares deeply about making life easier for humans and contributing to a better future.
+- Values innovation: Drawn to companies and people who drive real change and do something different.
+- Visionary mindset: Wants to help the company achieve its vision, not just get a job.
+- Authentic enthusiasm: Genuine excitement about technology's potential to help humanity.
+
+## CONTEXT:
+- Job: ${jobDescription}
+- Company: ${companyInfo}
+- Resume: ${tailoredResume}
+- Cover Letter: ${tailoredCoverLetter || "Not provided"}
+
+## CRITICAL INSTRUCTIONS:
+1. TONE (VERY IMPORTANT): 70% formal + 30% informal. Write like a smart, articulate human - not a robot. Mix professional language with natural conversational elements. Include phrases like "honestly," "what really excites me is," "I genuinely believe," "to be frank," "the thing I love most about," "what drew me to" etc. The answer should feel like it came from a real person having a professional conversation, not a corporate template.
+2. AUTHENTICITY: Sound like a real person wrote this, not a template. Vary sentence structure. Avoid corporate buzzwords.
+3. PASSION: Show genuine enthusiasm for technology, innovation, and making a difference.
+4. COMPANY FIT: Explain how the candidate's vision aligns with the company. Show eagerness to help them succeed.
+5. SPECIFIC: Reference real experiences from the resume but paraphrase naturally.
+6. HUMBLE CONFIDENCE: Confident about abilities but eager to learn and contribute.
+7. FORMATTING: Do NOT use  (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
+8. WORD/CHARACTER LIMITS: If a question has a [LIMIT: X words] or [LIMIT: X characters] tag, you MUST strictly adhere to that limit. Count carefully and ensure the answer does not exceed the specified limit. For word limits, count actual words. For character limits, count all characters including spaces.
+
+## QUESTIONS TO ANSWER:
+${questions}
+
+## OUTPUT FORMAT:
+For each question, provide:
+Question: [Question Text - without the limit tag]
+Answer: [A thoughtful, human-sounding answer that reflects the visionary personality and respects any word/character limits]
+...`;
+}
+
+/**
+ * Prompt to generate a cold email
+ */
+export function getColdEmailPrompt(
+  positionTitle: string,
+  companyName: string,
+  jobDescription: string,
+  companyInfo: string,
+  tailoredResume: string,
+  tailoredCoverLetter: string,
+): string {
+  return `You are helping a visionary technologist write a compelling cold email to a hiring authority (e.g., Director, VP, or Hiring Manager) at a company they want to work for.
+
+## CANDIDATE PERSONALITY:
+- Passionate innovator who loves building with technology
+- Mission-driven, wants to make life easier for humanity
+- Drawn to companies that drive real change
+- Visionary mindset - wants to help the company succeed
+- Authentic enthusiasm about tech's potential
+
+## CONTEXT:
+- Position: ${positionTitle}
+- Company: ${companyName}
+- Job Description: ${jobDescription}
+- Company Info: ${companyInfo}
+- Resume highlights: ${tailoredResume.substring(0, 2000)}
+- Cover Letter insights: ${tailoredCoverLetter.substring(0, 1500)}
+
+## CRITICAL INSTRUCTIONS:
+1. TONE: 70% formal + 30% informal. Professional yet personable. Sound like a real person, not a template.
+2. LENGTH: 100-200 words ONLY. Short, punchy, and impactful.
+3. HOOK: Start with something that grabs attention - mention something specific about the company or role.
+4. VALUE: Focus on what value YOU can bring to THEM, not what you want.
+5. CTA: End with a clear, simple call to action (e.g., "Would love 15 minutes to share how I could help with X").
+6. NO ATTACHMENTS MENTION: Don't say "I've attached my resume" - just focus on the pitch.
+7. FORMATTING: Do NOT use  (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
+
+## OUTPUT:
+Write the cold email body only (no subject line needed). Make it compelling, human, and confident but not arrogant.`;
+}
+
+/**
+ * Prompt to generate a reference request email
+ */
+export function getReferenceEmailPrompt(
+  positionTitle: string,
+  companyName: string,
+  jobDescription: string,
+  companyInfo: string,
+  tailoredResume: string,
+): string {
+  return `You are helping a visionary technologist write a warm, genuine email to an employee at a company, asking for a referral for an open position.
+
+## CANDIDATE PERSONALITY:
+- Passionate innovator who loves building with technology
+- Mission-driven, wants to make life easier for humanity
+- Drawn to companies that drive real change
+- Visionary mindset - wants to help the company succeed
+- Authentic enthusiasm about tech's potential
+
+## CONTEXT:
+- Position: ${positionTitle}
+- Company: ${companyName}
+- Job Description: ${jobDescription}
+- Company Info: ${companyInfo}
+- Resume highlights: ${tailoredResume.substring(0, 2000)}
+
+## CRITICAL INSTRUCTIONS:
+1. TONE: 70% formal + 30% informal. Friendly and genuine. You're asking a favor, so be humble and appreciative.
+2. LENGTH: 100-200 words ONLY. Respect their time.
+3. OPENING: Brief, warm greeting. Mention how you found them (LinkedIn, mutual connection placeholder, etc.).
+4. ASK: Clearly state you're interested in the ${positionTitle} role and would appreciate a referral if they feel comfortable.
+5. WHY YOU: Briefly (1-2 sentences) mention why you'd be a good fit - connect to company values.
+6. GRATITUDE: Express genuine appreciation for their time regardless of outcome.
+7. NO PRESSURE: Make it clear it's okay to say no.
+8. FORMATTING: Do NOT use  (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
+
+## OUTPUT:
+Write the referral request email body only (no subject line needed). Make it human, humble, and genuine.`;
+}
+
+/**
+ * Prompt to regenerate a resume based on feedback
+ */
+export function getResumeRegenerationPrompt(
+  userComment: string,
+  currentContent: string,
+  originalResumeLatex: string,
+  jobDescription: string,
+  personalDetails: string,
+  companyInfo: string,
+): string {
+  return `You are an expert resume writer. The user has previously generated a tailored resume, but wants changes based on their feedback.
+
+## USER'S FEEDBACK:
+${userComment}
+
+## CURRENT TAILORED RESUME (to be modified based on feedback):
+${currentContent}
+
+## ORIGINAL RESUME TEMPLATE (for reference):
+${originalResumeLatex}
+
+## JOB DESCRIPTION:
+${jobDescription}
+
+## PERSONAL DETAILS:
+${personalDetails}
+
+## COMPANY INFO:
+${companyInfo}
+
+## CRITICAL INSTRUCTIONS:
+1. APPLY THE FEEDBACK: Make the specific changes the user requested.
+2. PRESERVE LATEX: Keep the EXACT same LaTeX structure and formatting.
+3. MAINTAIN QUALITY: Ensure the resume remains ATS-friendly and professional.
+4. CLEAN OUTPUT: Return ONLY the complete LaTeX code. Do NOT wrap in markdown.
+5. FORMATTING: Do NOT use  (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
+
+## OUTPUT:
+The regenerated LaTeX resume with the user's requested changes applied.`;
+}
+
+/**
+ * Prompt to regenerate a cover letter based on feedback
+ */
+export function getCoverLetterRegenerationPrompt(
+  userComment: string,
+  currentContent: string,
+  originalCoverLetterLatex: string,
+  jobDescription: string,
+  personalDetails: string,
+  companyInfo: string,
+): string {
+  return `You are an expert cover letter writer. The user has previously generated a tailored cover letter, but wants changes based on their feedback.
+
+## USER'S FEEDBACK:
+${userComment}
+
+## CURRENT TAILORED COVER LETTER (to be modified based on feedback):
+${currentContent}
+
+## ORIGINAL COVER LETTER TEMPLATE (for reference):
+${originalCoverLetterLatex}
+
+## JOB DESCRIPTION:
+${jobDescription}
+
+## PERSONAL DETAILS:
+${personalDetails}
+
+## COMPANY INFO:
+${companyInfo}
+
+## CRITICAL INSTRUCTIONS:
+1. APPLY THE FEEDBACK: Make the specific changes the user requested.
+2. PRESERVE LATEX: Keep the EXACT same LaTeX structure and formatting.
+3. MAINTAIN TONE: Keep it 80% formal + 20% informal, authentic, and passionate.
+4. CLEAN OUTPUT: Return ONLY the complete LaTeX code. Do NOT wrap in markdown.
+5. FORMATTING: Do NOT use  (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
+
+## OUTPUT:
+The regenerated LaTeX cover letter with the user's requested changes applied.`;
+}
+
+/**
+ * Prompt to regenerate answers based on feedback
+ */
+export function getAnswerRegenerationPrompt(
+  userComment: string,
+  currentContent: string,
+  questions: string,
+  tailoredResume: string,
+  tailoredCoverLetter: string,
+  jobDescription: string,
+  companyInfo: string,
+): string {
+  return `You are an expert career coach. The user has previously generated answers to application questions, but wants changes based on their feedback.
+
+## USER'S FEEDBACK:
+${userComment}
+
+## CURRENT GENERATED ANSWERS (to be modified based on feedback):
+${currentContent}
+
+## ORIGINAL QUESTIONS:
+${questions}
+
+## CONTEXT:
+- Job: ${jobDescription}
+- Company: ${companyInfo}
+- Resume: ${tailoredResume}
+- Cover Letter: ${tailoredCoverLetter}
+
+## CRITICAL INSTRUCTIONS:
+1. APPLY THE FEEDBACK: Make the specific changes the user requested.
+2. MAINTAIN AUTHENTICITY: Keep the 80% formal + 20% informal tone.
+3. KEEP STRUCTURE: Follow the same Question/Answer format.
+4. BE SPECIFIC: Reference real experiences from the resume.
+5. FORMATTING: Do NOT use  (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
+
+## OUTPUT:
+The regenerated answers with the user's requested changes applied.`;
+}
+
+/**
+ * Prompt to regenerate an email based on feedback
+ */
+export function getEmailRegenerationPrompt(
+  emailType: "coldEmail" | "referenceEmail",
+  userComment: string,
+  currentContent: string,
+  positionTitle: string,
+  companyName: string,
+  jobDescription: string,
+  companyInfo: string,
+  tailoredResume: string,
+): string {
+  const emailTypeDescription =
+    emailType === "coldEmail"
+      ? "cold outreach email to a hiring authority"
+      : "referral request email to an employee";
+
+  return `You are helping rewrite a ${emailTypeDescription}. The user wants changes based on their feedback.
+
+## USER'S FEEDBACK:
+${userComment}
+
+## CURRENT EMAIL (to be modified based on feedback):
+${currentContent}
+
+## CONTEXT:
+- Position: ${positionTitle}
+- Company: ${companyName}
+- Job Description: ${jobDescription}
+- Company Info: ${companyInfo}
+- Resume highlights: ${tailoredResume.substring(0, 2000)}
+
+## CRITICAL INSTRUCTIONS:
+1. APPLY THE FEEDBACK: Make the specific changes the user requested.
+2. KEEP IT SHORT: 100-200 words maximum.
+3. TONE: 70% formal + 30% informal. Professional yet personable.
+4. BE GENUINE: Sound like a real person, not a template.
+5. FORMATTING: Do NOT use  (double asterisks) to bold text. Do NOT use em dashes (—), use regular hyphens (-) or rewrite instead.
+
+## OUTPUT:
+The regenerated email with the user's requested changes applied.`;
+}
+
+/**
+ * Prompt to answer a general question
+ */
+export function getGeneralQuestionPrompt(
+  question: string,
+  tailoredResume: string,
+  tailoredCoverLetter: string,
+  positionTitle: string,
+  companyName: string,
+  jobDescription: string,
+  companyInfo: string,
+  limitType?: "words" | "characters",
+  limitValue?: number,
+): string {
+  const limitInstruction =
+    limitType && limitValue
+      ? `\n6. IMPORTANT: Your answer MUST be within ${limitValue} ${limitType}. Be concise and stay within this limit.`
+      : "";
+
+  return `You are helping a job applicant write answers in FIRST PERSON (using "I", "my", "me"). Write as if you ARE the applicant. Use ONLY the provided context to answer the question. If the answer cannot be found in the context, say so clearly.
+
+## QUESTION:
+${question}
+
+## APPLICATION CONTEXT:
+
+### Tailored Resume:
+${tailoredResume}
+
+### Tailored Cover Letter:
+${tailoredCoverLetter || "Not provided"}
+
+### Target Position: ${positionTitle || "Not specified"} at ${companyName || "Not specified"}
+
+### Job Description:
+${jobDescription || "Not provided"}
+
+### Company Information:
+${companyInfo || "Not provided"}
+
+## INSTRUCTIONS:
+1. Answer the question in FIRST PERSON - write as if you are the applicant (use "I", "my", "me").
+2. TONE: Write like a human - use a mix of 50% formal and 30% informal tone. Sound natural, not robotic. Include occasional conversational phrases like "honestly," "I really enjoy," "what excites me is" to make it feel authentic.
+3. Answer the question directly and concisely based on the context provided.
+4. If asking for a list (e.g., skills), provide a clean list (still in first person where applicable).
+5. If the information is not available in the context, clearly state that.
+6. Do NOT make up information that isn't in the provided context.
+7. FORMATTING (CRITICAL): Do NOT use  (double asterisks) to bold text - use plain text only. Do NOT use em dashes (—) - use regular hyphens (-) or rewrite the sentence instead. Keep it simple and clean.${limitInstruction}
+
+## ANSWER (in first person, human-written tone):`;
+}
+
+/**
+ * Prompt to answer a question using internet search
+ */
+export function getInternetAnswerPrompt(
+  question: string,
+  tailoredResume: string,
+  tailoredCoverLetter: string,
+  positionTitle: string,
+  companyName: string,
+  jobDescription: string,
+  companyInfo: string,
+  limitType?: "words" | "characters",
+  limitValue?: number,
+): string {
+  const limitInstruction =
+    limitType && limitValue
+      ? `\n7. IMPORTANT: Your answer MUST be within ${limitValue} ${limitType}. Be concise and stay within this limit.`
+      : "";
+
+  return `You are helping a job applicant answer questions. You have access to their APPLICATION CONTEXT and can also search the INTERNET for additional information.
+
+## QUESTION:
+${question}
+
+## APPLICATION CONTEXT:
+
+### Tailored Resume:
+${tailoredResume}
+
+### Tailored Cover Letter:
+${tailoredCoverLetter || "Not provided"}
+
+### Target Position: ${positionTitle || "Not specified"} at ${companyName || "Not specified"}
+
+### Job Description:
+${jobDescription || "Not provided"}
+
+### Company Information:
+${companyInfo || "Not provided"}
+
+## INSTRUCTIONS:
+1. Answer the question in FIRST PERSON - write as if you are the applicant (use "I", "my", "me").
+2. Use the application context as your PRIMARY source for personal information about the applicant.
+3. Use internet search to supplement with external information (company details, industry trends, market data, etc.).
+4. TONE: Write like a human - use a mix of 50% formal and 30% informal tone. Sound natural, not robotic.
+5. Clearly indicate when information comes from external sources vs. the applicant's context.
+6. FORMATTING (CRITICAL): Do NOT use  (double asterisks) to bold text - use plain text only. Do NOT use em dashes (—) - use regular hyphens (-) instead.${limitInstruction}
+
+## ANSWER (combining context + internet research):`;
+}
+
+/**
+ * Prompt to answer a question using only internet search
+ */
+export function getInternetOnlyAnswerPrompt(
+  question: string,
+  companyName?: string,
+  positionTitle?: string,
+  limitType?: "words" | "characters",
+  limitValue?: number,
+): string {
+  const limitInstruction =
+    limitType && limitValue
+      ? `\n5. IMPORTANT: Your answer MUST be within ${limitValue} ${limitType}. Be concise and stay within this limit.`
+      : "";
+
+  const contextHint =
+    companyName || positionTitle
+      ? `\n\n## CONTEXT HINT:\nThe user is researching for a ${positionTitle || "position"} at ${companyName || "a company"}. Keep this context in mind when searching.`
+      : "";
+
+  return `You are a helpful research assistant. Answer the following question using internet search. Provide accurate, up-to-date information from the web.${contextHint}
+
+## QUESTION:
+${question}
+
+## INSTRUCTIONS:
+1. Search the internet to find relevant, accurate information.
+2. Provide a clear, well-organized answer.
+3. TONE: Write naturally, balancing professionalism with accessibility.
+4. FORMATTING (CRITICAL): Do NOT use  (double asterisks) to bold text - use plain text only. Do NOT use em dashes (—) - use regular hyphens (-) instead.${limitInstruction}
+
+## ANSWER (based on internet research):`;
+}
