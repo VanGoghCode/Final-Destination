@@ -133,22 +133,25 @@ async function main() {
     { file: "lowest-tier.json", key: KEYS.TIER_LOWEST, name: "lowest-tier" },
   ];
 
-  for (const { file, key, name } of tierFiles) {
-    const filePath = path.join(dataDir, file);
-    if (fs.existsSync(filePath)) {
-      const tierData: TierData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-
-      try {
-        await redis.set(key, tierData);
-      } catch (error) {
-        console.error(
-          `   ❌ Failed to seed ${name}:`,
-          error instanceof Error ? error.message : error,
+  await Promise.all(
+    tierFiles.map(async ({ file, key, name }) => {
+      const filePath = path.join(dataDir, file);
+      if (fs.existsSync(filePath)) {
+        const tierData: TierData = JSON.parse(
+          fs.readFileSync(filePath, "utf-8"),
         );
+
+        try {
+          await redis.set(key, tierData);
+        } catch (error) {
+          console.error(
+            `   ❌ Failed to seed ${name}:`,
+            error instanceof Error ? error.message : error,
+          );
+        }
       }
-    } else {
-    }
-  }
+    }),
+  );
 
   // Seed jobs.json
   const jobsPath = path.join(dataDir, "jobs.json");
