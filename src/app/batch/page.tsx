@@ -609,17 +609,6 @@ export default function BatchProcessPage() {
     addActivity(`[Cancelled] Processing stopped by user`);
   };
 
-  // Handle cancel single job
-  const handleCancelJob = (jobId: string) => {
-    const job = queue.find((j) => j.id === jobId);
-    if (job) {
-      cancelJob(jobId);
-      abortControllerRef.current?.abort();
-      abortControllerRef.current = new AbortController();
-      addActivity(`[Cancelled] ${job.companyName} - ${job.positionTitle}`);
-    }
-  };
-
   // Handle add job - auto starts processing
   const handleAddJob = (jobData: {
     companyName: string;
