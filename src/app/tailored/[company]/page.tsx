@@ -790,6 +790,12 @@ export default function TailoredCompanyPage({
           fullHeight={true}
           downloadFileNames={[resumeFileNamePlain, resumeFileNameDetailed]}
           jobUrl={jobData?.companyUrl}
+          onApply={() => {
+            // Redirect to the job application URL
+            if (jobData?.companyUrl) {
+              window.open(jobData.companyUrl, "_blank");
+            }
+          }}
         />
       </main>
 

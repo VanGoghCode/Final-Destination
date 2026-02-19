@@ -26,6 +26,7 @@ interface LaTeXEditorProps {
   fullHeight?: boolean;
   downloadFileNames?: [string, string]; // [plainName, detailedName]
   jobUrl?: string;
+  onApply?: () => void; // Callback after download to redirect
 }
 
 export default function LaTeXEditor({
@@ -38,6 +39,7 @@ export default function LaTeXEditor({
   fullHeight = false,
   downloadFileNames,
   jobUrl,
+  onApply,
 }: LaTeXEditorProps) {
   const [editableCode, setEditableCode] = useState(code);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -386,6 +388,19 @@ export default function LaTeXEditor({
     }
   };
 
+  // Handle Apply - download PDF and redirect to job URL
+  const handleApply = () => {
+    // First download the PDF
+    handleDownloadPdf();
+    // Then call the onApply callback to redirect
+    if (onApply) {
+      // Small delay to ensure download starts
+      setTimeout(() => {
+        onApply();
+      }, 300);
+    }
+  };
+
   const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
     if (backdropRef.current) {
       backdropRef.current.scrollTop = e.currentTarget.scrollTop;
@@ -674,6 +689,31 @@ export default function LaTeXEditor({
                 <path d="M3 3v5h5" />
               </svg>
               <span className="hidden sm:inline">Regenerate</span>
+            </Button>
+          )}
+
+          {/* Apply Button - Download and Redirect */}
+          {onApply && pdfUrl && (
+            <Button
+              onClick={handleApply}
+              variant="success"
+              className="text-xs font-medium"
+              title="Download resume and apply"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="mr-1"
+              >
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              Apply
             </Button>
           )}
         </div>

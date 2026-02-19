@@ -103,6 +103,7 @@ body {
 .gradient-text {
   background: linear-gradient(135deg, #000000 0%, #333333 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -112,7 +113,8 @@ body {
 .btn-primary,
 .btn-secondary,
 .btn-regenerate,
-.btn-ghost {
+.btn-ghost,
+.btn-success {
   position: relative;
   z-index: 10;
 }
@@ -449,6 +451,44 @@ body {
   cursor: not-allowed;
 }
 
+/* Success Button */
+.btn-success {
+  background: #16a34a;
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid #16a34a;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15);
+}
+
+.btn-success:hover {
+  background: #15803d;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(22, 163, 74, 0.2);
+}
+
+.btn-success:active {
+  transform: translateY(0);
+}
+
+.btn-success:disabled {
+  background: #E5E5E5;
+  color: #999999;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  border-color: #E5E5E5;
+}
+
 /* Ghost Button (unstyled base) */
 .btn-ghost {
   box-shadow: none;
@@ -513,16 +553,35 @@ body {
 
 /* xs: breakpoint helper classes */
 @media (min-width: 475px) {
-  .xs\:block { display: block; }
-  .xs\:inline { display: inline; }
-  .xs\:hidden { display: none; }
-  .xs\:flex { display: flex; }
+  .xs\:block {
+    display: block;
+  }
+
+  .xs\:inline {
+    display: inline;
+  }
+
+  .xs\:hidden {
+    display: none;
+  }
+
+  .xs\:flex {
+    display: flex;
+  }
 }
 
 @media (max-width: 474px) {
-  .xs\:block { display: none; }
-  .xs\:inline { display: none; }
-  .xs\:flex { display: none; }
+  .xs\:block {
+    display: none;
+  }
+
+  .xs\:inline {
+    display: none;
+  }
+
+  .xs\:flex {
+    display: none;
+  }
 }
 
 @media (max-width: 639px) {
@@ -562,8 +621,13 @@ body {
 
 /* Queue progress shimmer animation */
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .animate-shimmer {
@@ -572,9 +636,20 @@ body {
 
 /* Pulse ring animation for active processing */
 @keyframes pulse-ring {
-  0% { transform: scale(0.95); opacity: 0.5; }
-  50% { transform: scale(1); opacity: 0.3; }
-  100% { transform: scale(0.95); opacity: 0.5; }
+  0% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+
+  100% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
 }
 
 .animate-pulse-ring {

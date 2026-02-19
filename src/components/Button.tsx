@@ -2,13 +2,19 @@
 
 import React from "react";
 
-export type ButtonVariant = "primary" | "secondary" | "regenerate" | "ghost";
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "regenerate"
+  | "ghost"
+  | "success";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: "btn-primary",
   secondary: "btn-secondary",
   regenerate: "btn-regenerate",
   ghost: "btn-ghost",
+  success: "btn-success",
 };
 
 const variantGlow: Record<ButtonVariant, string> = {
@@ -16,6 +22,7 @@ const variantGlow: Record<ButtonVariant, string> = {
   secondary: "currentColor",
   regenerate: "#000000",
   ghost: "currentColor",
+  success: "#16a34a",
 };
 
 type CommonProps = {
@@ -46,9 +53,15 @@ export default function Button({
   return (
     <Component
       className={classes}
-      style={{ ...(style || {}), "--btn-glow": resolvedGlow } as React.CSSProperties}
+      style={
+        { ...(style || {}), "--btn-glow": resolvedGlow } as React.CSSProperties
+      }
       {...(as === "button"
-        ? { type: (props as React.ButtonHTMLAttributes<HTMLButtonElement>).type || "button" }
+        ? {
+            type:
+              (props as React.ButtonHTMLAttributes<HTMLButtonElement>).type ||
+              "button",
+          }
         : {})}
       {...rest}
     >

@@ -1,7 +1,8 @@
 "use client";
 
 import { JobStatus, QueuedJob } from "@/context/JobQueueContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import Button from "./Button";
 
 interface JobQueueCardProps {
   job: QueuedJob;
@@ -9,9 +10,15 @@ interface JobQueueCardProps {
   onRetry?: () => void;
   onView?: () => void;
   onEdit?: () => void;
-  onCancel?: () => void;
   isCurrentJob?: boolean;
 }
+
+// Progress ranges for each phase
+const PROGRESS_RANGES = {
+  researching: { start: 1, end: 30 },
+  "tailoring-resume": { start: 31, end: 65 },
+  "tailoring-cover-letter": { start: 66, end: 95 },
+} as const;
 
 // Live status messages for processing jobs
 const PROCESSING_MESSAGES: Record<string, string[]> = {
@@ -175,7 +182,6 @@ export default function JobQueueCard({
   onRetry,
   onView,
   onEdit,
-  onCancel,
   isCurrentJob,
 }: JobQueueCardProps) {
   const config = STATUS_CONFIG[job.status];
@@ -185,6 +191,48 @@ export default function JobQueueCard({
     "tailoring-cover-letter",
   ].includes(job.status);
   const [messageIndex, setMessageIndex] = useState(0);
+
+  // Animated progress state - slowly increments through phase ranges
+  const [animatedProgress, setAnimatedProgress] = useState(0);
+  const lastStatusRef = useRef<string | null>(null);
+
+  // Reset and animate progress for processing jobs
+  useEffect(() => {
+    if (!isProcessing) {
+      setAnimatedProgress(job.progress);
+      return;
+    }
+
+    // Get the progress range for current status
+    const range = PROGRESS_RANGES[job.status as keyof typeof PROGRESS_RANGES];
+    if (!range) {
+      setAnimatedProgress(job.progress);
+      return;
+    }
+
+    // If status changed, reset to start of new range
+    if (lastStatusRef.current !== job.status) {
+      setAnimatedProgress(range.start);
+      lastStatusRef.current = job.status;
+    }
+
+    // Animate progress incrementally
+    const interval = setInterval(() => {
+      setAnimatedProgress((prev) => {
+        // Don't exceed the end of the current phase range
+        if (prev >= range.end) {
+          return range.end;
+        }
+        // Increment by 1
+        return prev + 1;
+      });
+    }, 500); // Update every 500ms for smooth animation
+
+    return () => clearInterval(interval);
+  }, [isProcessing, job.status, job.progress]);
+
+  // Use animated progress for display, actual progress as fallback
+  const displayProgress = isProcessing ? animatedProgress : job.progress;
 
   // Cycle through status messages for processing jobs
   useEffect(() => {
@@ -233,7 +281,7 @@ export default function JobQueueCard({
           <div
             className="absolute h-full bg-gradient-to-r from-gray-400 via-gray-600 to-gray-400 transition-all duration-500"
             style={{
-              width: `${job.progress}%`,
+              width: `${displayProgress}%`,
               backgroundSize: "200% 100%",
               animation: "gradient-shift 1.5s ease infinite",
             }}
@@ -241,7 +289,7 @@ export default function JobQueueCard({
           {/* Pulsing dot at the end */}
           <div
             className="absolute top-0 h-full w-2 bg-gray-700 rounded-full animate-pulse"
-            style={{ left: `${Math.max(0, job.progress - 1)}%` }}
+            style={{ left: `${Math.max(0, displayProgress - 1)}%` }}
           />
         </div>
       )}
@@ -274,7 +322,7 @@ export default function JobQueueCard({
                   <span className="transition-opacity duration-300">
                     {currentMessage}
                   </span>
-                  <span className="ml-0.5 font-bold">{job.progress}%</span>
+                  <span className="ml-0.5 font-bold">{displayProgress}%</span>
                 </span>
               ) : (
                 config.label
@@ -418,27 +466,27 @@ export default function JobQueueCard({
               </svg>
             </button>
           )}
-          {/* Cancel button shown during processing */}
-          {isProcessing && onCancel && (
-            <button
-              onClick={onCancel}
-              className="p-1.5 rounded hover:bg-red-100 text-red-500 hover:text-red-600 transition-colors"
-              title="Cancel processing"
+          {/* Restart button shown during processing */}
+          {isProcessing && onRetry && (
+            <Button
+              onClick={onRetry}
+              variant="ghost"
+              className="!bg-blue-600 !text-white !border-blue-600 hover:!bg-blue-700 hover:!border-blue-700 px-3 py-1.5 text-xs font-medium"
+              title="Restart job"
             >
               <svg
-                className="w-4 h-4"
+                className="w-3.5 h-3.5 mr-1"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
               >
                 <path
                   strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-            </button>
+              Restart
+            </Button>
           )}
           {!isProcessing && (
             <button

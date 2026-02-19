@@ -1180,7 +1180,6 @@ export default function BatchProcessPage() {
                     onRetry={() => retryJob(job.id)}
                     onView={() => handleViewResults(job)}
                     onEdit={() => setEditingJob(job)}
-                    onCancel={() => handleCancelJob(job.id)}
                     isCurrentJob={currentJob?.id === job.id}
                   />
                 ))}
