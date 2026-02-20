@@ -489,6 +489,44 @@ body {
   border-color: #E5E5E5;
 }
 
+/* Danger Button */
+.btn-danger {
+  background: #ef4444;
+  color: #ffffff;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid #ef4444;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.2);
+}
+
+.btn-danger:active {
+  transform: translateY(0);
+}
+
+.btn-danger:disabled {
+  background: #E5E5E5;
+  color: #999999;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  border-color: #E5E5E5;
+}
+
 /* Ghost Button (unstyled base) */
 .btn-ghost {
   box-shadow: none;

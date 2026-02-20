@@ -7,7 +7,8 @@ export type ButtonVariant =
   | "secondary"
   | "regenerate"
   | "ghost"
-  | "success";
+  | "success"
+  | "danger";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: "btn-primary",
@@ -15,6 +16,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   regenerate: "btn-regenerate",
   ghost: "btn-ghost",
   success: "btn-success",
+  danger: "btn-danger",
 };
 
 const variantGlow: Record<ButtonVariant, string> = {
@@ -23,6 +25,7 @@ const variantGlow: Record<ButtonVariant, string> = {
   regenerate: "#000000",
   ghost: "currentColor",
   success: "#16a34a",
+  danger: "#ef4444",
 };
 
 type CommonProps = {
