@@ -24,8 +24,8 @@ import {
   getInternetOnlyAnswerPrompt,
 } from "./prompts";
 
-const MODEL_NAME = "gemini-3-pro-preview";
-const MODEL_NAME_GROUNDED = "gemini-3-pro-preview";
+const MODEL_NAME = "gemini-3.1-pro-preview";
+const MODEL_NAME_GROUNDED = "gemini-3.1-pro-preview";
 
 // Retry configuration
 const MAX_RETRIES = 3;

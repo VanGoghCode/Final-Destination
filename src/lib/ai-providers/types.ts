@@ -15,8 +15,8 @@ export interface AIProviderInterface {
 // Model configurations
 export const PROVIDER_MODELS = {
   gemini: {
-    default: "gemini-3-pro-preview",
-    grounded: "gemini-3-pro-preview",
+    default: "gemini-3.1-pro-preview",
+    grounded: "gemini-3.1-pro-preview",
   },
   claude: {
     default: "anthropic.claude-opus-4-5-20251101-v1:0",
