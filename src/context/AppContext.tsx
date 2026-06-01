@@ -1,10 +1,8 @@
 "use client";
 
 import { createContext, useContext, useState, ReactNode } from "react";
-import type { AIProvider } from "@/lib/ai-providers/types";
 
 interface AppState {
-  // Personal details
   firstName: string;
   lastName: string;
 
@@ -13,7 +11,8 @@ interface AppState {
   coverLetterLatex: string;
   jobDescription: string;
   personalDetails: string;
-  companyInfo: string;
+  masterContext: string;
+  manualResearch: string;
   companyName: string;
   companyUrl: string;
   positionTitle: string;
@@ -22,15 +21,11 @@ interface AppState {
   selectedResumeTemplateId: string;
   selectedCoverLetterTemplateId: string;
 
-  // Company Research
-  companyResearch: string;
-  isResearching: boolean;
-
   // Step 2 outputs
   tailoredResume: string;
   tailoredCoverLetter: string;
 
-  // Job location info (extracted during tailoring)
+  // Job location info
   jobCountry: string;
   jobWorkMode: "" | "Remote" | "Hybrid" | "On-site";
 
@@ -41,10 +36,6 @@ interface AppState {
   // Loading states
   isGeneratingTailored: boolean;
   isGeneratingAnswers: boolean;
-
-  // AI Provider selection (separate for research and tailoring)
-  researchProvider: AIProvider;
-  tailoringProvider: AIProvider;
 }
 
 interface AppContextType extends AppState {
@@ -54,14 +45,13 @@ interface AppContextType extends AppState {
   setCoverLetterLatex: (value: string) => void;
   setJobDescription: (value: string) => void;
   setPersonalDetails: (value: string) => void;
-  setCompanyInfo: (value: string) => void;
+  setMasterContext: (value: string) => void;
+  setManualResearch: (value: string) => void;
   setCompanyName: (value: string) => void;
   setCompanyUrl: (value: string) => void;
   setPositionTitle: (value: string) => void;
   setSelectedResumeTemplateId: (value: string) => void;
   setSelectedCoverLetterTemplateId: (value: string) => void;
-  setCompanyResearch: (value: string) => void;
-  setIsResearching: (value: boolean) => void;
   setTailoredResume: (value: string) => void;
   setTailoredCoverLetter: (value: string) => void;
   setJobCountry: (value: string) => void;
@@ -70,8 +60,6 @@ interface AppContextType extends AppState {
   setGeneratedAnswers: (value: string) => void;
   setIsGeneratingTailored: (value: boolean) => void;
   setIsGeneratingAnswers: (value: boolean) => void;
-  setResearchProvider: (value: AIProvider) => void;
-  setTailoringProvider: (value: AIProvider) => void;
   resetAll: () => void;
 }
 
@@ -82,14 +70,13 @@ const initialState: AppState = {
   coverLetterLatex: "",
   jobDescription: "",
   personalDetails: "",
-  companyInfo: "",
+  masterContext: "",
+  manualResearch: "",
   companyName: "",
   companyUrl: "",
   positionTitle: "",
   selectedResumeTemplateId: "",
   selectedCoverLetterTemplateId: "",
-  companyResearch: "",
-  isResearching: false,
   tailoredResume: "",
   tailoredCoverLetter: "",
   jobCountry: "",
@@ -98,122 +85,47 @@ const initialState: AppState = {
   generatedAnswers: "",
   isGeneratingTailored: false,
   isGeneratingAnswers: false,
-  researchProvider: "gemini", // Default: Gemini for research
-  tailoringProvider: "claude", // Default: Claude for tailoring
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const RESEARCH_PROVIDER_KEY = "resume-tailor-research-provider";
-const TAILORING_PROVIDER_KEY = "resume-tailor-tailoring-provider";
-
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AppState>(() => {
-    // Initialize with saved providers from localStorage (client-side only)
-    if (typeof window !== "undefined") {
-      const savedResearch = localStorage.getItem(RESEARCH_PROVIDER_KEY);
-      const savedTailoring = localStorage.getItem(TAILORING_PROVIDER_KEY);
-      return {
-        ...initialState,
-        researchProvider:
-          savedResearch === "claude" || savedResearch === "gemini"
-            ? savedResearch
-            : "gemini",
-        tailoringProvider:
-          savedTailoring === "claude" || savedTailoring === "gemini"
-            ? savedTailoring
-            : "claude",
-      };
-    }
-    return initialState;
-  });
+  const [state, setState] = useState<AppState>(initialState);
 
-  const setFirstName = (value: string) =>
-    setState((prev) => ({ ...prev, firstName: value }));
-  const setLastName = (value: string) =>
-    setState((prev) => ({ ...prev, lastName: value }));
-  const setResumeLatex = (value: string) =>
-    setState((prev) => ({ ...prev, resumeLatex: value }));
-  const setCoverLetterLatex = (value: string) =>
-    setState((prev) => ({ ...prev, coverLetterLatex: value }));
-  const setJobDescription = (value: string) =>
-    setState((prev) => ({ ...prev, jobDescription: value }));
-  const setPersonalDetails = (value: string) =>
-    setState((prev) => ({ ...prev, personalDetails: value }));
-  const setCompanyInfo = (value: string) =>
-    setState((prev) => ({ ...prev, companyInfo: value }));
-  const setCompanyName = (value: string) =>
-    setState((prev) => ({ ...prev, companyName: value }));
-  const setCompanyUrl = (value: string) =>
-    setState((prev) => ({ ...prev, companyUrl: value }));
-  const setPositionTitle = (value: string) =>
-    setState((prev) => ({ ...prev, positionTitle: value }));
-  const setSelectedResumeTemplateId = (value: string) =>
-    setState((prev) => ({ ...prev, selectedResumeTemplateId: value }));
-  const setSelectedCoverLetterTemplateId = (value: string) =>
-    setState((prev) => ({ ...prev, selectedCoverLetterTemplateId: value }));
-  const setCompanyResearch = (value: string) =>
-    setState((prev) => ({ ...prev, companyResearch: value }));
-  const setIsResearching = (value: boolean) =>
-    setState((prev) => ({ ...prev, isResearching: value }));
-  const setTailoredResume = (value: string) =>
-    setState((prev) => ({ ...prev, tailoredResume: value }));
-  const setTailoredCoverLetter = (value: string) =>
-    setState((prev) => ({ ...prev, tailoredCoverLetter: value }));
-  const setJobCountry = (value: string) =>
-    setState((prev) => ({ ...prev, jobCountry: value }));
-  const setJobWorkMode = (value: "" | "Remote" | "Hybrid" | "On-site") =>
-    setState((prev) => ({ ...prev, jobWorkMode: value }));
-  const setApplicationQuestions = (value: string) =>
-    setState((prev) => ({ ...prev, applicationQuestions: value }));
-  const setGeneratedAnswers = (value: string) =>
-    setState((prev) => ({ ...prev, generatedAnswers: value }));
-  const setIsGeneratingTailored = (value: boolean) =>
-    setState((prev) => ({ ...prev, isGeneratingTailored: value }));
-  const setIsGeneratingAnswers = (value: boolean) =>
-    setState((prev) => ({ ...prev, isGeneratingAnswers: value }));
-  const setResearchProvider = (value: AIProvider) => {
-    setState((prev) => ({ ...prev, researchProvider: value }));
-    if (typeof window !== "undefined") {
-      localStorage.setItem(RESEARCH_PROVIDER_KEY, value);
-    }
-  };
-  const setTailoringProvider = (value: AIProvider) => {
-    setState((prev) => ({ ...prev, tailoringProvider: value }));
-    if (typeof window !== "undefined") {
-      localStorage.setItem(TAILORING_PROVIDER_KEY, value);
-    }
-  };
+  const setFirstName = (value: string) => setState((prev) => ({ ...prev, firstName: value }));
+  const setLastName = (value: string) => setState((prev) => ({ ...prev, lastName: value }));
+  const setResumeLatex = (value: string) => setState((prev) => ({ ...prev, resumeLatex: value }));
+  const setCoverLetterLatex = (value: string) => setState((prev) => ({ ...prev, coverLetterLatex: value }));
+  const setJobDescription = (value: string) => setState((prev) => ({ ...prev, jobDescription: value }));
+  const setPersonalDetails = (value: string) => setState((prev) => ({ ...prev, personalDetails: value }));
+  const setMasterContext = (value: string) => setState((prev) => ({ ...prev, masterContext: value }));
+  const setManualResearch = (value: string) => setState((prev) => ({ ...prev, manualResearch: value }));
+  const setCompanyName = (value: string) => setState((prev) => ({ ...prev, companyName: value }));
+  const setCompanyUrl = (value: string) => setState((prev) => ({ ...prev, companyUrl: value }));
+  const setPositionTitle = (value: string) => setState((prev) => ({ ...prev, positionTitle: value }));
+  const setSelectedResumeTemplateId = (value: string) => setState((prev) => ({ ...prev, selectedResumeTemplateId: value }));
+  const setSelectedCoverLetterTemplateId = (value: string) => setState((prev) => ({ ...prev, selectedCoverLetterTemplateId: value }));
+  const setTailoredResume = (value: string) => setState((prev) => ({ ...prev, tailoredResume: value }));
+  const setTailoredCoverLetter = (value: string) => setState((prev) => ({ ...prev, tailoredCoverLetter: value }));
+  const setJobCountry = (value: string) => setState((prev) => ({ ...prev, jobCountry: value }));
+  const setJobWorkMode = (value: "" | "Remote" | "Hybrid" | "On-site") => setState((prev) => ({ ...prev, jobWorkMode: value }));
+  const setApplicationQuestions = (value: string) => setState((prev) => ({ ...prev, applicationQuestions: value }));
+  const setGeneratedAnswers = (value: string) => setState((prev) => ({ ...prev, generatedAnswers: value }));
+  const setIsGeneratingTailored = (value: boolean) => setState((prev) => ({ ...prev, isGeneratingTailored: value }));
+  const setIsGeneratingAnswers = (value: boolean) => setState((prev) => ({ ...prev, isGeneratingAnswers: value }));
   const resetAll = () => setState(initialState);
 
   return (
     <AppContext.Provider
       value={{
         ...state,
-        setFirstName,
-        setLastName,
-        setResumeLatex,
-        setCoverLetterLatex,
-        setJobDescription,
-        setPersonalDetails,
-        setCompanyInfo,
-        setCompanyName,
-        setCompanyUrl,
-        setPositionTitle,
-        setSelectedResumeTemplateId,
-        setSelectedCoverLetterTemplateId,
-        setCompanyResearch,
-        setIsResearching,
-        setTailoredResume,
-        setTailoredCoverLetter,
-        setJobCountry,
-        setJobWorkMode,
-        setApplicationQuestions,
-        setGeneratedAnswers,
-        setIsGeneratingTailored,
-        setIsGeneratingAnswers,
-        setResearchProvider,
-        setTailoringProvider,
+        setFirstName, setLastName, setResumeLatex, setCoverLetterLatex,
+        setJobDescription, setPersonalDetails, setMasterContext, setManualResearch,
+        setCompanyName, setCompanyUrl, setPositionTitle,
+        setSelectedResumeTemplateId, setSelectedCoverLetterTemplateId,
+        setTailoredResume, setTailoredCoverLetter, setJobCountry, setJobWorkMode,
+        setApplicationQuestions, setGeneratedAnswers,
+        setIsGeneratingTailored, setIsGeneratingAnswers,
         resetAll,
       }}
     >

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
 import Sidebar from "@/components/Sidebar";
 import Button from "@/components/Button";
-import { useDebouncedCallback, useCache, useAutoSave } from "@/lib/hooks";
+import { useDebouncedCallback, useAutoSave } from "@/lib/hooks";
 import {
   getPersonalDetails,
   savePersonalDetails,
@@ -155,8 +155,9 @@ export default function Home() {
     setJobDescription,
     personalDetails,
     setPersonalDetails,
-    companyInfo,
-    setCompanyInfo,
+    masterContext,
+    manualResearch,
+    setManualResearch,
     companyName,
     setCompanyName,
     companyUrl,
@@ -167,8 +168,6 @@ export default function Home() {
     setSelectedResumeTemplateId,
     selectedCoverLetterTemplateId,
     setSelectedCoverLetterTemplateId,
-    isResearching,
-    setIsResearching,
     setTailoredResume,
     setTailoredCoverLetter,
     setJobCountry,
@@ -176,7 +175,6 @@ export default function Home() {
     tailoredResume: _tailoredResume,
     isGeneratingTailored,
     setIsGeneratingTailored,
-    tailoringProvider,
   } = useAppContext();
 
   const [error, setError] = useState<string | null>(null);
@@ -239,13 +237,6 @@ export default function Home() {
   const [newCoverLetterContentInProfile, setNewCoverLetterContentInProfile] =
     useState("");
 
-  // Research caching hook
-  const { getFromCache: getResearchCache, setInCache: setResearchCache } =
-    useCache<string>(
-      "fd_research_cache",
-      60 * 60 * 1000, // 1 hour TTL
-    );
-
   // Auto-save draft application data
   const draftData = {
     companyName,
@@ -260,10 +251,10 @@ export default function Home() {
     2000, // Save after 2 seconds of inactivity
   );
 
-  // Debounced function to clear company research
+  // Debounced function to clear manual research
   const debouncedClearResearch = useDebouncedCallback(() => {
-    if (companyInfo) {
-      setCompanyInfo("");
+    if (manualResearch) {
+      setManualResearch("");
     }
   }, 500);
 
@@ -552,11 +543,7 @@ export default function Home() {
   };
 
   // Generate cache key for research
-  const getResearchCacheKey = useCallback(() => {
-    return `${companyName}_${positionTitle}`.toLowerCase().replace(/\s+/g, "_");
-  }, [companyName, positionTitle]);
-
-  const handleResearch = async () => {
+  const handleGenerate = async () => {
     if (!companyName || !positionTitle || !jobDescription) {
       setError(
         "Please fill in company name, position title, and job description.",
@@ -565,58 +552,12 @@ export default function Home() {
     }
     setError(null);
 
-    if (companyInfo.trim()) {
-      if (resumeLatex && jobDescription) {
-        await triggerGenerate(companyInfo);
-      }
-      return;
-    }
-
-    // Check cache first
-    const cacheKey = getResearchCacheKey();
-    const cachedResearch = getResearchCache(cacheKey);
-    if (cachedResearch) {
-      setCompanyInfo(cachedResearch);
-      if (resumeLatex && jobDescription) await triggerGenerate(cachedResearch);
-      return;
-    }
-
-    setIsResearching(true);
-    try {
-      const response = await fetch("/api/research", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName,
-          companyUrl,
-          positionTitle,
-          jobDescription,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        // Handle rate limit specifically
-        if (response.status === 429) {
-          throw new Error(
-            `Rate limited. Please try again in ${data.retryAfter || 60} seconds.`,
-          );
-        }
-        throw new Error(data.error || "Failed to research company");
-      }
-
-      // Cache the research result
-      setResearchCache(cacheKey, data.research);
-
-      setCompanyInfo(data.research);
-      setIsResearching(false);
-      if (resumeLatex && jobDescription) await triggerGenerate(data.research);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-      setIsResearching(false);
+    if (resumeLatex && jobDescription) {
+      await triggerGenerate();
     }
   };
 
-  const triggerGenerate = async (research?: string) => {
+  const triggerGenerate = async () => {
     if (!resumeLatex || !jobDescription) {
       setError("Please fill in your resume and job description.");
       return;
@@ -632,9 +573,9 @@ export default function Home() {
           resumeLatex,
           jobDescription,
           personalDetails,
-          companyInfo: research ?? companyInfo,
+          masterContext,
+          manualResearch: manualResearch || undefined,
           companyName,
-          tailoringProvider,
         }),
       });
       const data = await response.json();
@@ -1394,8 +1335,8 @@ export default function Home() {
                 <textarea
                   className="input-field h-24 lg:h-28 resize-none text-sm overflow-y-auto"
                   placeholder="Will be auto-filled when you click Generate..."
-                  value={companyInfo}
-                  onChange={(e) => setCompanyInfo(e.target.value)}
+                  value={manualResearch}
+                  onChange={(e) => setManualResearch(e.target.value)}
                 />
               </div>
             </div>
@@ -1427,15 +1368,15 @@ export default function Home() {
         <div className="border-t border-card-border bg-surface-hover/50 p-3 lg:p-4">
           <div className="flex flex-col items-center gap-2 lg:gap-3">
             <Button
-              onClick={handleResearch}
-              disabled={!isValid || isResearching || isGeneratingTailored}
+              onClick={handleGenerate}
+              disabled={!isValid || isGeneratingTailored}
               variant="primary"
               className="text-sm lg:text-base px-6 lg:px-10 py-2 lg:py-3 shadow-lg hover:shadow-xl transition-shadow"
             >
-              {isResearching ? (
+              {isGeneratingTailored ? (
                 <>
                   <span className="spinner" />
-                  Researching company...
+                  Generating tailored resume...
                 </>
               ) : isGeneratingTailored ? (
                 <>

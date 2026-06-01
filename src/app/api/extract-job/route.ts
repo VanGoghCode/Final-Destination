@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
-
-const MODEL_NAME = "gemini-3.1-pro-preview";
+import { DeepSeekProvider } from "@/lib/ai-providers/deepseek";
 
 function corsHeaders() {
   return {
@@ -26,7 +24,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const apiKey = process.env.GOOGLE_API_KEY;
+    const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
         { error: "API key not configured" },
@@ -34,9 +32,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const ai = new GoogleGenAI({ apiKey });
-
-    const prompt = `You are a job listing analyzer with web search capabilities. Extract accurate information from this job page.
+    const prompt = `You are a job listing analyzer. Extract accurate information from this job page.
 
 ## PAGE INFORMATION:
 - Title: ${pageTitle || "Not provided"}
@@ -55,7 +51,7 @@ ${pageContent ? `- Page Content (first 2000 chars): ${pageContent.slice(0, 2000)
 
 3. **companyUrl**: Find the company's MAIN website (for research purposes)
    - NOT the job posting URL
-   - Use web search to confirm the correct company website if unsure
+   - Use your training knowledge to confirm the correct company website if unsure
 
 4. **confidence**: Rate your confidence for each field
    - "high" = certain this is correct
@@ -75,18 +71,11 @@ Return ONLY a JSON object:
   }
 }
 
-Use web search to verify company information. Be accurate and truthful.`;
+Be accurate and truthful. Do NOT use markdown formatting. Output ONLY the JSON.`;
 
-    const response = await ai.models.generateContent({
-      model: MODEL_NAME,
-      contents: prompt,
-      config: {
-        temperature: 0.1,
-        tools: [{ googleSearch: {} }],
-      },
-    });
-
-    const text = response.text || "";
+    // Use fast provider (no thinking needed for extraction, deterministic output)
+    const fastProvider = DeepSeekProvider.createFast();
+    const text = await fastProvider.generateContent(prompt);
 
     // Parse JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);

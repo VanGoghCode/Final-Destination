@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   DEFAULT_COVER_LETTER: "fd_default_cover_letter_id",
   PROFILES: "fd_profiles",
   ACTIVE_PROFILE: "fd_active_profile_id",
+  MASTER_CONTEXT: "fd_master_context",
 };
 
 // Types
@@ -412,4 +413,28 @@ export const getProfileById = async (id: string): Promise<Profile | null> => {
 export const getNextProfileColor = async (): Promise<string> => {
   const profiles = await getProfiles();
   return PROFILE_COLORS[profiles.length % PROFILE_COLORS.length] ?? "#6366f1";
+};
+
+// ============ Master Context ============
+
+const buildMasterContextKey = (profileId: string): string =>
+  `${STORAGE_KEYS.MASTER_CONTEXT}:${profileId}`;
+
+export const getMasterContext = async (
+  profileId: string,
+): Promise<string | null> => {
+  return cloudGet<string>(buildMasterContextKey(profileId));
+};
+
+export const saveMasterContext = async (
+  profileId: string,
+  content: string,
+): Promise<void> => {
+  await cloudSet(buildMasterContextKey(profileId), content);
+};
+
+export const deleteMasterContext = async (
+  profileId: string,
+): Promise<void> => {
+  await cloudRemove(buildMasterContextKey(profileId));
 };

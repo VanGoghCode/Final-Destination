@@ -418,34 +418,8 @@ export default function BatchProcessPage() {
       }
 
       try {
-        // Step 1: Research company
-        updateJobStatus(job.id, "researching", 10);
-        addActivity(`[Research] Researching ${job.companyName}...`);
-
-        const researchResponse = await fetch("/api/research", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            companyName: job.companyName,
-            companyUrl: job.companyUrl,
-            positionTitle: job.positionTitle,
-            jobDescription: job.jobDescription,
-          }),
-          signal,
-        });
-
-        if (!researchResponse.ok) {
-          const data = await researchResponse.json();
-          throw new Error(data.error || "Research failed");
-        }
-
-        const researchData = await researchResponse.json();
-        updateJobResults(job.id, { companyResearch: researchData.research });
-        updateJobStatus(job.id, "researching", 30);
-        addActivity(`[Done] Research complete for ${job.companyName}`);
-
-        // Step 2: Tailor resume
-        updateJobStatus(job.id, "tailoring-resume", 40);
+        // Step 1: Tailor resume (research removed — use masterContext if available)
+        updateJobStatus(job.id, "tailoring-resume", 30);
         addActivity(`[Tailor] Tailoring resume for ${job.positionTitle}...`);
 
         const tailorResponse = await fetch("/api/tailor", {
@@ -455,7 +429,7 @@ export default function BatchProcessPage() {
             resumeLatex: jobResumeTemplate.content,
             jobDescription: job.jobDescription,
             personalDetails: job.personalDetails || globalPersonalDetails,
-            companyInfo: researchData.research,
+            masterContext: "",
             companyName: job.companyName,
           }),
           signal,
@@ -477,7 +451,7 @@ export default function BatchProcessPage() {
         updateJobStatus(job.id, "tailoring-resume", 60);
         addActivity(`[Done] Resume tailored for ${job.companyName}`);
 
-        // Step 3: Tailor cover letter
+        // Step 2: Tailor cover letter
         if (job.includeCoverLetter && jobCoverLetterTemplate) {
           updateJobStatus(job.id, "tailoring-cover-letter", 70);
           addActivity(
@@ -491,7 +465,7 @@ export default function BatchProcessPage() {
               coverLetterLatex: jobCoverLetterTemplate.content,
               jobDescription: job.jobDescription,
               personalDetails: job.personalDetails || globalPersonalDetails,
-              companyInfo: researchData.research,
+              masterContext: "",
             }),
             signal,
           });
@@ -666,7 +640,6 @@ export default function BatchProcessPage() {
         companyUrl: job.companyUrl,
         positionTitle: job.positionTitle,
         jobDescription: job.jobDescription,
-        companyResearch: job.companyResearch,
         jobCountry: job.jobCountry,
         jobWorkMode: job.jobWorkMode,
         profileFirstName,

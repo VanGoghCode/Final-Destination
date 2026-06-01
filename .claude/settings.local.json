@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api-docs.deepseek.com)",
+      "Bash(npx tsc:*)",
+      "Bash(npx bun:*)",
+      "Bash(ls lint_errors* tsc_errors*)"
+    ]
+  }
+}

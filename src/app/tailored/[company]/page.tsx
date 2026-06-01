@@ -313,7 +313,7 @@ export default function TailoredCompanyPage({
           comment,
           resumeLatex: jobData?.resumeLatex,
           jobDescription: jobData?.jobDescription,
-          companyInfo: jobData?.companyResearch,
+          masterContext: "",
         }),
       });
       const data = await response.json();
@@ -338,7 +338,7 @@ export default function TailoredCompanyPage({
           comment,
           coverLetterLatex: jobData?.coverLetterLatex,
           jobDescription: jobData?.jobDescription,
-          companyInfo: jobData?.companyResearch,
+          masterContext: "",
         }),
       });
       const data = await response.json();
@@ -711,7 +711,7 @@ export default function TailoredCompanyPage({
                       tailoredResume,
                       tailoredCoverLetter,
                       jobDescription: jobData?.jobDescription,
-                      companyInfo: jobData?.companyResearch,
+                      masterContext: "",
                       limitType: limitType !== "none" ? limitType : undefined,
                       limitValue: limitType !== "none" ? limitValue : undefined,
                     }),

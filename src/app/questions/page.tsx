@@ -20,7 +20,7 @@ export default function QuestionsPage() {
     tailoredResume,
     tailoredCoverLetter,
     jobDescription,
-    companyInfo,
+    masterContext,
     companyName,
     positionTitle,
     applicationQuestions,
@@ -39,7 +39,7 @@ export default function QuestionsPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [questionsCompanyInfo, setQuestionsCompanyInfo] = useState(
-    companyInfo || "",
+    masterContext || "",
   );
   const [coldEmail, setColdEmail] = useState("");
   const [referenceEmail, setReferenceEmail] = useState("");
@@ -126,7 +126,7 @@ export default function QuestionsPage() {
           tailoredResume,
           tailoredCoverLetter,
           jobDescription,
-          companyInfo: questionsCompanyInfo || companyInfo,
+          masterContext: masterContext,
         }),
       });
 
@@ -164,7 +164,7 @@ export default function QuestionsPage() {
           tailoredResume,
           tailoredCoverLetter,
           jobDescription,
-          companyInfo: questionsCompanyInfo || companyInfo,
+          masterContext: masterContext,
           positionTitle,
           companyName,
         }),
@@ -202,7 +202,7 @@ export default function QuestionsPage() {
           tailoredResume,
           tailoredCoverLetter,
           jobDescription,
-          companyInfo: questionsCompanyInfo || companyInfo,
+          masterContext: masterContext,
         }),
       });
       const data = await response.json();
@@ -287,7 +287,7 @@ export default function QuestionsPage() {
                   Job Desc
                 </span>
               )}
-              {(companyInfo || questionsCompanyInfo) && (
+              {(masterContext || questionsCompanyInfo) && (
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 font-medium">
                   Company Info
                 </span>

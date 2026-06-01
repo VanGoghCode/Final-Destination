@@ -4,7 +4,7 @@ import {
   regenerateCoverLetter,
   regenerateAnswers,
   regenerateEmail,
-} from "@/lib/gemini";
+} from "@/lib/ai";
 
 export type RegenerateType =
   | "resume"
@@ -24,7 +24,7 @@ interface RegenerateRequest {
   tailoredCoverLetter?: string;
   jobDescription?: string;
   personalDetails?: string;
-  companyInfo?: string;
+  masterContext?: string;
   companyName?: string;
   positionTitle?: string;
   questions?: string;
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       tailoredCoverLetter,
       jobDescription,
       personalDetails,
-      companyInfo,
+      masterContext,
       companyName,
       positionTitle,
       questions,
@@ -62,20 +62,13 @@ export async function POST(request: Request) {
       case "resume":
         if (!resumeLatex || !jobDescription) {
           return NextResponse.json(
-            {
-              error:
-                "Resume LaTeX and job description are required for resume regeneration",
-            },
+            { error: "Resume LaTeX and job description are required for resume regeneration" },
             { status: 400 },
           );
         }
         regeneratedContent = await regenerateResume(
-          currentContent,
-          comment,
-          resumeLatex,
-          jobDescription,
-          personalDetails || "",
-          companyInfo || "",
+          currentContent, comment, resumeLatex, jobDescription,
+          personalDetails || "", masterContext || "",
         );
         break;
 
@@ -87,33 +80,21 @@ export async function POST(request: Request) {
           );
         }
         regeneratedContent = await regenerateCoverLetter(
-          currentContent,
-          comment,
-          coverLetterLatex,
-          jobDescription,
-          personalDetails || "",
-          companyInfo || "",
+          currentContent, comment, coverLetterLatex, jobDescription,
+          personalDetails || "", masterContext || "",
         );
         break;
 
       case "answers":
         if (!tailoredResume || !tailoredCoverLetter || !questions) {
           return NextResponse.json(
-            {
-              error:
-                "Tailored resume, cover letter, and questions are required",
-            },
+            { error: "Tailored resume, cover letter, and questions are required" },
             { status: 400 },
           );
         }
         regeneratedContent = await regenerateAnswers(
-          currentContent,
-          comment,
-          questions,
-          tailoredResume,
-          tailoredCoverLetter,
-          jobDescription || "",
-          companyInfo || "",
+          currentContent, comment, questions, tailoredResume, tailoredCoverLetter,
+          jobDescription || "", masterContext || "",
         );
         break;
 
@@ -126,15 +107,9 @@ export async function POST(request: Request) {
           );
         }
         regeneratedContent = await regenerateEmail(
-          type,
-          currentContent,
-          comment,
-          tailoredResume,
-          tailoredCoverLetter,
-          jobDescription || "",
-          companyInfo || "",
-          positionTitle || "",
-          companyName || "",
+          type, currentContent, comment, tailoredResume, tailoredCoverLetter,
+          jobDescription || "", masterContext || "",
+          positionTitle || "", companyName || "",
         );
         break;
 

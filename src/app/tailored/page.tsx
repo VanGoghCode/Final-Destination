@@ -20,7 +20,7 @@ export default function TailoredPage() {
     companyName,
     positionTitle,
     personalDetails,
-    companyInfo,
+    masterContext,
     jobCountry,
     jobWorkMode,
     setTailoredResume,
@@ -207,7 +207,7 @@ export default function TailoredPage() {
           resumeLatex,
           jobDescription,
           personalDetails,
-          companyInfo,
+          masterContext,
         }),
       });
       const data = await response.json();
@@ -233,7 +233,7 @@ export default function TailoredPage() {
           coverLetterLatex,
           jobDescription,
           personalDetails,
-          companyInfo,
+          masterContext,
         }),
       });
       const data = await response.json();
@@ -262,7 +262,7 @@ export default function TailoredPage() {
           coverLetterLatex,
           jobDescription,
           personalDetails,
-          companyInfo,
+          masterContext,
         }),
       });
       const data = await response.json();
@@ -657,7 +657,7 @@ export default function TailoredPage() {
                       tailoredResume,
                       tailoredCoverLetter,
                       jobDescription,
-                      companyInfo,
+                      masterContext,
                       limitType: limitType !== "none" ? limitType : undefined,
                       limitValue: limitType !== "none" ? limitValue : undefined,
                       searchMode,

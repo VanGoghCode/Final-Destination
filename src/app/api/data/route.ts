@@ -10,7 +10,7 @@ import {
   type TierData,
   type JobsData,
 } from "@/lib/db";
-import { extractJobLocationInfo } from "@/lib/gemini";
+import { extractJobLocationInfo } from "@/lib/ai";
 
 /**
  * GET /api/data - Get data statistics

@@ -1,40 +1,23 @@
-// AI Provider Factory - Unified provider selection
-import { AIProvider, AIProviderInterface } from "./types";
-import { GeminiProvider } from "./gemini-provider";
-import { BedrockClaudeProvider } from "./bedrock";
+// AI Provider Factory — DeepSeek V4 Flash
+// Gemini and Claude removed per migration (2026-06-01).
+
+import type { AIProvider, AIProviderInterface } from "./types";
+import { DeepSeekProvider } from "./deepseek";
 
 export * from "./types";
-export { GeminiProvider } from "./gemini-provider";
-export { BedrockClaudeProvider } from "./bedrock";
+export { DeepSeekProvider } from "./deepseek";
 
-/**
- * Get the appropriate AI provider based on selection
- */
-export function getAIProvider(provider: AIProvider): AIProviderInterface {
-  switch (provider) {
-    case "claude":
-      return new BedrockClaudeProvider();
-    case "gemini":
-    default:
-      return new GeminiProvider();
-  }
+export function getAIProvider(_provider?: AIProvider): AIProviderInterface {
+  return new DeepSeekProvider();
 }
 
-/**
- * Get the default AI provider from environment or fallback to gemini
- */
 export function getDefaultProvider(): AIProvider {
-  const defaultProvider = process.env.DEFAULT_AI_PROVIDER as AIProvider;
-  return defaultProvider === "claude" ? "claude" : "gemini";
+  return "deepseek";
 }
 
-/**
- * Generate content using the specified provider
- */
 export async function generateContentWithProvider(
   prompt: string,
-  provider: AIProvider = getDefaultProvider(),
+  _provider?: AIProvider,
 ): Promise<string> {
-  const aiProvider = getAIProvider(provider);
-  return aiProvider.generateContent(prompt);
+  return getAIProvider().generateContent(prompt);
 }
