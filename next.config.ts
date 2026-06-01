@@ -6,6 +6,14 @@ const nextConfig: NextConfig = {
     // TypeScript checking runs separately via `npm run typecheck`
     ignoreBuildErrors: false,
   },
+  images: {
+    localPatterns: [
+      {
+        pathname: "/**",
+        search: "",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

@@ -67,7 +67,7 @@ export default function Sidebar({
           {/* Sidebar Header with Logo and Toggle */}
           <div className="flex h-14 items-center justify-between border-b border-gray-100 bg-linear-to-r from-gray-50 to-white px-3">
             <div className="flex items-center gap-2">
-              <Image src="/logo.png?v=2" alt="Logo" width={32} height={32} className="rounded-lg" />
+              <Image src="/logo.png" alt="Logo" width={32} height={32} className="rounded-lg" />
               <span className="gradient-text text-sm font-bold">{title}</span>
             </div>
             {!isMobile && (
