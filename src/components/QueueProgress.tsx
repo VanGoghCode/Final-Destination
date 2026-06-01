@@ -8,9 +8,15 @@ interface QueueProgressProps {
   isProcessing: boolean;
 }
 
-export default function QueueProgress({ total, completed, failed, pending, isProcessing }: QueueProgressProps) {
+export default function QueueProgress({
+  total,
+  completed,
+  failed,
+  pending,
+  isProcessing,
+}: QueueProgressProps) {
   const inProgress = total - completed - failed - pending;
-  
+
   // Calculate segment widths
   const completedWidth = total > 0 ? (completed / total) * 100 : 0;
   const failedWidth = total > 0 ? (failed / total) * 100 : 0;
@@ -18,7 +24,7 @@ export default function QueueProgress({ total, completed, failed, pending, isPro
 
   if (total === 0) {
     return (
-      <div className="text-center py-4 text-muted">
+      <div className="text-muted py-4 text-center">
         <p className="text-xs">No jobs in queue</p>
       </div>
     );
@@ -28,27 +34,29 @@ export default function QueueProgress({ total, completed, failed, pending, isPro
     <div className="space-y-3">
       {/* Overall progress bar */}
       <div>
-        <div className="flex items-center justify-between mb-1.5">
+        <div className="mb-1.5 flex items-center justify-between">
           <span className="text-xs font-medium text-gray-700">
             {isProcessing ? "Processing..." : completed === total ? "Complete" : "Queue"}
           </span>
-          <span className="text-xs text-gray-500">{completed}/{total}</span>
+          <span className="text-xs text-gray-500">
+            {completed}/{total}
+          </span>
         </div>
-        
+
         {/* Segmented progress bar */}
-        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden flex">
+        <div className="flex h-1.5 overflow-hidden rounded-full bg-gray-100">
           {/* Completed segment */}
-          <div 
+          <div
             className="h-full bg-gray-600 transition-all duration-500"
             style={{ width: `${completedWidth}%` }}
           />
           {/* In progress segment */}
-          <div 
+          <div
             className="h-full bg-gray-400 transition-all duration-500"
             style={{ width: `${inProgressWidth}%` }}
           />
           {/* Failed segment */}
-          <div 
+          <div
             className="h-full bg-gray-300 transition-all duration-500"
             style={{ width: `${failedWidth}%` }}
           />

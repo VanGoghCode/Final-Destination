@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { 
+import {
   addCompanyCareerUrl,
   removeCompanyCareerUrl,
   setCompanyCareerUrls,
@@ -13,18 +13,12 @@ export async function GET(request: NextRequest) {
     const companyId = searchParams.get("companyId");
 
     if (!companyId) {
-      return NextResponse.json(
-        { error: "Company ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Company ID is required" }, { status: 400 });
     }
 
     const result = await getCompanyFromTiers(companyId);
     if (!result) {
-      return NextResponse.json(
-        { error: "Company not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Company not found" }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -34,10 +28,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Failed to get company links:", error);
-    return NextResponse.json(
-      { error: "Failed to get company links" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to get company links" }, { status: 500 });
   }
 }
 
@@ -48,10 +39,7 @@ export async function POST(request: NextRequest) {
     const { companyId, url, urls } = body;
 
     if (!companyId) {
-      return NextResponse.json(
-        { error: "Company ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Company ID is required" }, { status: 400 });
     }
 
     // Support both single url and array of urls
@@ -59,11 +47,11 @@ export async function POST(request: NextRequest) {
       // Set all URLs at once
       const filteredUrls = urls.filter((u: string) => u.trim() !== "");
       const result = await setCompanyCareerUrls(companyId, filteredUrls);
-      
+
       if (!result.success) {
         return NextResponse.json(
           { error: "Company not found or failed to update" },
-          { status: 404 }
+          { status: 404 },
         );
       }
 
@@ -75,18 +63,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (!url || typeof url !== "string") {
-      return NextResponse.json(
-        { error: "URL is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
     const result = await addCompanyCareerUrl(companyId, url.trim());
-    
+
     if (!result.success) {
       return NextResponse.json(
         { error: "Company not found or failed to add URL" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -97,10 +82,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Failed to add company link:", error);
-    return NextResponse.json(
-      { error: "Failed to add company link" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to add company link" }, { status: 500 });
   }
 }
 
@@ -112,25 +94,19 @@ export async function DELETE(request: NextRequest) {
     const url = searchParams.get("url");
 
     if (!companyId) {
-      return NextResponse.json(
-        { error: "Company ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Company ID is required" }, { status: 400 });
     }
 
     if (!url) {
-      return NextResponse.json(
-        { error: "URL is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "URL is required" }, { status: 400 });
     }
 
     const result = await removeCompanyCareerUrl(companyId, url);
-    
+
     if (!result.success) {
       return NextResponse.json(
         { error: "Company not found or failed to remove URL" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -141,9 +117,6 @@ export async function DELETE(request: NextRequest) {
     });
   } catch (error) {
     console.error("Failed to remove company link:", error);
-    return NextResponse.json(
-      { error: "Failed to remove company link" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to remove company link" }, { status: 500 });
   }
 }

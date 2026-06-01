@@ -33,11 +33,7 @@ async function test() {
 
   const companies = await redis.get("data:companies");
 
-  if (
-    companies &&
-    typeof companies === "object" &&
-    "totalCompanies" in companies
-  ) {
+  if (companies && typeof companies === "object" && "totalCompanies" in companies) {
   }
   const topTier = await redis.get("data:tier:top");
   if (topTier && typeof topTier === "object" && "count" in topTier) {

@@ -43,8 +43,7 @@ function isRetryableError(error: unknown): boolean {
   const errorMessage = error instanceof Error ? error.message.toLowerCase() : "";
   return RETRYABLE_ERRORS.some(
     (pattern) =>
-      errorString.includes(pattern.toLowerCase()) ||
-      errorMessage.includes(pattern.toLowerCase()),
+      errorString.includes(pattern.toLowerCase()) || errorMessage.includes(pattern.toLowerCase()),
   );
 }
 
@@ -86,10 +85,7 @@ async function generate(prompt: string, systemPrompt?: string): Promise<string> 
       return await provider.generateContent(prompt, systemPrompt);
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      console.error(
-        `[DeepSeek] Error (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`,
-        error,
-      );
+      console.error(`[DeepSeek] Error (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`, error);
       if (isRetryableError(error) && attempt < MAX_RETRIES) {
         await sleep(BASE_DELAY_MS * Math.pow(2, attempt));
         continue;
@@ -131,9 +127,7 @@ export async function extractJobLocationInfo(
       const parsed = JSON.parse(jsonMatch[0]);
       return {
         country: parsed.country || "",
-        workMode: ["Remote", "Hybrid", "On-site"].includes(parsed.workMode)
-          ? parsed.workMode
-          : "",
+        workMode: ["Remote", "Hybrid", "On-site"].includes(parsed.workMode) ? parsed.workMode : "",
       };
     }
     return { country: "", workMode: "" };
@@ -349,9 +343,10 @@ export async function regenerateEmail(
   positionTitle: string,
   companyName: string,
 ): Promise<string> {
-  const desc = emailType === "coldEmail"
-    ? "cold outreach email to a hiring authority"
-    : "referral request email to an employee";
+  const desc =
+    emailType === "coldEmail"
+      ? "cold outreach email to a hiring authority"
+      : "referral request email to an employee";
 
   const systemPrompt = `You are helping rewrite a ${desc}. Apply the user's feedback. Keep 100-200 words. 70% formal + 30% informal. Sound like a real person. Do NOT use ** or em dashes. Follow tone rules for human authenticity.`;
 
@@ -439,11 +434,10 @@ export async function answerInternetOnly(
   limitType?: "words" | "characters",
   limitValue?: number,
 ): Promise<string> {
-  const systemPrompt = "You are a helpful research assistant. Provide accurate information from your training knowledge.";
+  const systemPrompt =
+    "You are a helpful research assistant. Provide accurate information from your training knowledge.";
   const limitInstruction =
-    limitType && limitValue
-      ? `\nIMPORTANT: Answer MUST be within ${limitValue} ${limitType}.`
-      : "";
+    limitType && limitValue ? `\nIMPORTANT: Answer MUST be within ${limitValue} ${limitType}.` : "";
   const contextHint =
     companyName || positionTitle
       ? `\n## CONTEXT: Researching for ${positionTitle || "position"} at ${companyName || "a company"}.`

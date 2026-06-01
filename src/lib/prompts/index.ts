@@ -6,7 +6,14 @@ export * from "./system";
 export * from "./user";
 export * from "./tone";
 
-import { SYSTEM_BASE_PERSONA, SYSTEM_RESUME_RULES, SYSTEM_COVER_LETTER_RULES, SYSTEM_ANSWERS_RULES, SYSTEM_EMAIL_RULES, SYSTEM_EXTRACTION } from "./system";
+import {
+  SYSTEM_BASE_PERSONA,
+  SYSTEM_RESUME_RULES,
+  SYSTEM_COVER_LETTER_RULES,
+  SYSTEM_ANSWERS_RULES,
+  SYSTEM_EMAIL_RULES,
+  SYSTEM_EXTRACTION,
+} from "./system";
 import { TONE_INSTRUCTIONS } from "./tone";
 import {
   buildResumeUserPrompt,

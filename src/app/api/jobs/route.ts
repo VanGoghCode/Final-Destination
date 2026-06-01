@@ -19,8 +19,7 @@ export async function GET(request: Request) {
         lastScraped: null,
         totalJobs: 0,
         jobs: [],
-        message:
-          "No jobs in database. Click 'Refresh Jobs' to trigger scraping.",
+        message: "No jobs in database. Click 'Refresh Jobs' to trigger scraping.",
       });
     }
 
@@ -28,16 +27,12 @@ export async function GET(request: Request) {
 
     // Filter by company if specified
     if (company) {
-      jobs = jobs.filter((j) =>
-        j.companyName.toLowerCase().includes(company.toLowerCase()),
-      );
+      jobs = jobs.filter((j) => j.companyName.toLowerCase().includes(company.toLowerCase()));
     }
 
     // Filter by location if specified
     if (location) {
-      jobs = jobs.filter((j) =>
-        j.location.toLowerCase().includes(location.toLowerCase()),
-      );
+      jobs = jobs.filter((j) => j.location.toLowerCase().includes(location.toLowerCase()));
     }
 
     // Apply limit

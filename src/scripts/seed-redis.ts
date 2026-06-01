@@ -111,9 +111,7 @@ async function main() {
   // Seed companies.json
   const companiesPath = path.join(dataDir, "companies.json");
   if (fs.existsSync(companiesPath)) {
-    const companies: CompaniesData = JSON.parse(
-      fs.readFileSync(companiesPath, "utf-8"),
-    );
+    const companies: CompaniesData = JSON.parse(fs.readFileSync(companiesPath, "utf-8"));
     try {
       await redis.set(KEYS.COMPANIES, companies);
     } catch (error) {
@@ -137,9 +135,7 @@ async function main() {
     tierFiles.map(async ({ file, key, name }) => {
       const filePath = path.join(dataDir, file);
       if (fs.existsSync(filePath)) {
-        const tierData: TierData = JSON.parse(
-          fs.readFileSync(filePath, "utf-8"),
-        );
+        const tierData: TierData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
 
         try {
           await redis.set(key, tierData);
@@ -160,10 +156,7 @@ async function main() {
     try {
       await redis.set(KEYS.JOBS, jobs);
     } catch (error) {
-      console.error(
-        `   ❌ Failed to seed jobs:`,
-        error instanceof Error ? error.message : error,
-      );
+      console.error(`   ❌ Failed to seed jobs:`, error instanceof Error ? error.message : error);
     }
   } else {
   }

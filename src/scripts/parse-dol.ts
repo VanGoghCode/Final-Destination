@@ -54,22 +54,16 @@ function parseCSV(filePath: string): Map<string, CompanyData> {
     const fields = parseCSVLine(line.trim());
 
     const employerNameCol = getCol("EMPLOYER_NAME");
-    const employerName = (
-      employerNameCol >= 0 ? (fields[employerNameCol] ?? "") : ""
-    )
+    const employerName = (employerNameCol >= 0 ? (fields[employerNameCol] ?? "") : "")
       .trim()
       .toUpperCase();
     if (!employerName) continue;
 
     const caseStatusCol = getCol("CASE_STATUS");
-    const status = (
-      caseStatusCol >= 0 ? (fields[caseStatusCol] ?? "") : ""
-    ).toUpperCase();
+    const status = (caseStatusCol >= 0 ? (fields[caseStatusCol] ?? "") : "").toUpperCase();
     const isCertified = status.includes("CERTIFIED");
     const quarterCol = getCol("QUARTER");
-    const quarter = (
-      quarterCol >= 0 ? (fields[quarterCol] ?? "") : ""
-    ).toUpperCase();
+    const quarter = (quarterCol >= 0 ? (fields[quarterCol] ?? "") : "").toUpperCase();
 
     if (!companies.has(employerName)) {
       const cityCol = getCol("EMPLOYER_CITY");
@@ -79,8 +73,7 @@ function parseCSV(filePath: string): Map<string, CompanyData> {
       const pocEmailCol = getCol("EMPLOYER_POC_EMAIL");
       const pocPhoneCol = getCol("EMPLOYER_POC_PHONE");
       companies.set(employerName, {
-        name:
-          (employerNameCol >= 0 ? fields[employerNameCol] : "")?.trim() || "",
+        name: (employerNameCol >= 0 ? fields[employerNameCol] : "")?.trim() || "",
         city: (cityCol >= 0 ? fields[cityCol] : "")?.trim() || "",
         state: (stateCol >= 0 ? fields[stateCol] : "")?.trim() || "",
         lcaCount: 0,
@@ -89,8 +82,7 @@ function parseCSV(filePath: string): Map<string, CompanyData> {
         lcaQ2: 0,
         lcaQ3: 0,
         lcaQ4: 0,
-        pocFirstName:
-          (pocFirstCol >= 0 ? fields[pocFirstCol] : "")?.trim() || "",
+        pocFirstName: (pocFirstCol >= 0 ? fields[pocFirstCol] : "")?.trim() || "",
         pocLastName: (pocLastCol >= 0 ? fields[pocLastCol] : "")?.trim() || "",
         pocEmail: (pocEmailCol >= 0 ? fields[pocEmailCol] : "")?.trim() || "",
         pocPhone: (pocPhoneCol >= 0 ? fields[pocPhoneCol] : "")?.trim() || "",
@@ -135,8 +127,7 @@ function rankCompanies(companyData: Map<string, CompanyData>): Company[] {
   const companies: Company[] = [];
 
   for (const [key, data] of companyData) {
-    const approvalRate =
-      data.lcaCount > 0 ? data.certifiedCount / data.lcaCount : 0;
+    const approvalRate = data.lcaCount > 0 ? data.certifiedCount / data.lcaCount : 0;
     // Priority: 50% LCA count + 50% approval rate
     const priorityScore = data.lcaCount * 0.5 + approvalRate * 100 * 0.5;
 

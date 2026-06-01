@@ -26,40 +26,36 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
   // Determine if a step should show as completed based on actual data
   const isStepCompleted = (stepNumber: number): boolean => {
     if (stepNumber >= currentStep) return false;
-    
+
     // Step 1 is completed if we have tailored resume (moved past input)
     if (stepNumber === 1) return !!tailoredResume;
-    
+
     // Step 2 is completed if we have generated answers
     if (stepNumber === 2) return !!generatedAnswers;
-    
+
     return false;
   };
 
   return (
     <div className="step-indicator-container">
-      <div className="step-indicator w-full max-w-52 sm:max-w-xs md:max-w-md mx-auto">
+      <div className="step-indicator mx-auto w-full max-w-52 sm:max-w-xs md:max-w-md">
         {steps.map((step, index) => {
           const completed = isStepCompleted(step.number);
-          
+
           return (
-            <div key={step.number} className="flex items-center flex-1">
+            <div key={step.number} className="flex flex-1 items-center">
               <div className="flex flex-col items-center">
                 <Button
                   onClick={() => handleStepClick(step.number, step.path)}
                   variant="ghost"
-                  className={`step-dot cursor-pointer hover:scale-110 transition-transform ${
-                    currentStep === step.number
-                      ? "active"
-                      : completed
-                        ? "completed"
-                        : "inactive"
+                  className={`step-dot cursor-pointer transition-transform hover:scale-110 ${
+                    currentStep === step.number ? "active" : completed ? "completed" : "inactive"
                   }`}
                   title={`Go to ${step.label}`}
                 >
                   {completed ? (
                     <svg
-                      className="w-3 h-3 sm:w-3.5 sm:h-3.5"
+                      className="h-3 w-3 sm:h-3.5 sm:w-3.5"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -71,15 +67,13 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
                     step.number
                   )}
                 </Button>
-                <span className="text-[10px] sm:text-xs mt-0.5 sm:mt-1 text-muted hidden sm:block">
+                <span className="text-muted mt-0.5 hidden text-[10px] sm:mt-1 sm:block sm:text-xs">
                   {step.label}
                 </span>
               </div>
               {index < steps.length - 1 && (
                 <div
-                  className={`step-line mx-0.5 sm:mx-1 md:mx-2 ${
-                    completed ? "completed" : ""
-                  }`}
+                  className={`step-line mx-0.5 sm:mx-1 md:mx-2 ${completed ? "completed" : ""}`}
                 />
               )}
             </div>

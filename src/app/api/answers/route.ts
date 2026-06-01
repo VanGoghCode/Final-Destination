@@ -16,8 +16,17 @@ export async function POST(request: Request) {
 
     if (!rateLimitResult.success) {
       return NextResponse.json(
-        { error: `Rate limit exceeded. Please try again in ${rateLimitResult.retryAfter} seconds.`, retryAfter: rateLimitResult.retryAfter },
-        { status: 429, headers: { "Retry-After": String(rateLimitResult.retryAfter), "X-RateLimit-Remaining": String(rateLimitResult.remaining) } },
+        {
+          error: `Rate limit exceeded. Please try again in ${rateLimitResult.retryAfter} seconds.`,
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateLimitResult.retryAfter),
+            "X-RateLimit-Remaining": String(rateLimitResult.remaining),
+          },
+        },
       );
     }
 

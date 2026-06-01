@@ -34,33 +34,47 @@ function PDFPreviewInner({
 
   if (!isVisible && !pdfBase64 && !compileError && !isCompiling) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+      <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
         <div className="animate-pulse">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted mb-4">
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            className="text-muted mb-4"
+          >
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
           </svg>
         </div>
-        <p className="text-sm text-muted">Loading preview...</p>
+        <p className="text-muted text-sm">Loading preview...</p>
       </div>
     );
   }
 
   if (compileError) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="1.5" className="mb-4">
+      <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
+        <svg
+          width="48"
+          height="48"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#ef4444"
+          strokeWidth="1.5"
+          className="mb-4"
+        >
           <circle cx="12" cy="12" r="10" />
           <line x1="12" y1="8" x2="12" y2="12" />
           <line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
-        <p className="text-sm font-medium text-red-600 mb-2">Compilation Error</p>
-        <p className="text-xs text-red-500 max-w-xs font-mono whitespace-pre-wrap">{compileError}</p>
-        <Button
-          onClick={onRetry}
-          variant="secondary"
-          className="mt-4 text-xs"
-        >
+        <p className="mb-2 text-sm font-medium text-red-600">Compilation Error</p>
+        <p className="max-w-xs font-mono text-xs whitespace-pre-wrap text-red-500">
+          {compileError}
+        </p>
+        <Button onClick={onRetry} variant="secondary" className="mt-4 text-xs">
           Retry Compilation
         </Button>
       </div>
@@ -69,21 +83,21 @@ function PDFPreviewInner({
 
   if (pdfBase64) {
     return (
-      <div 
-        className="flex-1 overflow-auto flex justify-center"
+      <div
+        className="flex flex-1 justify-center overflow-auto"
         onDoubleClick={onDoubleClick}
         title="Tip: Select text in PDF, copy it (Ctrl+C), then double-click here to find it in the code"
       >
         <object
           data={`data:application/pdf;base64,${pdfBase64}#toolbar=0&navpanes=0`}
           type="application/pdf"
-          className="w-full h-full border-0"
+          className="h-full w-full border-0"
           title="PDF Preview"
         >
           {/* Fallback for browsers that don't support object */}
           <iframe
             src={`data:application/pdf;base64,${pdfBase64}#toolbar=0&navpanes=0`}
-            className="w-full h-full border-0"
+            className="h-full w-full border-0"
             title="PDF Preview"
           />
         </object>
@@ -92,20 +106,28 @@ function PDFPreviewInner({
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
       {isCompiling ? (
         <>
           <span className="spinner mb-4" />
-          <p className="text-sm text-muted">Compiling LaTeX...</p>
+          <p className="text-muted text-sm">Compiling LaTeX...</p>
         </>
       ) : (
         <>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted mb-4">
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            className="text-muted mb-4"
+          >
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
           </svg>
-          <p className="text-sm text-muted mb-2">No preview available</p>
-          <p className="text-xs text-muted-light">Enter LaTeX code and click Compile</p>
+          <p className="text-muted mb-2 text-sm">No preview available</p>
+          <p className="text-muted-light text-xs">Enter LaTeX code and click Compile</p>
         </>
       )}
     </div>

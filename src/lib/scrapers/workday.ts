@@ -112,9 +112,7 @@ export async function scrapeWorkday(
       if (!response.ok) {
         // If we have collected some jobs, return partial success
         if (jobs.length > 0) {
-          console.warn(
-            `Workday scrape partial failure for ${companyName}: ${response.status}`,
-          );
+          console.warn(`Workday scrape partial failure for ${companyName}: ${response.status}`);
           hasMore = false;
           continue;
         }

@@ -6,9 +6,9 @@
  */
 export function sanitizeForAI(input: string): string {
   if (!input || typeof input !== "string") return "";
-  
+
   let sanitized = input;
-  
+
   // Remove common prompt injection patterns
   const injectionPatterns = [
     // Ignore previous instructions patterns
@@ -29,17 +29,17 @@ export function sanitizeForAI(input: string): string {
     /act\s+as\s+if\s+you/gi,
     /roleplay\s+as/gi,
   ];
-  
+
   for (const pattern of injectionPatterns) {
     sanitized = sanitized.replace(pattern, "[FILTERED]");
   }
-  
+
   // Limit consecutive special characters that might be used for confusion
   sanitized = sanitized.replace(/([#*_~`]){5,}/g, "$1$1$1$1");
-  
+
   // Remove null bytes and other control characters (except newlines and tabs)
   sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
-  
+
   return sanitized.trim();
 }
 
@@ -48,12 +48,12 @@ export function sanitizeForAI(input: string): string {
  */
 export function sanitizeLatex(input: string): string {
   if (!input || typeof input !== "string") return "";
-  
+
   let sanitized = input;
-  
+
   // Remove null bytes and dangerous control characters
   sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
-  
+
   // Block dangerous LaTeX commands that could execute system commands
   const dangerousCommands = [
     /\\immediate\\write18/g,
@@ -64,11 +64,11 @@ export function sanitizeLatex(input: string): string {
     /\\read/g,
     /\\catcode/g,
   ];
-  
+
   for (const pattern of dangerousCommands) {
     sanitized = sanitized.replace(pattern, "% [BLOCKED COMMAND]");
   }
-  
+
   return sanitized;
 }
 
@@ -77,7 +77,7 @@ export function sanitizeLatex(input: string): string {
  */
 export function sanitizeCompanyName(input: string): string {
   if (!input || typeof input !== "string") return "";
-  
+
   return input
     .replace(/[<>]/g, "") // Remove HTML-like brackets
     .replace(/[\x00-\x1F\x7F]/g, "") // Remove control characters
@@ -90,9 +90,9 @@ export function sanitizeCompanyName(input: string): string {
  */
 export function sanitizeUrl(input: string): string {
   if (!input || typeof input !== "string") return "";
-  
+
   const trimmed = input.trim();
-  
+
   // Only allow http and https protocols
   if (trimmed && !trimmed.match(/^https?:\/\//i)) {
     // If no protocol, assume https
@@ -101,7 +101,7 @@ export function sanitizeUrl(input: string): string {
     }
     return "";
   }
-  
+
   try {
     const url = new URL(trimmed);
     // Only allow http/https
@@ -119,15 +119,15 @@ export function sanitizeUrl(input: string): string {
  */
 export function sanitizeJobDescription(input: string): string {
   if (!input || typeof input !== "string") return "";
-  
+
   let sanitized = sanitizeForAI(input);
-  
+
   // Limit length to prevent token abuse
   const MAX_LENGTH = 50000; // ~10k tokens roughly
   if (sanitized.length > MAX_LENGTH) {
     sanitized = sanitized.slice(0, MAX_LENGTH) + "\n[Content truncated due to length]";
   }
-  
+
   return sanitized;
 }
 
@@ -136,7 +136,7 @@ export function sanitizeJobDescription(input: string): string {
  */
 export function sanitizePersonalDetails(input: string): string {
   if (!input || typeof input !== "string") return "";
-  
+
   return input
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "") // Remove control characters
     .trim()
@@ -148,12 +148,12 @@ export function sanitizePersonalDetails(input: string): string {
  */
 export function isValidInput(input: string): boolean {
   if (!input || typeof input !== "string") return false;
-  
+
   // Check for excessive repetition (potential DOS)
   if (/(.)\1{100,}/.test(input)) return false;
-  
+
   // Check for suspicious unicode
   if (/[\u202A-\u202E\u2066-\u2069]/.test(input)) return false; // Bidirectional override chars
-  
+
   return true;
 }

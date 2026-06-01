@@ -15,9 +15,6 @@ export async function GET() {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error loading top-tier data:", error);
-    return NextResponse.json(
-      { error: "Failed to load top-tier data" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to load top-tier data" }, { status: 500 });
   }
 }

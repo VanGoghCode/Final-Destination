@@ -39,18 +39,12 @@ export interface ScrapeResult {
 /**
  * Filter jobs based on target roles and excluded keywords
  */
-export function filterJobs(
-  jobs: Job[],
-  targetRoles: string[],
-  excludedKeywords: string[],
-): Job[] {
+export function filterJobs(jobs: Job[], targetRoles: string[], excludedKeywords: string[]): Job[] {
   return jobs.filter((job) => {
     const titleLower = job.title.toLowerCase();
 
     // Check if title matches any target role
-    const matchesRole = targetRoles.some((role) =>
-      titleLower.includes(role.toLowerCase()),
-    );
+    const matchesRole = targetRoles.some((role) => titleLower.includes(role.toLowerCase()));
 
     // Check if title contains excluded keywords
     const hasExcluded = excludedKeywords.some((keyword) =>

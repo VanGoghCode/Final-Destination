@@ -95,37 +95,66 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setFirstName = (value: string) => setState((prev) => ({ ...prev, firstName: value }));
   const setLastName = (value: string) => setState((prev) => ({ ...prev, lastName: value }));
   const setResumeLatex = (value: string) => setState((prev) => ({ ...prev, resumeLatex: value }));
-  const setCoverLetterLatex = (value: string) => setState((prev) => ({ ...prev, coverLetterLatex: value }));
-  const setJobDescription = (value: string) => setState((prev) => ({ ...prev, jobDescription: value }));
-  const setPersonalDetails = (value: string) => setState((prev) => ({ ...prev, personalDetails: value }));
-  const setMasterContext = (value: string) => setState((prev) => ({ ...prev, masterContext: value }));
-  const setManualResearch = (value: string) => setState((prev) => ({ ...prev, manualResearch: value }));
+  const setCoverLetterLatex = (value: string) =>
+    setState((prev) => ({ ...prev, coverLetterLatex: value }));
+  const setJobDescription = (value: string) =>
+    setState((prev) => ({ ...prev, jobDescription: value }));
+  const setPersonalDetails = (value: string) =>
+    setState((prev) => ({ ...prev, personalDetails: value }));
+  const setMasterContext = (value: string) =>
+    setState((prev) => ({ ...prev, masterContext: value }));
+  const setManualResearch = (value: string) =>
+    setState((prev) => ({ ...prev, manualResearch: value }));
   const setCompanyName = (value: string) => setState((prev) => ({ ...prev, companyName: value }));
   const setCompanyUrl = (value: string) => setState((prev) => ({ ...prev, companyUrl: value }));
-  const setPositionTitle = (value: string) => setState((prev) => ({ ...prev, positionTitle: value }));
-  const setSelectedResumeTemplateId = (value: string) => setState((prev) => ({ ...prev, selectedResumeTemplateId: value }));
-  const setSelectedCoverLetterTemplateId = (value: string) => setState((prev) => ({ ...prev, selectedCoverLetterTemplateId: value }));
-  const setTailoredResume = (value: string) => setState((prev) => ({ ...prev, tailoredResume: value }));
-  const setTailoredCoverLetter = (value: string) => setState((prev) => ({ ...prev, tailoredCoverLetter: value }));
+  const setPositionTitle = (value: string) =>
+    setState((prev) => ({ ...prev, positionTitle: value }));
+  const setSelectedResumeTemplateId = (value: string) =>
+    setState((prev) => ({ ...prev, selectedResumeTemplateId: value }));
+  const setSelectedCoverLetterTemplateId = (value: string) =>
+    setState((prev) => ({ ...prev, selectedCoverLetterTemplateId: value }));
+  const setTailoredResume = (value: string) =>
+    setState((prev) => ({ ...prev, tailoredResume: value }));
+  const setTailoredCoverLetter = (value: string) =>
+    setState((prev) => ({ ...prev, tailoredCoverLetter: value }));
   const setJobCountry = (value: string) => setState((prev) => ({ ...prev, jobCountry: value }));
-  const setJobWorkMode = (value: "" | "Remote" | "Hybrid" | "On-site") => setState((prev) => ({ ...prev, jobWorkMode: value }));
-  const setApplicationQuestions = (value: string) => setState((prev) => ({ ...prev, applicationQuestions: value }));
-  const setGeneratedAnswers = (value: string) => setState((prev) => ({ ...prev, generatedAnswers: value }));
-  const setIsGeneratingTailored = (value: boolean) => setState((prev) => ({ ...prev, isGeneratingTailored: value }));
-  const setIsGeneratingAnswers = (value: boolean) => setState((prev) => ({ ...prev, isGeneratingAnswers: value }));
+  const setJobWorkMode = (value: "" | "Remote" | "Hybrid" | "On-site") =>
+    setState((prev) => ({ ...prev, jobWorkMode: value }));
+  const setApplicationQuestions = (value: string) =>
+    setState((prev) => ({ ...prev, applicationQuestions: value }));
+  const setGeneratedAnswers = (value: string) =>
+    setState((prev) => ({ ...prev, generatedAnswers: value }));
+  const setIsGeneratingTailored = (value: boolean) =>
+    setState((prev) => ({ ...prev, isGeneratingTailored: value }));
+  const setIsGeneratingAnswers = (value: boolean) =>
+    setState((prev) => ({ ...prev, isGeneratingAnswers: value }));
   const resetAll = () => setState(initialState);
 
   return (
     <AppContext.Provider
       value={{
         ...state,
-        setFirstName, setLastName, setResumeLatex, setCoverLetterLatex,
-        setJobDescription, setPersonalDetails, setMasterContext, setManualResearch,
-        setCompanyName, setCompanyUrl, setPositionTitle,
-        setSelectedResumeTemplateId, setSelectedCoverLetterTemplateId,
-        setTailoredResume, setTailoredCoverLetter, setJobCountry, setJobWorkMode,
-        setApplicationQuestions, setGeneratedAnswers,
-        setIsGeneratingTailored, setIsGeneratingAnswers,
+        setFirstName,
+        setLastName,
+        setResumeLatex,
+        setCoverLetterLatex,
+        setJobDescription,
+        setPersonalDetails,
+        setMasterContext,
+        setManualResearch,
+        setCompanyName,
+        setCompanyUrl,
+        setPositionTitle,
+        setSelectedResumeTemplateId,
+        setSelectedCoverLetterTemplateId,
+        setTailoredResume,
+        setTailoredCoverLetter,
+        setJobCountry,
+        setJobWorkMode,
+        setApplicationQuestions,
+        setGeneratedAnswers,
+        setIsGeneratingTailored,
+        setIsGeneratingAnswers,
         resetAll,
       }}
     >

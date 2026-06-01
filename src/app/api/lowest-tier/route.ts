@@ -15,9 +15,6 @@ export async function GET() {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Failed to load lowest-tier data:", error);
-    return NextResponse.json(
-      { error: "Failed to load lowest-tier company data" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to load lowest-tier company data" }, { status: 500 });
   }
 }

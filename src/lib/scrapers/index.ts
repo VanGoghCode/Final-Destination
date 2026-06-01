@@ -66,9 +66,7 @@ function loadTierCompanies(): TierCompany[] {
         // Only include companies with valid platform data
         const companiesWithPlatform = data.companies.filter(
           (c) =>
-            c.platform &&
-            c.platform !== "custom" &&
-            (c.greenhouseId || c.leverId || c.ashbyId),
+            c.platform && c.platform !== "custom" && (c.greenhouseId || c.leverId || c.ashbyId),
         );
         allCompanies.push(...companiesWithPlatform);
       }
@@ -95,11 +93,7 @@ export async function scrapeAllCompanies(): Promise<{
   const scrapedTokens = new Set<string>();
 
   // Helper to run a scrape and collect results
-  const runScrape = async (
-    result: ScrapeResult,
-    name: string,
-    tier?: string,
-  ) => {
+  const runScrape = async (result: ScrapeResult, name: string, tier?: string) => {
     companiesScraped++;
     if (result.success) {
       if (result.jobs.length > 0) {

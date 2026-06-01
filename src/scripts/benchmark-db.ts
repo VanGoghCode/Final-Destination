@@ -1,4 +1,3 @@
-
 import { Company, TierData } from "../lib/db";
 
 // Mock data
@@ -32,7 +31,9 @@ async function getTierDataMock(tier: string, delayMs = 50): Promise<TierData | n
 }
 
 // Original implementation
-async function getCompanyFromTiersSequential(companyId: string): Promise<{ company: Company; tier: string } | null> {
+async function getCompanyFromTiersSequential(
+  companyId: string,
+): Promise<{ company: Company; tier: string } | null> {
   const tiers = ["top", "middle", "lower", "lowest"] as const;
 
   for (const tier of tiers) {
@@ -49,14 +50,18 @@ async function getCompanyFromTiersSequential(companyId: string): Promise<{ compa
 }
 
 // Optimized implementation
-async function getCompanyFromTiersParallel(companyId: string): Promise<{ company: Company; tier: string } | null> {
+async function getCompanyFromTiersParallel(
+  companyId: string,
+): Promise<{ company: Company; tier: string } | null> {
   const tiers = ["top", "middle", "lower", "lowest"] as const;
 
   // Fetch all concurrently
-  const results = await Promise.all(tiers.map(async (tier) => {
-    const data = await getTierDataMock(tier);
-    return { tier, data };
-  }));
+  const results = await Promise.all(
+    tiers.map(async (tier) => {
+      const data = await getTierDataMock(tier);
+      return { tier, data };
+    }),
+  );
 
   for (const { tier, data } of results) {
     if (data) {
@@ -93,7 +98,6 @@ async function runBenchmark() {
   }
   end = performance.now();
   console.log(`Optimized (Parallel) Average: ${((end - start) / iterations).toFixed(2)}ms`);
-
 
   console.log("\n--- Case 2: Company in Top Tier (Best Case for Sequential) ---");
 

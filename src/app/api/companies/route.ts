@@ -68,7 +68,7 @@ export async function GET() {
     // Combine all companies from tiers
     const allCompanies: Company[] = [];
     let latestGeneratedAt = "";
-    
+
     for (const tier of ["top", "middle", "lower", "lowest"] as const) {
       const data = tierData[tier];
       if (data) {
@@ -97,9 +97,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error loading companies:", error);
-    return NextResponse.json(
-      { error: "Failed to load companies" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to load companies" }, { status: 500 });
   }
 }

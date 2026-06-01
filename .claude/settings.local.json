@@ -9,7 +9,10 @@
       "Bash(npx eslint:*)",
       "Bash(git add:*)",
       "Bash(git commit -m ':*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(npx prettier:*)"
     ]
   }
 }

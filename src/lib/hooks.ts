@@ -94,10 +94,7 @@ export function useAutoSave<T>(
 /**
  * Hook to load data from localStorage on mount
  */
-export function useLocalStorageLoad<T>(
-  key: string,
-  defaultValue: T,
-): [T | null, boolean] {
+export function useLocalStorageLoad<T>(key: string, defaultValue: T): [T | null, boolean] {
   const [data] = useState<T | null>(() => {
     if (typeof window !== "undefined") {
       try {
@@ -128,10 +125,7 @@ export function useFieldWithSideEffect<T>(
   onChangeSideEffect: () => void,
   debounceMs: number = 500,
 ): (newValue: T) => void {
-  const debouncedSideEffect = useDebouncedCallback(
-    onChangeSideEffect,
-    debounceMs,
-  );
+  const debouncedSideEffect = useDebouncedCallback(onChangeSideEffect, debounceMs);
   const previousValueRef = useRef(value);
 
   const handleChange = useCallback(

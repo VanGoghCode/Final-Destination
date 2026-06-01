@@ -20,12 +20,13 @@ export async function GET() {
     if (!isRedisConfigured()) {
       return NextResponse.json({
         redisConfigured: false,
-        message: "Redis is not configured. Set KV_REST_API_URL and KV_REST_API_TOKEN environment variables.",
+        message:
+          "Redis is not configured. Set KV_REST_API_URL and KV_REST_API_TOKEN environment variables.",
       });
     }
 
     const stats = await getDataStats();
-    
+
     return NextResponse.json({
       redisConfigured: true,
       stats,
@@ -33,8 +34,11 @@ export async function GET() {
   } catch (error) {
     console.error("Error getting data stats:", error);
     return NextResponse.json(
-      { error: "Failed to get data stats", details: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        error: "Failed to get data stats",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }
@@ -50,12 +54,9 @@ export async function POST(request: NextRequest) {
     // Handle extract-job-info type
     if (type === "extract-job-info") {
       const { jobDescription, companyName } = body;
-      
+
       if (!jobDescription) {
-        return NextResponse.json(
-          { error: "Job description is required" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "Job description is required" }, { status: 400 });
       }
 
       const result = await extractJobLocationInfo(jobDescription, companyName || "");
@@ -64,8 +65,11 @@ export async function POST(request: NextRequest) {
 
     if (!isRedisConfigured()) {
       return NextResponse.json(
-        { error: "Redis is not configured. Set KV_REST_API_URL and KV_REST_API_TOKEN environment variables." },
-        { status: 400 }
+        {
+          error:
+            "Redis is not configured. Set KV_REST_API_URL and KV_REST_API_TOKEN environment variables.",
+        },
+        { status: 400 },
       );
     }
 
@@ -129,10 +133,7 @@ export async function POST(request: NextRequest) {
       }
     })();
 
-    const [tierResults, jobsResult] = await Promise.all([
-      Promise.all(tierPromises),
-      jobsPromise,
-    ]);
+    const [tierResults, jobsResult] = await Promise.all([Promise.all(tierPromises), jobsPromise]);
 
     for (const result of tierResults) {
       if (result) {
@@ -163,8 +164,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error seeding data:", error);
     return NextResponse.json(
-      { error: "Failed to seed data", details: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
+      {
+        error: "Failed to seed data",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
 }
@@ -176,22 +180,22 @@ export async function DELETE() {
   try {
     if (!isRedisConfigured()) {
       return NextResponse.json(
-        { error: "Redis is not configured. Set KV_REST_API_URL and KV_REST_API_TOKEN environment variables." },
-        { status: 400 }
+        {
+          error:
+            "Redis is not configured. Set KV_REST_API_URL and KV_REST_API_TOKEN environment variables.",
+        },
+        { status: 400 },
       );
     }
 
     const success = await clearAllData();
-    
+
     return NextResponse.json({
       success,
       message: success ? "All data cleared from Redis" : "Failed to clear data",
     });
   } catch (error) {
     console.error("Error clearing data:", error);
-    return NextResponse.json(
-      { error: "Failed to clear data" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to clear data" }, { status: 500 });
   }
 }

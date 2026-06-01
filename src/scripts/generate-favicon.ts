@@ -37,9 +37,7 @@ async function generateRoundedFavicon() {
     .resize(32, 32, { fit: "cover" })
     .composite([
       {
-        input: Buffer.from(
-          `<svg><rect x="0" y="0" width="32" height="32" rx="16" ry="16"/></svg>`,
-        ),
+        input: Buffer.from(`<svg><rect x="0" y="0" width="32" height="32" rx="16" ry="16"/></svg>`),
         blend: "dest-in",
       },
     ])

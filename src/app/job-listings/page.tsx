@@ -51,7 +51,7 @@ export default function JobListingsPage() {
 
   useEffect(() => {
     let mounted = true;
-    
+
     const loadJobs = async () => {
       setLoading(true);
       try {
@@ -68,9 +68,9 @@ export default function JobListingsPage() {
         }
       }
     };
-    
+
     loadJobs();
-    
+
     return () => {
       mounted = false;
     };
@@ -139,8 +139,7 @@ export default function JobListingsPage() {
 
       if (
         job.postedAt &&
-        (!current.latestJobDate ||
-          new Date(job.postedAt) > new Date(current.latestJobDate))
+        (!current.latestJobDate || new Date(job.postedAt) > new Date(current.latestJobDate))
       ) {
         current.latestJobDate = job.postedAt;
       }
@@ -170,7 +169,7 @@ export default function JobListingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="spinner-large mx-auto mb-4"></div>
           <p className="text-muted">Loading jobs...</p>
@@ -183,19 +182,16 @@ export default function JobListingsPage() {
     <div className="min-h-screen py-4 md:py-6 lg:py-8">
       <div className="responsive-container">
         {/* Header */}
-        <div className="flex flex-col gap-3 md:gap-4 mb-4 md:mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="mb-4 flex flex-col gap-3 md:mb-6 md:gap-4">
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div className="min-w-0">
-              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold gradient-text mb-1 md:mb-2">
+              <h1 className="gradient-text mb-1 text-xl font-bold md:mb-2 md:text-2xl lg:text-3xl">
                 Job Listings
               </h1>
-              <p className="text-muted text-xs md:text-sm truncate">
+              <p className="text-muted truncate text-xs md:text-sm">
                 {selectedCompany ? (
                   <>
-                    Jobs for{" "}
-                    <span className="font-semibold text-gray-900">
-                      {selectedCompany}
-                    </span>
+                    Jobs for <span className="font-semibold text-gray-900">{selectedCompany}</span>
                   </>
                 ) : (
                   <>
@@ -203,7 +199,7 @@ export default function JobListingsPage() {
                   </>
                 )}
                 {data?.lastScraped && (
-                  <span className="hidden sm:inline ml-2">
+                  <span className="ml-2 hidden sm:inline">
                     (Updated: {formatDate(data.lastScraped)})
                   </span>
                 )}
@@ -214,7 +210,7 @@ export default function JobListingsPage() {
                 <Button
                   onClick={() => setSelectedCompany(null)}
                   variant="ghost"
-                  className="px-3 py-1.5 md:px-4 md:py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs md:text-sm font-medium transition-colors"
+                  className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-gray-200 md:px-4 md:py-2 md:text-sm"
                 >
                   ← Back
                 </Button>
@@ -223,17 +219,17 @@ export default function JobListingsPage() {
                 onClick={triggerScrape}
                 disabled={scraping}
                 variant="primary"
-                className="flex items-center gap-1.5 md:gap-2 text-xs md:text-sm"
+                className="flex items-center gap-1.5 text-xs md:gap-2 md:text-sm"
               >
                 {scraping ? (
                   <>
-                    <div className="w-3.5 h-3.5 md:w-4 md:h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent md:h-4 md:w-4"></div>
                     <span className="hidden sm:inline">Scraping...</span>
                   </>
                 ) : (
                   <>
                     <svg
-                      className="w-4 h-4 md:w-5 md:h-5"
+                      className="h-4 w-4 md:h-5 md:w-5"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -258,9 +254,9 @@ export default function JobListingsPage() {
           /* Company Detail View */
           <div className="space-y-4 md:space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg md:text-xl font-semibold">
+              <h2 className="text-lg font-semibold md:text-xl">
                 Available Openings
-                <span className="ml-2 text-xs md:text-sm text-gray-500 font-normal">
+                <span className="ml-2 text-xs font-normal text-gray-500 md:text-sm">
                   ({companyJobs.length})
                 </span>
               </h2>
@@ -274,22 +270,22 @@ export default function JobListingsPage() {
                     href={job.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="glass-card p-3 md:p-4 lg:p-5 block hover:shadow-lg transition-all group border-l-4 border-l-transparent hover:border-l-primary"
+                    className="glass-card group hover:border-l-primary block border-l-4 border-l-transparent p-3 transition-all hover:shadow-lg md:p-4 lg:p-5"
                   >
-                    <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start sm:items-center gap-2 mb-1 flex-wrap">
-                          <h3 className="font-semibold text-sm md:text-lg group-hover:text-primary transition-colors line-clamp-2 md:truncate">
+                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex flex-wrap items-start gap-2 sm:items-center">
+                          <h3 className="group-hover:text-primary line-clamp-2 text-sm font-semibold transition-colors md:truncate md:text-lg">
                             {job.title}
                           </h3>
                           {isFresh(job.postedAt) && (
-                            <span className="px-1.5 md:px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] md:text-xs font-semibold shrink-0">
+                            <span className="shrink-0 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 md:px-2 md:text-xs">
                               New
                             </span>
                           )}
                         </div>
-                        <div className="flex flex-wrap items-center gap-1.5 md:gap-2 text-xs md:text-sm text-muted">
-                          <span className="font-medium text-gray-700 truncate max-w-40 md:max-w-none">
+                        <div className="text-muted flex flex-wrap items-center gap-1.5 text-xs md:gap-2 md:text-sm">
+                          <span className="max-w-40 truncate font-medium text-gray-700 md:max-w-none">
                             {job.companyName}
                           </span>
                           <span className="hidden sm:inline">•</span>
@@ -303,17 +299,19 @@ export default function JobListingsPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 md:gap-3 mt-2 md:mt-0">
+                      <div className="mt-2 flex items-center gap-2 md:mt-0 md:gap-3">
                         <span
-                          className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full border ${PLATFORM_COLORS[job.platform] || PLATFORM_COLORS.custom}`}
+                          className={`rounded-full border px-1.5 py-0.5 text-[10px] md:px-2 md:py-1 md:text-xs ${PLATFORM_COLORS[job.platform] || PLATFORM_COLORS.custom}`}
                         >
                           {job.platform}
                         </span>
                         <div className="text-right">
-                          <div className="text-xs md:text-sm font-medium text-gray-900">
+                          <div className="text-xs font-medium text-gray-900 md:text-sm">
                             {formatDate(job.postedAt)}
                           </div>
-                          <div className="text-[10px] md:text-xs text-muted hidden sm:block">Posted</div>
+                          <div className="text-muted hidden text-[10px] sm:block md:text-xs">
+                            Posted
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -321,26 +319,24 @@ export default function JobListingsPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 md:py-12 glass-card">
-                <p className="text-base md:text-lg text-gray-500">
-                  No jobs found for this filter.
-                </p>
+              <div className="glass-card py-8 text-center md:py-12">
+                <p className="text-base text-gray-500 md:text-lg">No jobs found for this filter.</p>
               </div>
             )}
           </div>
         ) : (
           /* Companies Grid View */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3">
             {companyStats.map((stat) => (
               <Button
                 key={stat.name}
                 onClick={() => setSelectedCompany(stat.name)}
                 variant="ghost"
-                className="glass-card p-4 md:p-5 text-left hover:shadow-lg transition-all group flex flex-col justify-between h-full relative overflow-hidden"
+                className="glass-card group relative flex h-full flex-col justify-between overflow-hidden p-4 text-left transition-all hover:shadow-lg md:p-5"
               >
-                <div className="absolute top-0 right-0 p-2 md:p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <div className="absolute top-0 right-0 p-2 opacity-10 transition-opacity group-hover:opacity-20 md:p-4">
                   <svg
-                    className="w-16 h-16 md:w-24 md:h-24 text-primary"
+                    className="text-primary h-16 w-16 md:h-24 md:w-24"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
@@ -349,35 +345,35 @@ export default function JobListingsPage() {
                 </div>
 
                 <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="text-base md:text-xl font-bold group-hover:text-primary transition-colors line-clamp-2">
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <h3 className="group-hover:text-primary line-clamp-2 text-base font-bold transition-colors md:text-xl">
                       {stat.name}
                     </h3>
                     <span
-                      className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full border shrink-0 ${PLATFORM_COLORS[stat.platform] || PLATFORM_COLORS.custom}`}
+                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] md:px-2 md:py-1 md:text-xs ${PLATFORM_COLORS[stat.platform] || PLATFORM_COLORS.custom}`}
                     >
                       {stat.platform}
                     </span>
                   </div>
-                  <div className="text-xs md:text-sm text-muted mb-3 md:mb-4">
+                  <div className="text-muted mb-3 text-xs md:mb-4 md:text-sm">
                     Last active: {formatDate(stat.latestJobDate || undefined)}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 md:gap-4 mt-auto">
-                  <div className="p-2 md:p-3 rounded-lg bg-gray-50">
-                    <div className="text-lg md:text-xl font-bold text-gray-900">
+                <div className="mt-auto grid grid-cols-2 gap-2 md:gap-4">
+                  <div className="rounded-lg bg-gray-50 p-2 md:p-3">
+                    <div className="text-lg font-bold text-gray-900 md:text-xl">
                       {stat.freshJobs}
                     </div>
-                    <div className="text-[10px] md:text-xs font-semibold text-blue-600">
+                    <div className="text-[10px] font-semibold text-blue-600 md:text-xs">
                       New (24h)
                     </div>
                   </div>
-                  <div className="p-2 md:p-3 rounded-lg bg-gray-50">
-                    <div className="text-lg md:text-xl font-bold text-gray-900">
+                  <div className="rounded-lg bg-gray-50 p-2 md:p-3">
+                    <div className="text-lg font-bold text-gray-900 md:text-xl">
                       {stat.totalJobs}
                     </div>
-                    <div className="text-[10px] md:text-xs text-gray-500">Total Jobs</div>
+                    <div className="text-[10px] text-gray-500 md:text-xs">Total Jobs</div>
                   </div>
                 </div>
               </Button>

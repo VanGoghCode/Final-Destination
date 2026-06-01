@@ -14,8 +14,7 @@ export const config = {
     .split(",")
     .map((r) => r.trim().toLowerCase()),
   excludedKeywords: (
-    process.env.EXCLUDED_KEYWORDS ||
-    "senior director,vp,vice president,principal,staff,15+ years"
+    process.env.EXCLUDED_KEYWORDS || "senior director,vp,vice president,principal,staff,15+ years"
   )
     .split(",")
     .map((k) => k.trim().toLowerCase()),

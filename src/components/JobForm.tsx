@@ -47,24 +47,14 @@ export default function JobForm({
 }: JobFormProps) {
   const [companyName, setCompanyName] = useState(initialValues.companyName);
   const [companyUrl, setCompanyUrl] = useState(initialValues.companyUrl);
-  const [positionTitle, setPositionTitle] = useState(
-    initialValues.positionTitle,
-  );
-  const [jobDescription, setJobDescription] = useState(
-    initialValues.jobDescription,
-  );
-  const [personalDetails, setPersonalDetails] = useState(
-    initialValues.personalDetails,
-  );
-  const [selectedProfileId, setSelectedProfileId] = useState<string>(
-    initialValues.profileId || "",
-  );
+  const [positionTitle, setPositionTitle] = useState(initialValues.positionTitle);
+  const [jobDescription, setJobDescription] = useState(initialValues.jobDescription);
+  const [personalDetails, setPersonalDetails] = useState(initialValues.personalDetails);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>(initialValues.profileId || "");
   const [includeCoverLetter, setIncludeCoverLetter] = useState(
     initialValues.includeCoverLetter || false,
   );
-  const [showAdvanced, setShowAdvanced] = useState(
-    !!initialValues.personalDetails,
-  );
+  const [showAdvanced, setShowAdvanced] = useState(!!initialValues.personalDetails);
 
   const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
 
@@ -92,21 +82,19 @@ export default function JobForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 p-6">
       {/* Profile Selection */}
       {profiles.length > 0 && (
         <div>
-          <label className="block text-xs font-medium text-muted mb-2">
-            Select Profile
-          </label>
+          <label className="text-muted mb-2 block text-xs font-medium">Select Profile</label>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setSelectedProfileId("")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
                 !selectedProfileId
                   ? "bg-primary text-white"
-                  : "bg-gray-100 text-muted hover:bg-gray-200"
+                  : "text-muted bg-gray-100 hover:bg-gray-200"
               }`}
             >
               Default
@@ -116,14 +104,14 @@ export default function JobForm({
                 key={profile.id}
                 type="button"
                 onClick={() => setSelectedProfileId(profile.id)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
                   selectedProfileId === profile.id
                     ? "bg-primary text-white"
-                    : "bg-gray-100 text-muted hover:bg-gray-200"
+                    : "text-muted bg-gray-100 hover:bg-gray-200"
                 }`}
               >
                 <span
-                  className={`w-4 h-4 rounded-full bg-gradient-to-br ${profile.color} flex items-center justify-center text-white text-[8px] font-bold`}
+                  className={`h-4 w-4 rounded-full bg-gradient-to-br ${profile.color} flex items-center justify-center text-[8px] font-bold text-white`}
                 >
                   {profile.avatarText || profile.firstName[0]}
                 </span>
@@ -132,7 +120,7 @@ export default function JobForm({
             ))}
           </div>
           {selectedProfile && (
-            <p className="text-[10px] text-green-600 mt-1">
+            <p className="mt-1 text-[10px] text-green-600">
               Using {selectedProfile.firstName} {selectedProfile.lastName}
               &apos;s templates
             </p>
@@ -142,27 +130,23 @@ export default function JobForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs font-medium text-muted mb-1">
-            Company Name *
-          </label>
+          <label className="text-muted mb-1 block text-xs font-medium">Company Name *</label>
           <input
             type="text"
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
-            className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            className="border-card-border focus:ring-primary/20 focus:border-primary w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
             placeholder="e.g. Google"
             required
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-muted mb-1">
-            Position Title *
-          </label>
+          <label className="text-muted mb-1 block text-xs font-medium">Position Title *</label>
           <input
             type="text"
             value={positionTitle}
             onChange={(e) => setPositionTitle(e.target.value)}
-            className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            className="border-card-border focus:ring-primary/20 focus:border-primary w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
             placeholder="e.g. Software Engineer"
             required
           />
@@ -170,27 +154,23 @@ export default function JobForm({
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-muted mb-1">
-          Job Posting URL *
-        </label>
+        <label className="text-muted mb-1 block text-xs font-medium">Job Posting URL *</label>
         <input
           type="url"
           value={companyUrl}
           onChange={(e) => setCompanyUrl(e.target.value)}
-          className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          className="border-card-border focus:ring-primary/20 focus:border-primary w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           placeholder="https://careers.google.com/jobs/..."
           required
         />
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-muted mb-1">
-          Job Description *
-        </label>
+        <label className="text-muted mb-1 block text-xs font-medium">Job Description *</label>
         <textarea
           value={jobDescription}
           onChange={(e) => setJobDescription(e.target.value)}
-          className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+          className="border-card-border focus:ring-primary/20 focus:border-primary w-full resize-none rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           rows={6}
           placeholder="Paste the job description here..."
           required
@@ -201,10 +181,10 @@ export default function JobForm({
       <button
         type="button"
         onClick={() => setShowAdvanced(!showAdvanced)}
-        className="flex items-center gap-1 text-xs text-muted hover:text-foreground"
+        className="text-muted hover:text-foreground flex items-center gap-1 text-xs"
       >
         <svg
-          className={`w-3 h-3 transition-transform ${showAdvanced ? "rotate-90" : ""}`}
+          className={`h-3 w-3 transition-transform ${showAdvanced ? "rotate-90" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -220,26 +200,26 @@ export default function JobForm({
           id="includeCoverLetter"
           checked={includeCoverLetter}
           onChange={(e) => setIncludeCoverLetter(e.target.checked)}
-          className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20"
+          className="text-primary focus:ring-primary/20 h-4 w-4 rounded border-gray-300"
         />
         <label
           htmlFor="includeCoverLetter"
-          className="text-xs font-medium text-gray-700 cursor-pointer"
+          className="cursor-pointer text-xs font-medium text-gray-700"
         >
           Generate Cover Letter
         </label>
       </div>
 
       {showAdvanced && (
-        <div className="space-y-4 pl-4 border-l-2 border-gray-100">
+        <div className="space-y-4 border-l-2 border-gray-100 pl-4">
           <div>
-            <label className="block text-xs font-medium text-muted mb-1">
+            <label className="text-muted mb-1 block text-xs font-medium">
               Additional Details (optional)
             </label>
             <textarea
               value={personalDetails}
               onChange={(e) => setPersonalDetails(e.target.value)}
-              className="w-full px-3 py-2 border border-card-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+              className="border-card-border focus:ring-primary/20 focus:border-primary w-full resize-none rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
               rows={2}
               placeholder="Any specific points you want highlighted..."
             />
@@ -248,26 +228,16 @@ export default function JobForm({
       )}
 
       {isProcessing && (
-        <div className="p-3 bg-yellow-50 text-yellow-800 text-xs rounded-lg">
-          <strong>Note:</strong> Editing will restart the job processing from
-          the beginning.
+        <div className="rounded-lg bg-yellow-50 p-3 text-xs text-yellow-800">
+          <strong>Note:</strong> Editing will restart the job processing from the beginning.
         </div>
       )}
 
       <div className="flex gap-3 pt-4">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={onCancel}
-          className="flex-1"
-        >
+        <Button type="button" variant="secondary" onClick={onCancel} className="flex-1">
           Cancel
         </Button>
-        <Button
-          type="submit"
-          variant="primary"
-          className="flex-1 justify-center"
-        >
+        <Button type="submit" variant="primary" className="flex-1 justify-center">
           {submitLabel}
         </Button>
       </div>

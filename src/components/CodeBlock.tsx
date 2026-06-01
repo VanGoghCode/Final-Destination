@@ -31,19 +31,17 @@ export default function CodeBlock({
 
   return (
     <div className="glass-card fade-in">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-card-border">
+      <div className="border-card-border flex items-center justify-between border-b px-5 py-4">
         <div className="flex items-center gap-4">
           {/* Mac-style window controls */}
           <div className="flex gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-red-400/80" />
-            <div className="w-3 h-3 rounded-full bg-amber-400/80" />
-            <div className="w-3 h-3 rounded-full bg-green-400/80" />
+            <div className="h-3 w-3 rounded-full bg-red-400/80" />
+            <div className="h-3 w-3 rounded-full bg-amber-400/80" />
+            <div className="h-3 w-3 rounded-full bg-green-400/80" />
           </div>
-          <h3 className="text-sm font-medium text-foreground/80 truncate ml-2">
-            {title}
-          </h3>
+          <h3 className="text-foreground/80 ml-2 truncate text-sm font-medium">{title}</h3>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex shrink-0 items-center gap-2">
           {showCopy && code && <CopyButton text={code} label="Copy" />}
           {onRegenerate && code && (
             <Button
@@ -71,16 +69,14 @@ export default function CodeBlock({
         </div>
       </div>
 
-      <div className="code-block max-h-72 sm:max-h-96 overflow-y-auto border-t-0 rounded-t-none">
-        {code || (
-          <span className="text-muted-light">No content generated yet...</span>
-        )}
+      <div className="code-block max-h-72 overflow-y-auto rounded-t-none border-t-0 sm:max-h-96">
+        {code || <span className="text-muted-light">No content generated yet...</span>}
       </div>
 
       {/* Regenerate feedback section */}
       {showFeedback && onRegenerate && (
         <div className="regenerate-section fade-in">
-          <label className="text-xs font-medium text-muted mb-2 block">
+          <label className="text-muted mb-2 block text-xs font-medium">
             What changes would you like?
           </label>
           <textarea
@@ -90,14 +86,14 @@ export default function CodeBlock({
             className="regenerate-input mb-3"
             rows={2}
           />
-          <div className="flex gap-2 justify-end">
+          <div className="flex justify-end gap-2">
             <Button
               onClick={() => {
                 setShowFeedback(false);
                 setComment("");
               }}
               variant="secondary"
-              className="text-xs py-2 px-3"
+              className="px-3 py-2 text-xs"
             >
               Cancel
             </Button>

@@ -79,10 +79,7 @@ export async function scrapeGreenhouse(
  * Get list of known Greenhouse companies
  * Organized by job count (descending) from lower-tier probing
  */
-export const GREENHOUSE_COMPANIES: Record<
-  string,
-  { id: string; name: string }
-> = {
+export const GREENHOUSE_COMPANIES: Record<string, { id: string; name: string }> = {
   // High volume (500+ jobs)
   databricks: { id: "DATABRICKS_INC", name: "Databricks" },
   coupang: { id: "COUPANG_GLOBAL_LLC", name: "Coupang" },

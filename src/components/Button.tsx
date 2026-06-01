@@ -2,13 +2,7 @@
 
 import React from "react";
 
-export type ButtonVariant =
-  | "primary"
-  | "secondary"
-  | "regenerate"
-  | "ghost"
-  | "success"
-  | "danger";
+export type ButtonVariant = "primary" | "secondary" | "regenerate" | "ghost" | "success" | "danger";
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: "btn-primary",
@@ -56,14 +50,10 @@ export default function Button({
   return (
     <Component
       className={classes}
-      style={
-        { ...(style || {}), "--btn-glow": resolvedGlow } as React.CSSProperties
-      }
+      style={{ ...(style || {}), "--btn-glow": resolvedGlow } as React.CSSProperties}
       {...(as === "button"
         ? {
-            type:
-              (props as React.ButtonHTMLAttributes<HTMLButtonElement>).type ||
-              "button",
+            type: (props as React.ButtonHTMLAttributes<HTMLButtonElement>).type || "button",
           }
         : {})}
       {...rest}

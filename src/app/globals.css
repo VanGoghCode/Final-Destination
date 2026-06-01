@@ -2,10 +2,10 @@
 
 :root {
   /* 60-30-10 Color Palette */
-  --background: #FAF9F6;
+  --background: #faf9f6;
   --foreground: #000000;
   --card-bg: rgba(250, 249, 246, 0.95);
-  --card-border: #E5E5E5;
+  --card-border: #e5e5e5;
 
   /* Primary Accent (30% - Black) */
   --primary: #000000;
@@ -15,14 +15,14 @@
 
   /* Secondary Accent (10% - Light Gray) */
   --secondary: #000000;
-  --secondary-bg: #E5E5E5;
+  --secondary-bg: #e5e5e5;
   --accent: #000000;
   --accent-2: #000000;
 
   --muted: #666666;
   --muted-light: #999999;
 
-  --code-bg: #FAF9F6;
+  --code-bg: #faf9f6;
   --surface-hover: #ffffff;
 
   /* Shadows */
@@ -58,7 +58,9 @@ body {
     /* Noise */
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.02'/%3E%3C/svg%3E");
   background-repeat: repeat, repeat;
-  background-size: 40px 40px, 160px 160px;
+  background-size:
+    40px 40px,
+    160px 160px;
   background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans);
@@ -78,7 +80,10 @@ body {
   border: 1px solid var(--card-border);
   border-radius: 18px;
   box-shadow: var(--shadow-md);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.2s ease;
+  transition:
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s ease,
+    border-color 0.2s ease;
 }
 
 .glass-card:hover {
@@ -95,7 +100,7 @@ body {
   -webkit-backdrop-filter: blur(18px);
   position: relative;
   z-index: 50;
-  border: 1px solid #E5E5E5;
+  border: 1px solid #e5e5e5;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
 }
 
@@ -149,16 +154,18 @@ body {
 
 .btn-primary:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    0 0 0 4px rgba(0, 0, 0, 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .btn-primary:disabled {
-  background: #E5E5E5;
+  background: #e5e5e5;
   color: #999999;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
-  border-color: #E5E5E5;
+  border-color: #e5e5e5;
 }
 
 /* Secondary / Ghost Button */
@@ -170,7 +177,7 @@ body {
   font-weight: 600;
   font-size: 14px;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid #E5E5E5;
+  border: 1px solid #e5e5e5;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -180,7 +187,7 @@ body {
 }
 
 .btn-secondary:hover {
-  background: #E5E5E5;
+  background: #e5e5e5;
   transform: translateY(-1px);
   box-shadow: none;
 }
@@ -191,7 +198,7 @@ body {
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
-  border-color: #E5E5E5;
+  border-color: #e5e5e5;
 }
 
 .btn-secondary:focus-visible {
@@ -203,8 +210,8 @@ body {
 /* Inputs - Ultra Clean */
 .input-field {
   width: 100%;
-  background: #E5E5E5;
-  border: 1px solid #E5E5E5;
+  background: #e5e5e5;
+  border: 1px solid #e5e5e5;
   border-radius: 14px;
   padding: 16px;
   color: #000000;
@@ -286,13 +293,13 @@ body {
 }
 
 .step-dot.completed {
-  background: #E5E5E5;
+  background: #e5e5e5;
   color: #000000;
-  border: 1px solid #E5E5E5;
+  border: 1px solid #e5e5e5;
 }
 
 .step-dot.inactive {
-  background: #FAF9F6;
+  background: #faf9f6;
   color: var(--muted-light);
   border: 1px solid var(--card-border);
 }
@@ -300,7 +307,7 @@ body {
 .step-line {
   flex: 1;
   height: 2px;
-  background: #E5E5E5;
+  background: #e5e5e5;
   border-radius: 2px;
 }
 
@@ -355,7 +362,7 @@ body {
 
 .copy-btn {
   background: transparent;
-  border: 1px solid #E5E5E5;
+  border: 1px solid #e5e5e5;
   border-radius: 10px;
   padding: 6px 12px;
   color: #666666;
@@ -371,11 +378,11 @@ body {
 .copy-btn:hover {
   color: #000000;
   border-color: #000000;
-  background: #E5E5E5;
+  background: #e5e5e5;
 }
 
 .copy-btn.copied {
-  background: #E5E5E5;
+  background: #e5e5e5;
   color: #000000;
   border-color: #000000;
 }
@@ -407,8 +414,8 @@ body {
 
 .regenerate-input {
   width: 100%;
-  background: #E5E5E5;
-  border: 1px solid #E5E5E5;
+  background: #e5e5e5;
+  border: 1px solid #e5e5e5;
   border-radius: 10px;
   padding: 12px;
   font-size: 14px;
@@ -446,7 +453,7 @@ body {
 }
 
 .btn-regenerate:disabled {
-  background: #E5E5E5;
+  background: #e5e5e5;
   color: #999999;
   cursor: not-allowed;
 }
@@ -481,12 +488,12 @@ body {
 }
 
 .btn-success:disabled {
-  background: #E5E5E5;
+  background: #e5e5e5;
   color: #999999;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
-  border-color: #E5E5E5;
+  border-color: #e5e5e5;
 }
 
 /* Danger Button */
@@ -519,12 +526,12 @@ body {
 }
 
 .btn-danger:disabled {
-  background: #E5E5E5;
+  background: #e5e5e5;
   color: #999999;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
-  border-color: #E5E5E5;
+  border-color: #e5e5e5;
 }
 
 /* Ghost Button (unstyled base) */
@@ -568,7 +575,7 @@ body {
 .spinner-large {
   width: 40px;
   height: 40px;
-  border: 3px solid #E5E5E5;
+  border: 3px solid #e5e5e5;
   border-top-color: #000000;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
