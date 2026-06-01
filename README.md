@@ -235,8 +235,8 @@ ADMIN_API_KEY=
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `DEEPSEEK_API_KEY` | Yes | DeepSeek AI API key |
-| `KV_REST_API_URL` | Yes (Vercel) | Upstash Redis URL |
-| `KV_REST_API_TOKEN` | Yes (Vercel) | Upstash Redis token |
+| `KV_REST_API_URL` | Optional | Upstash Redis URL — syncs data across devices |
+| `KV_REST_API_TOKEN` | Optional | Upstash Redis token — without this, data stays in localStorage |
 | `GOOGLE_SPREADSHEET_ID` | Optional | Google Sheet ID for tracking |
 | `GOOGLE_SERVICE_ACCOUNT_KEY` | Optional | Google service account JSON (single line) |
 | `ADMIN_API_KEY` | Optional | Protects admin/sheets/storage routes |
