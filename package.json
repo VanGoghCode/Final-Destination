@@ -15,7 +15,7 @@
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
     "seed": "tsx src/scripts/seed-redis.ts",
-    "prepare": "husky",
+    "prepare": "husky || true",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
     "prepush": "npm run check && npm run build"
   },
