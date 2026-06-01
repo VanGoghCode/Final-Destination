@@ -1,93 +1,12 @@
 # Final Destination
 
-AI-powered resume and cover letter tailoring + H-1B job alert system.
-
-## Features
-
-### Resume Tailoring
-
-- AI-tailored Resume & Cover Letter (LaTeX)
-- Separate cover letter generation with company research
-- Regenerate with feedback
-- Application Q&A generation with first-person answers
-- Word/character limits and human-written tone for Q&A
-- Cold email & referral request generation
-- Google Sheets application tracking
-
-### Template Management (New!)
-
-- **Multiple Resume Templates** - Store and switch between multiple resume versions
-- **Multiple Cover Letter Templates** - Save different cover letter styles
-- **Default Templates** - Set your go-to templates that auto-load on startup
-- **Personal Details Storage** - First name and last name saved locally
-- **Dual Filename Formats** - Export with plain or detailed filenames (Company_Position_Resume)
-- **Template Manager Modal** - Edit, rename, delete, and set defaults for all templates
-- **Visual Field Indicators** - Red dots for required fields, yellow for optional, green for filled
-- **Progress Tracking** - See completion status (X/4 required fields)
-
-### Job Alert System
-
-- **732 H-1B sponsoring companies** across 4 tiers
-- **72+ companies** with automated job scraping
-- **Custom career page links** - Save your own discovered career URLs
-- **External Job Portals** - Add links to Handshake, LinkedIn, Indeed, etc. with logos
-- Compact collapsible sidebar with search and tier filters
-- Multi-select companies with bulk actions
-- Quarterly LCA tracking (Q1-Q4) from FY2025 DOL data
-- POC contact info for direct outreach
-- Multi-platform scraping: Greenhouse, Lever, Ashby, Workday
-
-### External Job Portals
-
-- Add custom job portal links (Handshake, LinkedIn Jobs, Indeed, Glassdoor, etc.)
-- Support for portal logos/icons
-- Quick-add suggestions for popular job boards
-- Edit and delete portals anytime
-- Persisted in localStorage (works on deployed sites)
-
-### Mobile Responsive
-
-- **Fully responsive design** for all screen sizes
-- Mobile-optimized sidebar with overlay navigation
-- Touch-friendly buttons and cards
-- Adaptive grid layouts (1-4 columns)
-- Collapsible filters for mobile screens
-
-### UI/UX Improvements
-
-- **Smart Form UI** - Glass-card design with visual progress indicators
-- **Floating Notifications** - Non-intrusive save confirmations
-- **Avatar with Initials** - Personalized header showing your name
-- **Inline Name Editing** - Edit first/last name directly in header
-- **Compact sidebar layout** - Tier filters in 2-column grid
-- **Quick Actions** - Combined Selection, Bulk Actions, and Navigation
-- **Flex button layout** - 1/4 icon, 3/4 text for better alignment
-- **Reusable Components** - Consistent IconButton, FieldStatusDot components
-- Click company name to copy to clipboard
+AI-powered resume tailoring, cover letter generation, and H-1B job alert system. Built with Next.js 16, React 19, and DeepSeek.
 
 ---
 
-## Setup
+## Quick Start (First-Time User)
 
-### Prerequisites
-
-- **Node.js 18+** - [Download](https://nodejs.org/)
-- **npm** or **yarn** - Package manager (comes with Node.js)
-- **Git** - [Download](https://git-scm.com/)
-- **Google Cloud Account** - For Gemini AI API (billing enabled)
-- **Upstash Redis** (optional) - For persisting custom career links on Vercel deployment
-- **Google Service Account** (optional) - For Google Sheets integration
-
-### Required Accounts & Services
-
-| Service | Purpose | Required? |
-|---------|---------|-----------|
-| [Google AI Studio](https://aistudio.google.com/) | Gemini API key for AI features | ✅ Required |
-| [Upstash](https://upstash.com/) | Redis database for career links (production) | ⚠️ For Vercel deployment |
-| [Google Cloud Console](https://console.cloud.google.com/) | Service account for Sheets API | ⚠️ Optional |
-| [Vercel](https://vercel.com/) | Deployment platform | ⚠️ Optional |
-
-### 1. Install
+### Step 1: Install
 
 ```bash
 git clone https://github.com/VanGoghCode/Final-Destination.git
@@ -95,104 +14,140 @@ cd Final-Destination
 npm install
 ```
 
-### 2. Environment Variables
+### Step 2: Get a DeepSeek API Key
 
-Create `.env.local` in the project root:
+1. Go to [platform.deepseek.com](https://platform.deepseek.com/api_keys)
+2. Sign up and create an API key
+3. Add it to `.env.local`:
 
 ```bash
-# ============================================
-# REQUIRED - AI Features
-# ============================================
-# Get from: https://api.deepseek.com
-DEEPSEEK_API_KEY=sk-your-deepseek-api-key
-
-# ============================================
-# OPTIONAL - Google Sheets Integration
-# ============================================
-# For tracking job applications in Google Sheets
-GOOGLE_SPREADSHEET_ID=your-spreadsheet-id
-# Service account JSON (stringify it to single line)
-GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"...","private_key":"..."}
-
-# ============================================
-# OPTIONAL - Job Filtering
-# ============================================
-# Comma-separated roles to include in scraped jobs
-TARGET_ROLES=software engineer,cloud architect,devops,backend,frontend,full stack
-# Keywords to exclude from job listings
-EXCLUDED_KEYWORDS=director,vp,sales,senior director,principal
-
-# ============================================
-# OPTIONAL - Upstash Redis (for Vercel deployment)
-# ============================================
-# Required only if deploying to Vercel and want to persist custom career links
-# Get from: https://console.upstash.com/
-KV_REST_API_URL=https://your-redis-instance.upstash.io
-KV_REST_API_TOKEN=your-upstash-token
+DEEPSEEK_API_KEY=sk-your-key-here
 ```
 
-### 3. Run
+You can also enter the key directly in the app sidebar — click the "DeepSeek V4 Flash" button and paste your key. It's saved in your browser's localStorage and never sent to our servers.
+
+### Step 3: Run
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000).
 
-### 4. Deploy to Vercel (Optional)
+---
+
+## How to Use
+
+### Profiles
+
+Profiles store your name and link to your resume/cover letter templates. Use them to switch between different versions of your application materials.
+
+1. Click the avatar in the sidebar header to open the Personal Details modal
+2. Enter your first and last name, then save
+3. The sidebar shows "Profile 1" by default — you can add more profiles from the Template Manager
+
+### Templates
+
+Templates are your LaTeX resume and cover letter source files. The app uses them as the base for AI tailoring.
+
+1. On the homepage, scroll to "Templates" section
+2. Click **Template Manager** to open the template modal
+3. **Add a resume template**: Paste your LaTeX resume code, give it a name
+4. **Add a cover letter template**: Same for cover letter
+5. Set a **default** template — it auto-loads when you start
+6. You can edit, rename, or delete templates anytime
+
+Templates are saved to cloud storage (Redis) so they persist across sessions and devices.
+
+### Tailoring a Resume
+
+1. Ensure a resume template is loaded (the red dot disappears when all required fields are filled)
+2. Paste the **job description** into the text area
+3. Fill in **Company Name** and **Position Title**
+4. Optionally add **Manual Research** about the company for better results
+5. Click **Generate Tailored Resume**
+6. View the output on the `/tailored` page — LaTeX preview, PDF download, and copy
+
+### Generating a Cover Letter
+
+1. After generating a resume, go to the `/tailored` page
+2. Click **Generate Cover Letter** in the sidebar
+3. The AI researches the company and writes a personalized cover letter
+4. Preview, download, or copy the result
+
+### Application Q&A
+
+1. Navigate to `/questions`
+2. Paste common application questions (one per line or separated by blank lines)
+3. Click **Generate Answers** — the AI writes first-person responses based on your resume
+4. You can set word/character limits and search modes (context only, context+internet, internet only)
+
+### Regenerating with Feedback
+
+On the `/tailored` page, each output has a **Regenerate** button. Click it, type your feedback (e.g., "make it more concise", "emphasize leadership"), and the AI rewrites the content.
+
+### Cold Emails & Referral Requests
+
+On the `/tailored` page sidebar, under **Email Generation**:
+- **Cold Email**: Write an outreach email to a hiring manager
+- **Reference Email**: Write a referral request to a company employee
+
+---
+
+## Google Sheets Integration
+
+Track your job applications automatically in a personal Google Sheet.
+
+### Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a project and enable the **Google Sheets API**
+3. Create a **Service Account** (IAM → Service Accounts → Create)
+4. Download the JSON key file
+5. Create a Google Sheet and share it with the service account email (Editor access)
+6. Copy your spreadsheet ID from the URL: `https://docs.google.com/spreadsheets/d/<SPREADSHEET_ID>/edit`
+7. Stringify the service account JSON to a single line
+8. Add to `.env.local` (or Vercel env vars):
 
 ```bash
-npm install -g vercel
-vercel
+GOOGLE_SPREADSHEET_ID=your-spreadsheet-id
+GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"...","private_key":"..."}
+ADMIN_API_KEY=your-secret-admin-key
 ```
 
-Add environment variables in Vercel dashboard under Project Settings → Environment Variables.
+### Usage
+
+1. Generate a tailored resume for a job
+2. On the `/tailored` page, click **Log to Sheet**
+3. Fill in the application link and any notes
+4. Click **Log Application** — it appears in your Google Sheet with date, company, position, and status
+
+### Security
+
+- The sheets endpoint requires `ADMIN_API_KEY` (x-api-key header)
+- Store your admin key in the browser: open DevTools Console and run `localStorage.setItem('fd_admin_key', 'your-admin-key')`
+- Only browsers with the admin key can write to your sheet
+- Your service account key lives in Vercel env vars, never in source code
 
 ---
 
-## Pages
+## Companies & Job Listings
 
-| Route           | Description                                      |
-| --------------- | ------------------------------------------------ |
-| `/`             | Resume tailoring homepage                        |
-| `/tailored`     | Tailored resume/cover letter output              |
-| `/questions`    | Application Q&A generation                       |
-| `/jobs`         | H-1B company browser with collapsible sidebar    |
-| `/job-listings` | Scraped job listings                             |
+The **Companies** page (`/jobs`) shows 732+ H-1B sponsoring companies across 4 tiers:
 
----
+| Tier | Companies | Description |
+|------|-----------|-------------|
+| Top | 33 | Highest LCA volume |
+| Middle | 36 | High volume |
+| Lower | 298 | Moderate volume |
+| Lowest | 365 | Lower but active |
 
-## Custom Career Links
-
-For companies without auto-detected career pages, you can manually save career URLs:
-
-1. Navigate to `/jobs` page
-2. Find the company card
-3. Click the **"+"** button next to the Jobs button
-4. Paste the career page URL and click **"Add"**
-5. Click **"Save Links"** to persist
-
-**Storage:**
-- **Local development**: Saved to JSON files in `/data/`
-- **Vercel production**: Saved to Upstash Redis (requires env vars)
-
----
-
-## External Job Portals
-
-Add quick-access links to external job boards like Handshake, LinkedIn, etc.:
-
-1. Navigate to `/jobs` page
-2. In the sidebar, find **"External Portals"** section
-3. Click **"Add"** to open the portal management modal
-4. Manually add custom portals with name, URL, and optional logo
-5. Click portal buttons in sidebar to open them in new tabs
-
-**Features:**
-- Custom logo support for each portal
-- Edit existing portals (click pencil icon)
-- Delete portals (click trash icon)
-- Data persisted in browser localStorage
+Features:
+- Search and filter by tier
+- Multi-select companies and bulk-open career pages
+- Add custom career links per company
+- Add external job portals (LinkedIn, Handshake, etc.) with logos
+- Click company name to copy to clipboard
 
 ---
 
@@ -201,82 +156,140 @@ Add quick-access links to external job boards like Handshake, LinkedIn, etc.:
 ```
 src/
 ├── app/
-│   ├── page.tsx          # Resume tailoring homepage
-│   ├── tailored/         # Tailored output page
-│   ├── questions/        # Application Q&A page
-│   ├── jobs/             # H-1B company browser
-│   ├── job-listings/     # Scraped job listings
+│   ├── page.tsx               # Homepage — resume input & tailoring
+│   ├── tailored/              # Tailored output with LaTeX preview
+│   ├── questions/             # Application Q&A
+│   ├── jobs/                  # H-1B company browser
+│   ├── batch/                 # Batch processing
+│   ├── admin/                 # Admin panel
+│   ├── migrate/               # localStorage → cloud migration
 │   └── api/
-│       ├── jobs/         # Jobs scraping API
-│       ├── company-links/# Custom career links API
-│       ├── tailor/       # Resume tailoring API
-│       ├── tailor-cover-letter/  # Cover letter API
-│       ├── research/     # Company research API
-│       ├── answers/      # Q&A generation API
-│       ├── top-tier/     # Top-tier companies API
-│       ├── middle-tier/  # Middle-tier companies API
-│       ├── lower-tier/   # Lower-tier companies API
-│       └── lowest-tier/  # Lowest-tier companies API
-├── components/           # React components
+│       ├── tailor/            # Resume tailoring
+│       ├── tailor-cover-letter/ # Cover letter generation
+│       ├── answers/           # Q&A generation
+│       ├── ask/               # General questions
+│       ├── emails/            # Cold/referral email generation
+│       ├── regenerate/        # Regenerate with feedback
+│       ├── extract-job/       # Extract job info from URL
+│       ├── sheets/            # Google Sheets logging
+│       ├── latex-preview/     # LaTeX → PDF compilation
+│       ├── queue/             # Job processing queue
+│       ├── profiles/          # User profiles CRUD
+│       ├── storage/           # Cloud storage (Redis)
+│       ├── master-context/    # Saved research context
+│       ├── admin/users/       # Admin data management
+│       ├── companies/         # Company data
+│       ├── company-links/     # Custom career links
+│       ├── jobs/              # Discovered job listings
+│       ├── top-tier/          # Top-tier companies
+│       ├── middle-tier/       # Middle-tier companies
+│       ├── lower-tier/        # Lower-tier companies
+│       ├── lowest-tier/       # Lowest-tier companies
+│       └── health/            # Health check
+├── components/                # React components
 ├── lib/
-│   ├── scrapers/         # ATS platform scrapers
-│   └── gemini.ts         # AI integration
+│   ├── ai-providers/          # DeepSeek AI integration
+│   ├── prompts/               # AI prompt templates
+│   ├── scrapers/              # ATS platform scrapers
+│   ├── db.ts                  # Redis database layer
+│   ├── storage.ts             # Cloud/local storage
+│   ├── api-key.ts             # API key resolution (env → cookie)
+│   ├── admin-auth.ts          # Admin authentication
+│   ├── client-admin.ts        # Client-side admin key management
+│   ├── auth.ts                # Google service account auth
+│   ├── config.ts              # Centralized config
+│   ├── cors.ts                # CORS headers
+│   ├── rate-limit.ts          # Rate limiting (Redis-backed)
+│   └── sanitize.ts            # Input sanitization
 └── scripts/
-    └── parse-dol.ts      # DOL LCA parser
+    └── seed-redis.ts          # Redis data seeding
 
 data/
-├── top-tier.json         # 33 top H-1B sponsors
-├── middle-tier.json      # 36 middle-tier sponsors
-├── lower-tier.json       # 298 lower-tier sponsors
-├── lowest-tier.json      # 365 lowest-tier sponsors
-└── jobs.json             # Scraped job listings
-
-docs/
-├── module-1-dol-parser.md  # DOL preprocessing guide
-├── module-2-dashboard.md   # Dashboard documentation
-└── module-3-scraper.md     # Scraper documentation
+├── top-tier.json              # 33 top H-1B sponsors
+├── middle-tier.json           # 36 middle-tier sponsors
+├── lower-tier.json            # 298 lower-tier sponsors
+├── lowest-tier.json           # 365 lowest-tier sponsors
+└── jobs.json                  # Scraped job listings
 ```
 
 ---
 
-## Branches
+## Environment Variables
 
-| Branch                        | Status   | Description       |
-| ----------------------------- | -------- | ----------------- |
-| `main`                        | Stable   | Production        |
-| `feature/module-1-dol-parser` | Complete | DOL data pipeline |
-| `feature/module-2-dashboard`  | Complete | Job dashboard     |
-| `feature/module-3-scraper`    | Complete | Career scraper    |
+### For local development (`.env.local`):
+
+```bash
+# Required
+DEEPSEEK_API_KEY=sk-your-key
+
+# Optional — Google Sheets
+GOOGLE_SPREADSHEET_ID=
+GOOGLE_SERVICE_ACCOUNT_KEY=
+
+# Optional — Admin protection
+ADMIN_API_KEY=
+```
+
+### For Vercel deployment (set in Dashboard → Settings → Environment Variables):
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `DEEPSEEK_API_KEY` | Yes | DeepSeek AI API key |
+| `KV_REST_API_URL` | Yes (Vercel) | Upstash Redis URL |
+| `KV_REST_API_TOKEN` | Yes (Vercel) | Upstash Redis token |
+| `GOOGLE_SPREADSHEET_ID` | Optional | Google Sheet ID for tracking |
+| `GOOGLE_SERVICE_ACCOUNT_KEY` | Optional | Google service account JSON (single line) |
+| `ADMIN_API_KEY` | Optional | Protects admin/sheets/storage routes |
+
+All other variables (scraping config, roles, keywords) have sensible defaults in `src/lib/config.ts` and don't need to be set.
 
 ---
 
-## Data Sources
+## Deployment
 
-- **DOL LCA Data**: https://www.dol.gov/agencies/eta/foreign-labor/performance
-- FY2025 Q1-Q4 combined (H-1B/E-3 tech roles only)
+```bash
+npm install -g vercel
+vercel
+```
 
----
+Add the environment variables from the table above in the Vercel dashboard.
 
-## Recent Updates (January 2026)
+After deploying, open your browser DevTools Console and run:
 
-### External Job Portals
-- Added ability to save external job portal links (Handshake, LinkedIn, Indeed, etc.)
-- Logo/icon support for portals
-- Edit and delete functionality for saved portals
+```javascript
+localStorage.setItem('fd_admin_key', 'your-admin-key-from-env')
+localStorage.setItem('fd_deepseek_api_key', 'sk-your-deepseek-key')
+```
 
-### Compact Sidebar UI
-- Tier filter buttons now in 2-column grid layout
-- Combined Selection, Bulk Actions, and Navigation into "Quick Actions"
-- Buttons use flex layout with 1/4 icon and 3/4 text
-- Reduced vertical space usage for better UX
-
-### Copy Company Name
-- Click on company name to copy to clipboard
-- Visual feedback on successful copy
+This stores the keys in your browser so the client can send them with API requests.
 
 ---
 
 ## Security
 
-- Never commit `.env.local` or service account JSON files
-- Large data files (CSV, Excel) are gitignored
+- API keys and credentials are **never** in source code — always in environment variables
+- Admin routes (`/api/admin/*`, `/api/sheets`, `/api/storage`) require `ADMIN_API_KEY`
+- Rate limiting on all API endpoints (Redis-backed in production)
+- Input sanitization against prompt injection and LaTeX attacks
+- CORS restricted to configured origins
+- All user data (resumes, templates, profiles) stored in localStorage/Redis — not in code
+- `.env.local`, `*.pem`, and credential files are gitignored
+
+---
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **UI**: React 19, Tailwind CSS 4
+- **AI**: DeepSeek V4 Flash
+- **Database**: Upstash Redis
+- **Auth**: Admin API key (x-api-key / Bearer)
+- **Testing**: Bun test
+- **CI/CD**: GitHub Actions, Husky pre-commit hooks
+- **Deploy**: Vercel
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.

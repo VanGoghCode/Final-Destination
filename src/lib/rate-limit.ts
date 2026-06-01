@@ -35,10 +35,9 @@ async function getRedisRateLimiter() {
   if (redisPromise !== null) return redisPromise;
   redisPromise = (async () => {
     try {
-      if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-        // Use Upstash Redis REST API directly (avoids extra dep)
-        const base = process.env.UPSTASH_REDIS_REST_URL;
-        const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+      if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+        const base = process.env.KV_REST_API_URL;
+        const token = process.env.KV_REST_API_TOKEN;
         return {
           async get(key: string) {
             const res = await fetch(`${base}/get/${key}`, {
