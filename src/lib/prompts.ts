@@ -41,77 +41,140 @@ export function getCompanyResearchPrompt(): string {
 }
 
 export function getResumeTailoringPrompt(
-  resumeLatex: string, jobDescription: string, personalDetails: string, companyInfo: string,
+  resumeLatex: string,
+  jobDescription: string,
+  personalDetails: string,
+  companyInfo: string,
 ): string {
   const { system, user } = buildResumePrompt({
-    masterContext: "", resumeLatex, jobDescription, personalDetails, manualResearch: companyInfo || undefined,
+    masterContext: "",
+    resumeLatex,
+    jobDescription,
+    personalDetails,
+    manualResearch: companyInfo || undefined,
   });
   return system + "\n\n" + user;
 }
 
 export function getCoverLetterTailoringPrompt(
-  coverLetterLatex: string, jobDescription: string, personalDetails: string, companyInfo: string,
+  coverLetterLatex: string,
+  jobDescription: string,
+  personalDetails: string,
+  companyInfo: string,
 ): string {
   const { system, user } = buildCoverLetterPrompt({
-    masterContext: "", coverLetterLatex, jobDescription, personalDetails, manualResearch: companyInfo || undefined,
+    masterContext: "",
+    coverLetterLatex,
+    jobDescription,
+    personalDetails,
+    manualResearch: companyInfo || undefined,
   });
   return system + "\n\n" + user;
 }
 
 export function getAnswerGenerationPrompt(
-  questions: string, tailoredResume: string, tailoredCoverLetter: string | undefined,
-  jobDescription: string, _companyInfo: string,
+  questions: string,
+  tailoredResume: string,
+  tailoredCoverLetter: string | undefined,
+  jobDescription: string,
+  companyInfo: string,
 ): string {
+  void companyInfo;
   const { system, user } = buildAnswersPrompt({
-    masterContext: "", questions, tailoredResume, tailoredCoverLetter, jobDescription,
+    masterContext: "",
+    questions,
+    tailoredResume,
+    tailoredCoverLetter,
+    jobDescription,
   });
   return system + "\n\n" + user;
 }
 
 export function getColdEmailPrompt(
-  positionTitle: string, companyName: string, jobDescription: string, _companyInfo: string,
-  tailoredResume: string, tailoredCoverLetter: string,
+  positionTitle: string,
+  companyName: string,
+  jobDescription: string,
+  _companyInfo: string,
+  tailoredResume: string,
+  tailoredCoverLetter: string,
 ): string {
   const { system, user } = buildColdEmailPrompt({
-    masterContext: "", positionTitle, companyName, jobDescription, tailoredResume, tailoredCoverLetter,
+    masterContext: "",
+    positionTitle,
+    companyName,
+    jobDescription,
+    tailoredResume,
+    tailoredCoverLetter,
   });
   return system + "\n\n" + user;
 }
 
 export function getReferenceEmailPrompt(
-  positionTitle: string, companyName: string, jobDescription: string, _companyInfo: string,
+  positionTitle: string,
+  companyName: string,
+  jobDescription: string,
+  _companyInfo: string,
   tailoredResume: string,
 ): string {
   const { system, user } = buildReferenceEmailPrompt({
-    masterContext: "", positionTitle, companyName, jobDescription, tailoredResume, tailoredCoverLetter: "",
+    masterContext: "",
+    positionTitle,
+    companyName,
+    jobDescription,
+    tailoredResume,
+    tailoredCoverLetter: "",
   });
   return system + "\n\n" + user;
 }
 
 export function getResumeRegenerationPrompt(
-  userComment: string, currentContent: string, originalLatex: string,
-  jobDescription: string, personalDetails: string, companyInfo: string,
+  userComment: string,
+  currentContent: string,
+  originalLatex: string,
+  jobDescription: string,
+  personalDetails: string,
+  companyInfo: string,
 ): string {
   const { system, user } = buildResumeRegenerationPrompt({
-    userComment, currentContent, originalLatex, jobDescription, personalDetails, masterContext: companyInfo || "",
+    userComment,
+    currentContent,
+    originalLatex,
+    jobDescription,
+    personalDetails,
+    masterContext: companyInfo || "",
   });
   return system + "\n\n" + user;
 }
 
 export function getCoverLetterRegenerationPrompt(
-  userComment: string, currentContent: string, originalLatex: string,
-  jobDescription: string, personalDetails: string, companyInfo: string,
+  userComment: string,
+  currentContent: string,
+  originalLatex: string,
+  jobDescription: string,
+  personalDetails: string,
+  companyInfo: string,
 ): string {
   const { system, user } = buildCoverLetterRegenerationPrompt({
-    userComment, currentContent, originalLatex, jobDescription, personalDetails, masterContext: companyInfo || "",
+    userComment,
+    currentContent,
+    originalLatex,
+    jobDescription,
+    personalDetails,
+    masterContext: companyInfo || "",
   });
   return system + "\n\n" + user;
 }
 
 export function getAnswerRegenerationPrompt(
-  userComment: string, currentContent: string, questions: string,
-  tailoredResume: string, tailoredCoverLetter: string, jobDescription: string, _companyInfo: string,
+  userComment: string,
+  currentContent: string,
+  questions: string,
+  tailoredResume: string,
+  tailoredCoverLetter: string,
+  jobDescription: string,
+  companyInfo: string,
 ): string {
+  void companyInfo;
   return `You are an expert career coach. Apply feedback.
 
 ## USER'S FEEDBACK:
@@ -133,11 +196,19 @@ Apply feedback. Maintain 70% formal + 30% informal tone. Keep Question/Answer fo
 }
 
 export function getEmailRegenerationPrompt(
-  emailType: "coldEmail" | "referenceEmail", userComment: string, currentContent: string,
-  positionTitle: string, companyName: string, jobDescription: string, _companyInfo: string,
+  emailType: "coldEmail" | "referenceEmail",
+  userComment: string,
+  currentContent: string,
+  positionTitle: string,
+  companyName: string,
+  jobDescription: string,
+  _companyInfo: string,
   tailoredResume: string,
 ): string {
-  const desc = emailType === "coldEmail" ? "cold outreach email to a hiring authority" : "referral request email to an employee";
+  const desc =
+    emailType === "coldEmail"
+      ? "cold outreach email to a hiring authority"
+      : "referral request email to an employee";
   return `You are helping rewrite a ${desc}.
 
 ## USER'S FEEDBACK:
@@ -157,36 +228,67 @@ Apply feedback. Keep 100-200 words. 70% formal + 30% informal. Sound human. Do N
 }
 
 export function getGeneralQuestionPrompt(
-  question: string, tailoredResume: string, tailoredCoverLetter: string,
-  positionTitle: string, companyName: string, jobDescription: string, companyInfo: string,
-  limitType?: "words" | "characters", limitValue?: number,
+  question: string,
+  tailoredResume: string,
+  tailoredCoverLetter: string,
+  positionTitle: string,
+  companyName: string,
+  jobDescription: string,
+  companyInfo: string,
+  limitType?: "words" | "characters",
+  limitValue?: number,
 ): string {
   const { system, user } = buildQuestionPrompt({
-    masterContext: companyInfo || "", question, tailoredResume, tailoredCoverLetter,
-    positionTitle, companyName, jobDescription, limitType, limitValue,
+    masterContext: companyInfo || "",
+    question,
+    tailoredResume,
+    tailoredCoverLetter,
+    positionTitle,
+    companyName,
+    jobDescription,
+    limitType,
+    limitValue,
   });
   return system + "\n\n" + user;
 }
 
 export function getInternetAnswerPrompt(
-  question: string, tailoredResume: string, tailoredCoverLetter: string,
-  positionTitle: string, companyName: string, jobDescription: string, companyInfo: string,
-  limitType?: "words" | "characters", limitValue?: number,
+  question: string,
+  tailoredResume: string,
+  tailoredCoverLetter: string,
+  positionTitle: string,
+  companyName: string,
+  jobDescription: string,
+  companyInfo: string,
+  limitType?: "words" | "characters",
+  limitValue?: number,
 ): string {
   const { system, user } = buildInternetQuestionPrompt({
-    masterContext: companyInfo || "", question, tailoredResume, tailoredCoverLetter,
-    positionTitle, companyName, jobDescription, limitType, limitValue,
+    masterContext: companyInfo || "",
+    question,
+    tailoredResume,
+    tailoredCoverLetter,
+    positionTitle,
+    companyName,
+    jobDescription,
+    limitType,
+    limitValue,
   });
   return system + "\n\n" + user;
 }
 
 export function getInternetOnlyAnswerPrompt(
-  question: string, companyName?: string, positionTitle?: string,
-  limitType?: "words" | "characters", limitValue?: number,
+  question: string,
+  companyName?: string,
+  positionTitle?: string,
+  limitType?: "words" | "characters",
+  limitValue?: number,
 ): string {
-  const limit = limitType && limitValue ? `\nIMPORTANT: Answer MUST be within ${limitValue} ${limitType}.` : "";
-  const ctx = companyName || positionTitle
-    ? `\n\n## CONTEXT HINT:\nResearching for ${positionTitle || "position"} at ${companyName || "a company"}.`
-    : "";
+  const limit =
+    limitType && limitValue ? `\nIMPORTANT: Answer MUST be within ${limitValue} ${limitType}.` : "";
+  const ctx =
+    companyName || positionTitle
+      ? `\n\n## CONTEXT HINT:\nResearching for ${positionTitle || "position"} at ${companyName || "a company"}.`
+      : "";
   return `You are a helpful research assistant.${ctx}\n\n## QUESTION:\n${question}\n\n## INSTRUCTIONS:\nProvide a clear, accurate answer. Use natural tone. Do NOT use ** or em dashes.${limit}`;
 }

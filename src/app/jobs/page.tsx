@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Button from "@/components/Button";
 import Sidebar from "@/components/Sidebar";
@@ -45,7 +46,7 @@ export default function JobsPage() {
   const [selectedTier, setSelectedTier] = useState<string>("all");
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
-  
+
   // Link management modal state
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [linkModalCompany, setLinkModalCompany] = useState<Company | null>(null);
@@ -53,36 +54,38 @@ export default function JobsPage() {
   const [newLink, setNewLink] = useState("");
   const [savingLinks, setSavingLinks] = useState(false);
   const newLinkInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Track which companies have POC info revealed
   const [revealedPOC, setRevealedPOC] = useState<Set<string>>(new Set());
-  
+
   // Track which company name was just copied (for visual feedback)
   const [copiedCompanyId, setCopiedCompanyId] = useState<string | null>(null);
-  
+
   // External portal links state
-  const [externalPortals, setExternalPortals] = useState<{name: string, url: string, logo?: string}[]>([]);
+  const [externalPortals, setExternalPortals] = useState<
+    { name: string; url: string; logo?: string }[]
+  >([]);
   const [portalModalOpen, setPortalModalOpen] = useState(false);
   const [newPortalName, setNewPortalName] = useState("");
   const [newPortalUrl, setNewPortalUrl] = useState("");
   const [newPortalLogo, setNewPortalLogo] = useState("");
   const [editingPortalIndex, setEditingPortalIndex] = useState<number | null>(null);
   const newPortalNameRef = useRef<HTMLInputElement>(null);
-  
+
   // Auto-focus when link modal opens
   useEffect(() => {
     if (linkModalOpen) {
       setTimeout(() => newLinkInputRef.current?.focus(), 100);
     }
   }, [linkModalOpen]);
-  
+
   // Auto-focus when portal modal opens
   useEffect(() => {
     if (portalModalOpen) {
       setTimeout(() => newPortalNameRef.current?.focus(), 100);
     }
   }, [portalModalOpen]);
-  
+
   // Load external portals from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem("externalJobPortals");
@@ -94,40 +97,40 @@ export default function JobsPage() {
       }
     }
   }, []);
-  
+
   // Save external portals to localStorage when changed
-  const saveExternalPortals = (portals: {name: string, url: string, logo?: string}[]) => {
+  const saveExternalPortals = (portals: { name: string; url: string; logo?: string }[]) => {
     setExternalPortals(portals);
     localStorage.setItem("externalJobPortals", JSON.stringify(portals));
   };
-  
+
   const addExternalPortal = () => {
     if (newPortalName.trim() && newPortalUrl.trim()) {
-      const newPortal: {name: string, url: string, logo?: string} = { 
-        name: newPortalName.trim(), 
-        url: newPortalUrl.trim() 
+      const newPortal: { name: string; url: string; logo?: string } = {
+        name: newPortalName.trim(),
+        url: newPortalUrl.trim(),
       };
       if (newPortalLogo.trim()) {
         newPortal.logo = newPortalLogo.trim();
       }
-      
+
       let newPortals;
       if (editingPortalIndex !== null) {
         // Edit mode - update existing portal
-        newPortals = externalPortals.map((p, i) => i === editingPortalIndex ? newPortal : p);
+        newPortals = externalPortals.map((p, i) => (i === editingPortalIndex ? newPortal : p));
         setEditingPortalIndex(null);
       } else {
         // Add mode - add new portal
         newPortals = [...externalPortals, newPortal];
       }
-      
+
       saveExternalPortals(newPortals);
       setNewPortalName("");
       setNewPortalUrl("");
       setNewPortalLogo("");
     }
   };
-  
+
   const startEditPortal = (index: number) => {
     const portal = externalPortals[index];
     if (!portal) return;
@@ -136,14 +139,14 @@ export default function JobsPage() {
     setNewPortalLogo(portal.logo || "");
     setEditingPortalIndex(index);
   };
-  
+
   const cancelEditPortal = () => {
     setEditingPortalIndex(null);
     setNewPortalName("");
     setNewPortalUrl("");
     setNewPortalLogo("");
   };
-  
+
   const removeExternalPortal = (index: number) => {
     const newPortals = externalPortals.filter((_, i) => i !== index);
     saveExternalPortals(newPortals);
@@ -151,10 +154,10 @@ export default function JobsPage() {
       cancelEditPortal();
     }
   };
-  
+
   const togglePOCVisibility = (companyId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setRevealedPOC(prev => {
+    setRevealedPOC((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(companyId)) {
         newSet.delete(companyId);
@@ -164,7 +167,7 @@ export default function JobsPage() {
       return newSet;
     });
   };
-  
+
   const copyCompanyName = async (companyId: string, companyName: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
@@ -172,7 +175,7 @@ export default function JobsPage() {
       setCopiedCompanyId(companyId);
       setTimeout(() => setCopiedCompanyId(null), 1500);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      console.error("Failed to copy:", err);
     }
   };
 
@@ -257,9 +260,10 @@ export default function JobsPage() {
 
   const openAllCompanyPages = () => {
     // If companies are selected, open only selected ones
-    const companiesToOpen = selectedCompanies.size > 0
-      ? filteredCompanies.filter((c) => selectedCompanies.has(c.id))
-      : filteredCompanies;
+    const companiesToOpen =
+      selectedCompanies.size > 0
+        ? filteredCompanies.filter((c) => selectedCompanies.has(c.id))
+        : filteredCompanies;
 
     let delay = 0;
     companiesToOpen.forEach((company) => {
@@ -305,7 +309,7 @@ export default function JobsPage() {
 
   const saveLinks = async () => {
     if (!linkModalCompany) return;
-    
+
     setSavingLinks(true);
     try {
       const response = await fetch("/api/company-links", {
@@ -322,12 +326,12 @@ export default function JobsPage() {
       }
 
       // Update local state - now updating careerUrls directly
-      setCompanies(companies.map((c) => 
-        c.id === linkModalCompany.id 
-          ? { ...c, careerUrls: editingLinks }
-          : c
-      ));
-      
+      setCompanies(
+        companies.map((c) =>
+          c.id === linkModalCompany.id ? { ...c, careerUrls: editingLinks } : c,
+        ),
+      );
+
       closeLinkModal();
     } catch (error) {
       console.error("Failed to save links:", error);
@@ -382,15 +386,16 @@ export default function JobsPage() {
 
   // Calculate tabs count for selected or all companies
   const getTabsCount = () => {
-    const companiesToCount = selectedCompanies.size > 0
-      ? filteredCompanies.filter((c) => selectedCompanies.has(c.id))
-      : filteredCompanies;
+    const companiesToCount =
+      selectedCompanies.size > 0
+        ? filteredCompanies.filter((c) => selectedCompanies.has(c.id))
+        : filteredCompanies;
     return companiesToCount.reduce((acc, c) => acc + getAllCareerUrls(c).length, 0);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="spinner-large mx-auto mb-4"></div>
           <p className="text-muted">Loading H-1B companies...</p>
@@ -401,7 +406,7 @@ export default function JobsPage() {
 
   if (!companies.length && !loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-red-500">Failed to load companies data</p>
       </div>
     );
@@ -413,18 +418,25 @@ export default function JobsPage() {
   const lowestCount = companies.filter((c) => c.tier === "lowest").length;
 
   return (
-    <div className="min-h-screen flex">
+    <div className="flex min-h-screen">
       {/* Collapsible Sidebar */}
       <Sidebar title="H-1B Companies" subtitle={`${companies.length} companies total`}>
         {/* Navigation Actions */}
-        <div className="p-4 border-b border-gray-100">
+        <div className="border-b border-gray-100 p-4">
           <div className="flex gap-2">
             <Button
               onClick={() => router.push("/")}
               variant="secondary"
-              className="flex-1 text-xs py-2"
+              className="flex-1 py-2 text-xs"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                 <polyline points="9 22 9 12 15 12 15 22" />
               </svg>
@@ -433,9 +445,16 @@ export default function JobsPage() {
             <Button
               onClick={() => router.push("/tailored")}
               variant="secondary"
-              className="flex-1 text-xs py-2"
+              className="flex-1 py-2 text-xs"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
               </svg>
@@ -444,9 +463,16 @@ export default function JobsPage() {
             <Button
               onClick={() => router.push("/questions")}
               variant="secondary"
-              className="flex-1 text-xs py-2"
+              className="flex-1 py-2 text-xs"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <circle cx="12" cy="12" r="10" />
                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
                 <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -457,234 +483,267 @@ export default function JobsPage() {
         </div>
 
         {/* Sidebar Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-            {/* Search */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search Companies
-              </label>
-              <div className="relative">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+        <div className="flex-1 space-y-6 overflow-y-auto p-4">
+          {/* Search */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Search Companies</label>
+            <div className="relative">
+              <svg
+                className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search by name, city, state..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="focus:border-primary focus:ring-primary/20 w-full rounded-lg border border-gray-200 py-2.5 pr-4 pl-9 text-sm transition-all outline-none focus:ring-2"
+              />
+            </div>
+          </div>
+
+          {/* Tier Filters - Compact Grid */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Filter by Tier</label>
+            <div className="grid grid-cols-2 gap-1.5">
+              <Button
+                onClick={() => setSelectedTier("all")}
+                variant="ghost"
+                className={`col-span-2 flex items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
+                  selectedTier === "all"
+                    ? "bg-primary text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                <span>All</span>
+                <span className="opacity-75">{companies.length}</span>
+              </Button>
+              <Button
+                onClick={() => setSelectedTier("top")}
+                variant="ghost"
+                className={`flex items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
+                  selectedTier === "top"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                }`}
+              >
+                <span>Top</span>
+                <span className="opacity-75">{topCount}</span>
+              </Button>
+              <Button
+                onClick={() => setSelectedTier("middle")}
+                variant="ghost"
+                className={`flex items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
+                  selectedTier === "middle"
+                    ? "bg-blue-600 text-white"
+                    : "bg-blue-50 text-blue-800 hover:bg-blue-100"
+                }`}
+              >
+                <span>Middle</span>
+                <span className="opacity-75">{middleCount}</span>
+              </Button>
+              <Button
+                onClick={() => setSelectedTier("lower")}
+                variant="ghost"
+                className={`flex items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
+                  selectedTier === "lower"
+                    ? "bg-amber-600 text-white"
+                    : "bg-amber-50 text-amber-800 hover:bg-amber-100"
+                }`}
+              >
+                <span>Lower</span>
+                <span className="opacity-75">{lowerCount}</span>
+              </Button>
+              <Button
+                onClick={() => setSelectedTier("lowest")}
+                variant="ghost"
+                className={`flex items-center justify-between rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
+                  selectedTier === "lowest"
+                    ? "bg-purple-600 text-white"
+                    : "bg-purple-50 text-purple-800 hover:bg-purple-100"
+                }`}
+              >
+                <span>Lowest</span>
+                <span className="opacity-75">{lowestCount}</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Quick Actions - Compact */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Quick Actions</label>
+            <div className="grid grid-cols-2 gap-1.5">
+              <Button
+                onClick={selectAll}
+                variant="secondary"
+                className="flex items-center px-2 py-1.5 text-xs"
+                title="Select All Visible"
+              >
+                <span className="flex w-1/4 justify-center">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </span>
+                <span className="w-3/4 truncate text-left">Select All</span>
+              </Button>
+              {selectedCompanies.size > 0 ? (
+                <Button
+                  onClick={clearSelection}
+                  variant="secondary"
+                  className="flex items-center px-2 py-1.5 text-xs"
+                  title="Clear Selection"
                 >
+                  <span className="flex w-1/4 justify-center">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </span>
+                  <span className="w-3/4 truncate text-left">Clear ({selectedCompanies.size})</span>
+                </Button>
+              ) : (
+                <Button
+                  as="a"
+                  href="/job-listings"
+                  variant="secondary"
+                  className="flex items-center px-2 py-1.5 text-xs"
+                  title="View Scraped Jobs"
+                >
+                  <span className="flex w-1/4 justify-center">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </span>
+                  <span className="w-3/4 truncate text-left">Scraped Jobs</span>
+                </Button>
+              )}
+              <Button
+                onClick={openAllCompanyPages}
+                variant={selectedCompanies.size > 0 ? "primary" : "secondary"}
+                className="col-span-2 flex items-center px-2 py-1.5 text-xs"
+                title={
+                  selectedCompanies.size > 0 ? "Open Selected Companies" : "Open All Companies"
+                }
+              >
+                <span className="mr-2 flex w-1/8 justify-center">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                </span>
+                <span className="flex-1 truncate text-left">
+                  {selectedCompanies.size > 0
+                    ? `Open Selected (${getTabsCount()} tabs)`
+                    : `Open All (${getTabsCount()} tabs)`}
+                </span>
+              </Button>
+            </div>
+          </div>
+
+          {/* External Job Portals */}
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-700">External Portals</label>
+              <Button
+                onClick={() => setPortalModalOpen(true)}
+                variant="ghost"
+                className="text-primary hover:text-primary/80 flex items-center gap-1 text-xs"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    d="M12 4v16m8-8H4"
                   />
                 </svg>
-                <input
-                  type="text"
-                  placeholder="Search by name, city, state..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm"
-                />
-              </div>
+                Add
+              </Button>
             </div>
-
-            {/* Tier Filters - Compact Grid */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Filter by Tier
-              </label>
+            {externalPortals.length > 0 ? (
               <div className="grid grid-cols-2 gap-1.5">
-                <Button
-                  onClick={() => setSelectedTier("all")}
-                  variant="ghost"
-                  className={`col-span-2 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors flex justify-between items-center ${
-                    selectedTier === "all"
-                      ? "bg-primary text-white"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                  }`}
-                >
-                  <span>All</span>
-                  <span className="opacity-75">{companies.length}</span>
-                </Button>
-                <Button
-                  onClick={() => setSelectedTier("top")}
-                  variant="ghost"
-                  className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors flex justify-between items-center ${
-                    selectedTier === "top"
-                      ? "bg-emerald-600 text-white"
-                      : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800"
-                  }`}
-                >
-                  <span>Top</span>
-                  <span className="opacity-75">{topCount}</span>
-                </Button>
-                <Button
-                  onClick={() => setSelectedTier("middle")}
-                  variant="ghost"
-                  className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors flex justify-between items-center ${
-                    selectedTier === "middle"
-                      ? "bg-blue-600 text-white"
-                      : "bg-blue-50 hover:bg-blue-100 text-blue-800"
-                  }`}
-                >
-                  <span>Middle</span>
-                  <span className="opacity-75">{middleCount}</span>
-                </Button>
-                <Button
-                  onClick={() => setSelectedTier("lower")}
-                  variant="ghost"
-                  className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors flex justify-between items-center ${
-                    selectedTier === "lower"
-                      ? "bg-amber-600 text-white"
-                      : "bg-amber-50 hover:bg-amber-100 text-amber-800"
-                  }`}
-                >
-                  <span>Lower</span>
-                  <span className="opacity-75">{lowerCount}</span>
-                </Button>
-                <Button
-                  onClick={() => setSelectedTier("lowest")}
-                  variant="ghost"
-                  className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-colors flex justify-between items-center ${
-                    selectedTier === "lowest"
-                      ? "bg-purple-600 text-white"
-                      : "bg-purple-50 hover:bg-purple-100 text-purple-800"
-                  }`}
-                >
-                  <span>Lowest</span>
-                  <span className="opacity-75">{lowestCount}</span>
-                </Button>
-              </div>
-            </div>
-
-            {/* Quick Actions - Compact */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Quick Actions
-              </label>
-              <div className="grid grid-cols-2 gap-1.5">
-                <Button
-                  onClick={selectAll}
-                  variant="secondary"
-                  className="flex items-center text-xs py-1.5 px-2"
-                  title="Select All Visible"
-                >
-                  <span className="w-1/4 flex justify-center">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </span>
-                  <span className="w-3/4 text-left truncate">Select All</span>
-                </Button>
-                {selectedCompanies.size > 0 ? (
+                {externalPortals.map((portal, index) => (
                   <Button
-                    onClick={clearSelection}
-                    variant="secondary"
-                    className="flex items-center text-xs py-1.5 px-2"
-                    title="Clear Selection"
-                  >
-                    <span className="w-1/4 flex justify-center">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </span>
-                    <span className="w-3/4 text-left truncate">Clear ({selectedCompanies.size})</span>
-                  </Button>
-                ) : (
-                  <Button
+                    key={index}
                     as="a"
-                    href="/job-listings"
+                    href={portal.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     variant="secondary"
-                    className="flex items-center text-xs py-1.5 px-2"
-                    title="View Scraped Jobs"
+                    className="flex items-center px-2 py-1.5 text-xs"
+                    title={portal.url}
                   >
-                    <span className="w-1/4 flex justify-center">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
+                    <span className="flex w-1/4 justify-center">
+                      {portal.logo ? (
+                        <Image
+                          src={portal.logo}
+                          alt=""
+                          width={16}
+                          height={16}
+                          className="rounded-sm object-contain"
+                        />
+                      ) : (
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                          />
+                        </svg>
+                      )}
                     </span>
-                    <span className="w-3/4 text-left truncate">Scraped Jobs</span>
+                    <span className="w-3/4 truncate text-left">{portal.name}</span>
                   </Button>
-                )}
-                <Button
-                  onClick={openAllCompanyPages}
-                  variant={selectedCompanies.size > 0 ? "primary" : "secondary"}
-                  className="col-span-2 flex items-center text-xs py-1.5 px-2"
-                  title={selectedCompanies.size > 0 ? "Open Selected Companies" : "Open All Companies"}
-                >
-                  <span className="w-1/8 flex justify-center mr-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </span>
-                  <span className="flex-1 text-left truncate">
-                    {selectedCompanies.size > 0
-                      ? `Open Selected (${getTabsCount()} tabs)`
-                      : `Open All (${getTabsCount()} tabs)`}
-                  </span>
-                </Button>
+                ))}
               </div>
-            </div>
-
-            {/* External Job Portals */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  External Portals
-                </label>
-                <Button
-                  onClick={() => setPortalModalOpen(true)}
-                  variant="ghost"
-                  className="text-xs text-primary hover:text-primary/80 flex items-center gap-1"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add
-                </Button>
-              </div>
-              {externalPortals.length > 0 ? (
-                <div className="grid grid-cols-2 gap-1.5">
-                  {externalPortals.map((portal, index) => (
-                    <Button
-                      key={index}
-                      as="a"
-                      href={portal.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      variant="secondary"
-                      className="flex items-center text-xs py-1.5 px-2"
-                      title={portal.url}
-                    >
-                      <span className="w-1/4 flex justify-center">
-                        {portal.logo ? (
-                          <img src={portal.logo} alt="" className="w-4 h-4 rounded-sm object-contain" />
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                        )}
-                      </span>
-                      <span className="w-3/4 text-left truncate">{portal.name}</span>
-                    </Button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-muted text-center py-2 bg-gray-50 rounded-lg">
-                  No external portals added yet
-                </p>
-              )}
-            </div>
+            ) : (
+              <p className="text-muted rounded-lg bg-gray-50 py-2 text-center text-xs">
+                No external portals added yet
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Sidebar Footer - Stats */}
-        <div className="p-4 border-t border-gray-100 bg-gray-50">
-          <div className="text-sm text-muted">
-            <span className="font-medium text-gray-900">
-              {filteredCompanies.length}
-            </span>{" "}
-            of {companies.length} companies
+        <div className="border-t border-gray-100 bg-gray-50 p-4">
+          <div className="text-muted text-sm">
+            <span className="font-medium text-gray-900">{filteredCompanies.length}</span> of{" "}
+            {companies.length} companies
             {selectedCompanies.size > 0 && (
-              <span className="block text-primary font-medium mt-1">
+              <span className="text-primary mt-1 block font-medium">
                 {selectedCompanies.size} selected
               </span>
             )}
@@ -693,32 +752,185 @@ export default function JobsPage() {
       </Sidebar>
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         {/* Company List */}
         <div className="p-3 md:p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
-          {filteredCompanies.map((company, index) => (
-            <div
-              key={company.id}
-              onClick={(e) => handleCompanySelect(company, index, e)}
-              className={`relative glass-card p-4 md:p-5 flex flex-col cursor-pointer select-none ${
-                selectedCompanies.has(company.id)
-                  ? "ring-2 ring-primary bg-primary/5"
-                  : "hover:bg-blue-50 hover:border-blue-200"
-              }`}
-            >
-              {/* Selection checkbox indicator */}
-              <div className="absolute top-3 right-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredCompanies.map((company, index) => (
+              <div
+                key={company.id}
+                onClick={(e) => handleCompanySelect(company, index, e)}
+                className={`glass-card relative flex cursor-pointer flex-col p-4 select-none md:p-5 ${
+                  selectedCompanies.has(company.id)
+                    ? "ring-primary bg-primary/5 ring-2"
+                    : "hover:border-blue-200 hover:bg-blue-50"
+                }`}
+              >
+                {/* Selection checkbox indicator */}
+                <div className="absolute top-3 right-3">
+                  <div
+                    className={`flex h-5 w-5 items-center justify-center rounded border-2 transition-colors ${
+                      selectedCompanies.has(company.id)
+                        ? "bg-primary border-primary"
+                        : "hover:border-primary border-gray-300"
+                    }`}
+                  >
+                    {selectedCompanies.has(company.id) && (
+                      <svg
+                        className="h-3 w-3 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={3}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                {/* Company Info */}
+                <div className="mb-3 min-w-0 flex-1 pr-6 md:mb-4">
+                  <div className="mb-2 flex items-center gap-1.5 md:gap-2">
+                    <h2
+                      className={`hover:text-primary max-w-48 cursor-pointer truncate text-base leading-tight font-bold transition-all duration-200 md:max-w-56 md:text-lg lg:max-w-64 ${
+                        copiedCompanyId === company.id ? "scale-105 text-green-600" : ""
+                      }`}
+                      onClick={(e) => copyCompanyName(company.id, company.name, e)}
+                      title={`${company.name} (click to copy)`}
+                    >
+                      {copiedCompanyId === company.id ? "✓ Copied!" : company.name}
+                    </h2>
+                    <span className="shrink-0 rounded-full border border-emerald-300 bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 md:px-2 md:py-1 md:text-xs">
+                      {company.lcaCount.toLocaleString()} LCAs
+                    </span>
+                    {company.careerUrls && company.careerUrls.length > 0 && (
+                      <span className="flex shrink-0 items-center gap-1 rounded-full border border-blue-300 bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-800 md:px-2 md:py-1 md:text-xs">
+                        <svg
+                          className="h-2.5 w-2.5 md:h-3 md:w-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                          />
+                        </svg>
+                        {company.careerUrls.length} URLs
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-muted mb-2 text-xs md:text-sm">
+                    {company.city}, {company.state}
+                  </p>
+
+                  {/* POC Info - Hidden by default, revealed on button click */}
+                  {company.pocEmail && (
+                    <div className="mb-2 hidden sm:block">
+                      {revealedPOC.has(company.id) ? (
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                          <span className="font-medium text-gray-700">
+                            {company.pocFirstName} {company.pocLastName}
+                          </span>
+                          <a
+                            href={`mailto:${company.pocEmail}`}
+                            className="truncate text-blue-600 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {company.pocEmail}
+                          </a>
+                          <Button
+                            onClick={(e) => togglePOCVisibility(company.id, e)}
+                            variant="ghost"
+                            className="ml-auto text-xs text-gray-400 hover:text-gray-600"
+                            title="Hide contact"
+                          >
+                            <svg
+                              className="h-4 w-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                              />
+                            </svg>
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          onClick={(e) => togglePOCVisibility(company.id, e)}
+                          variant="ghost"
+                          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                        >
+                          <svg
+                            className="h-3.5 w-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            />
+                          </svg>
+                          Show Contact
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Quarterly Stats - Compact */}
+                <div className="mb-3 flex items-center justify-between gap-1.5 md:mb-4 md:gap-2">
+                  {["Q1", "Q2", "Q3", "Q4"].map((q) => (
+                    <div
+                      key={q}
+                      className="flex-1 rounded-lg bg-gray-50 px-2 py-1.5 text-center md:px-3 md:py-2"
+                    >
+                      <div className="text-muted text-[10px] md:text-xs">{q}</div>
+                      <div className="text-xs font-semibold md:text-sm">
+                        {(company[`lca${q}` as keyof Company] as number) || 0}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Actions */}
                 <div
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                    selectedCompanies.has(company.id)
-                      ? "bg-primary border-primary"
-                      : "border-gray-300 hover:border-primary"
-                  }`}
+                  className="flex items-center gap-1.5 md:gap-2"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  {selectedCompanies.has(company.id) && (
+                  <Button
+                    onClick={() => openAllCareerPages(company)}
+                    disabled={getAllCareerUrls(company).length === 0}
+                    variant="primary"
+                    className="flex flex-1 items-center justify-center gap-1.5 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50 md:gap-2 md:py-3 md:text-sm"
+                    title={
+                      getAllCareerUrls(company).length > 0
+                        ? `Open ${getAllCareerUrls(company).length} career page(s)`
+                        : "No career URLs - click + to add"
+                    }
+                  >
                     <svg
-                      className="w-3 h-3 text-white"
+                      className="h-3.5 w-3.5 md:h-4 md:w-4"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -726,286 +938,189 @@ export default function JobsPage() {
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M5 13l4 4L19 7"
+                        strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                       />
                     </svg>
-                  )}
+                    ({getAllCareerUrls(company).length})
+                  </Button>
+                  <Button
+                    onClick={() => openLinkModal(company)}
+                    variant="secondary"
+                    className="flex items-center gap-1 px-2 py-2 text-xs md:py-3 md:text-sm"
+                    title="Add or manage career page links"
+                  >
+                    <svg
+                      className="h-3.5 w-3.5 md:h-4 md:w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                  </Button>
+                  <Button
+                    as="a"
+                    href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(company.name + " recruiter")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    variant="secondary"
+                    className="hidden gap-2 px-2 py-2 text-xs sm:inline-flex md:py-3 md:text-sm"
+                    title="Find recruiters on LinkedIn"
+                  >
+                    <svg
+                      className="h-3.5 w-3.5 md:h-4 md:w-4"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                    </svg>
+                  </Button>
+                  <Button
+                    as="a"
+                    href={`https://www.google.com/search?q=${encodeURIComponent(company.name + " careers jobs")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    variant="secondary"
+                    className="hidden gap-2 px-2 py-2 text-xs sm:inline-flex md:py-3 md:text-sm"
+                    title="Search Google for career page"
+                  >
+                    <svg
+                      className="h-3.5 w-3.5 md:h-4 md:w-4"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                        fill="#4285F4"
+                      />
+                      <path
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                        fill="#34A853"
+                      />
+                      <path
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                        fill="#FBBC05"
+                      />
+                      <path
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                        fill="#EA4335"
+                      />
+                    </svg>
+                  </Button>
                 </div>
               </div>
-              {/* Company Info */}
-              <div className="flex-1 min-w-0 mb-3 md:mb-4 pr-6">
-                <div className="flex items-center gap-1.5 md:gap-2 mb-2">
-                  <h2 
-                    className={`font-bold text-base md:text-lg leading-tight truncate max-w-48 md:max-w-56 lg:max-w-64 cursor-pointer transition-all duration-200 hover:text-primary ${
-                      copiedCompanyId === company.id ? 'text-green-600 scale-105' : ''
-                    }`}
-                    onClick={(e) => copyCompanyName(company.id, company.name, e)}
-                    title={`${company.name} (click to copy)`}
-                  >
-                    {copiedCompanyId === company.id ? '✓ Copied!' : company.name}
-                  </h2>
-                  <span className="shrink-0 text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium">
-                    {company.lcaCount.toLocaleString()} LCAs
-                  </span>
-                  {company.careerUrls && company.careerUrls.length > 0 && (
-                    <span className="shrink-0 text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 font-medium flex items-center gap-1">
-                      <svg className="w-2.5 md:w-3 h-2.5 md:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                      </svg>
-                      {company.careerUrls.length} URLs
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs md:text-sm text-muted mb-2">
-                  {company.city}, {company.state}
-                </p>
-
-                {/* POC Info - Hidden by default, revealed on button click */}
-                {company.pocEmail && (
-                  <div className="hidden sm:block mb-2">
-                    {revealedPOC.has(company.id) ? (
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                        <span className="font-medium text-gray-700">
-                          {company.pocFirstName} {company.pocLastName}
-                        </span>
-                        <a
-                          href={`mailto:${company.pocEmail}`}
-                          className="text-blue-600 hover:underline truncate"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {company.pocEmail}
-                        </a>
-                        <Button
-                          onClick={(e) => togglePOCVisibility(company.id, e)}
-                          variant="ghost"
-                          className="text-xs text-gray-400 hover:text-gray-600 ml-auto"
-                          title="Hide contact"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                          </svg>
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        onClick={(e) => togglePOCVisibility(company.id, e)}
-                        variant="ghost"
-                        className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        Show Contact
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Quarterly Stats - Compact */}
-              <div className="flex items-center justify-between gap-1.5 md:gap-2 mb-3 md:mb-4">
-                {["Q1", "Q2", "Q3", "Q4"].map((q) => (
-                  <div
-                    key={q}
-                    className="text-center px-2 md:px-3 py-1.5 md:py-2 bg-gray-50 rounded-lg flex-1"
-                  >
-                    <div className="text-[10px] md:text-xs text-muted">{q}</div>
-                    <div className="font-semibold text-xs md:text-sm">
-                      {(company[`lca${q}` as keyof Company] as number) || 0}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-1.5 md:gap-2" onClick={(e) => e.stopPropagation()}>
-                <Button
-                  onClick={() => openAllCareerPages(company)}
-                  disabled={getAllCareerUrls(company).length === 0}
-                  variant="primary"
-                  className="text-xs md:text-sm flex items-center gap-1.5 md:gap-2 flex-1 justify-center disabled:opacity-50 disabled:cursor-not-allowed py-2 md:py-3"
-                  title={
-                    getAllCareerUrls(company).length > 0
-                      ? `Open ${getAllCareerUrls(company).length} career page(s)`
-                      : "No career URLs - click + to add"
-                  }
-                >
-                  <svg
-                    className="w-3.5 md:w-4 h-3.5 md:h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                    />
-                  </svg>
-                  ({getAllCareerUrls(company).length})
-                </Button>
-                <Button
-                  onClick={() => openLinkModal(company)}
-                  variant="secondary"
-                  className="text-xs md:text-sm flex items-center gap-1 px-2 py-2 md:py-3"
-                  title="Add or manage career page links"
-                >
-                  <svg
-                    className="w-3.5 md:w-4 h-3.5 md:h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                </Button>
-                <Button
-                  as="a"
-                  href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(company.name + " recruiter")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  variant="secondary"
-                  className="text-xs md:text-sm gap-2 px-2 py-2 md:py-3 sm:inline-flex hidden"
-                  title="Find recruiters on LinkedIn"
-                >
-                  <svg
-                    className="w-3.5 md:w-4 h-3.5 md:h-4"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                  </svg>
-                </Button>
-                <Button
-                  as="a"
-                  href={`https://www.google.com/search?q=${encodeURIComponent(company.name + " careers jobs")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  variant="secondary"
-                  className="text-xs md:text-sm gap-2 px-2 py-2 md:py-3 sm:inline-flex hidden"
-                  title="Search Google for career page"
-                >
-                  <svg
-                    className="w-3.5 md:w-4 h-3.5 md:h-4"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      fill="#4285F4"
-                    />
-                    <path
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      fill="#34A853"
-                    />
-                    <path
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                      fill="#FBBC05"
-                    />
-                    <path
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      fill="#EA4335"
-                    />
-                  </svg>
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredCompanies.length === 0 && (
-          <div className="text-center py-16">
-            <svg
-              className="w-16 h-16 mx-auto text-gray-300 mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <h3 className="text-lg font-medium mb-2">No companies found</h3>
-            <p className="text-muted mb-4">Try adjusting your search or filter</p>
-            <Button
-              onClick={() => {
-                setSearch("");
-                setSelectedTier("all");
-              }}
-              variant="primary"
-            >
-              Clear Filters
-            </Button>
+            ))}
           </div>
-        )}
+
+          {/* Empty State */}
+          {filteredCompanies.length === 0 && (
+            <div className="py-16 text-center">
+              <svg
+                className="mx-auto mb-4 h-16 w-16 text-gray-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <h3 className="mb-2 text-lg font-medium">No companies found</h3>
+              <p className="text-muted mb-4">Try adjusting your search or filter</p>
+              <Button
+                onClick={() => {
+                  setSearch("");
+                  setSelectedTier("all");
+                }}
+                variant="primary"
+              >
+                Clear Filters
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Link Management Modal */}
       {linkModalOpen && linkModalCompany && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
           onClick={(e) => {
             if (e.target === e.currentTarget) closeLinkModal();
           }}
         >
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden">
+          <div className="max-h-[80vh] w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl">
             {/* Modal Header */}
-            <div className="p-5 border-b border-gray-100">
+            <div className="border-b border-gray-100 p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">
-                    Manage Career Links
-                  </h3>
-                  <p className="text-sm text-muted mt-1">{linkModalCompany.name}</p>
+                  <h3 className="text-lg font-bold text-gray-900">Manage Career Links</h3>
+                  <p className="text-muted mt-1 text-sm">{linkModalCompany.name}</p>
                 </div>
                 <Button
                   onClick={closeLinkModal}
                   variant="ghost"
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="rounded-lg p-2 transition-colors hover:bg-gray-100"
                   aria-label="Close"
                 >
-                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="h-5 w-5 text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </Button>
               </div>
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 overflow-y-auto max-h-[50vh]">
+            <div className="max-h-[50vh] overflow-y-auto p-5">
               {/* All Career URLs (editable) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700">
                   Career URLs ({editingLinks.length})
                 </label>
                 {editingLinks.length > 0 ? (
-                  <div className="space-y-2 mb-3">
+                  <div className="mb-3 space-y-2">
                     {editingLinks.map((url, index) => (
                       <div
                         key={`url-${index}`}
-                        className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors group"
+                        className="group flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 transition-colors hover:border-gray-300"
                       >
-                        <svg className="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        <svg
+                          className="h-4 w-4 shrink-0 text-blue-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                          />
                         </svg>
                         <a
                           href={url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline truncate flex-1"
+                          className="flex-1 truncate text-sm text-blue-600 hover:underline"
                           title={url}
                         >
                           {url}
@@ -1013,22 +1128,34 @@ export default function JobsPage() {
                         <Button
                           onClick={() => removeLink(index)}
                           variant="ghost"
-                          className="p-1.5 hover:bg-red-100 rounded-lg text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                          className="rounded-lg p-1.5 text-gray-400 opacity-0 transition-colors group-hover:opacity-100 hover:bg-red-100 hover:text-red-500"
                           title="Delete this URL"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
                           </svg>
                         </Button>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted mb-3 p-3 bg-gray-50 rounded-lg text-center">No career URLs configured for this company.</p>
+                  <p className="text-muted mb-3 rounded-lg bg-gray-50 p-3 text-center text-sm">
+                    No career URLs configured for this company.
+                  </p>
                 )}
 
                 {/* Add new URL */}
-                <div className="flex gap-2 mt-4">
+                <div className="mt-4 flex gap-2">
                   <input
                     ref={newLinkInputRef}
                     type="url"
@@ -1041,7 +1168,7 @@ export default function JobsPage() {
                       }
                     }}
                     placeholder="https://careers.example.com/jobs"
-                    className="flex-1 px-3 py-2 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                    className="focus:border-primary focus:ring-primary/20 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2"
                   />
                   <Button
                     onClick={addNewLink}
@@ -1056,11 +1183,8 @@ export default function JobsPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-5 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
-              <Button
-                onClick={closeLinkModal}
-                variant="secondary"
-              >
+            <div className="flex justify-end gap-3 border-t border-gray-100 bg-gray-50 p-5">
+              <Button onClick={closeLinkModal} variant="secondary">
                 Cancel
               </Button>
               <Button
@@ -1071,13 +1195,18 @@ export default function JobsPage() {
               >
                 {savingLinks ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                     Saving...
                   </>
                 ) : (
                   <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                     Save Links
                   </>
@@ -1090,63 +1219,89 @@ export default function JobsPage() {
 
       {/* External Portal Modal */}
       {portalModalOpen && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
           onClick={(e) => {
             if (e.target === e.currentTarget) setPortalModalOpen(false);
           }}
         >
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[80vh] overflow-hidden">
+          <div className="max-h-[80vh] w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl">
             {/* Modal Header */}
-            <div className="p-5 border-b border-gray-100">
+            <div className="border-b border-gray-100 p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">
-                    External Job Portals
-                  </h3>
-                  <p className="text-sm text-muted mt-1">Add links to job boards like Handshake, LinkedIn, etc.</p>
+                  <h3 className="text-lg font-bold text-gray-900">External Job Portals</h3>
+                  <p className="text-muted mt-1 text-sm">
+                    Add links to job boards like Handshake, LinkedIn, etc.
+                  </p>
                 </div>
                 <Button
                   onClick={() => setPortalModalOpen(false)}
                   variant="ghost"
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="rounded-lg p-2 transition-colors hover:bg-gray-100"
                   aria-label="Close"
                 >
-                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="h-5 w-5 text-gray-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </Button>
               </div>
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 overflow-y-auto max-h-[50vh]">
+            <div className="max-h-[50vh] overflow-y-auto p-5">
               {/* Existing Portals */}
               {externalPortals.length > 0 && (
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="mb-2 block text-sm font-medium text-gray-700">
                     Saved Portals ({externalPortals.length})
                   </label>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <div className="max-h-48 space-y-2 overflow-y-auto">
                     {externalPortals.map((portal, index) => (
                       <div
                         key={index}
-                        className="flex items-center gap-2 p-2.5 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors group"
+                        className="group flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 transition-colors hover:border-gray-300"
                       >
                         {portal.logo ? (
-                          <img src={portal.logo} alt="" className="w-5 h-5 shrink-0 rounded object-contain" />
+                          <Image
+                            src={portal.logo}
+                            alt=""
+                            width={20}
+                            height={20}
+                            className="shrink-0 rounded object-contain"
+                          />
                         ) : (
-                          <svg className="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                          <svg
+                            className="h-4 w-4 shrink-0 text-blue-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                            />
                           </svg>
                         )}
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm text-gray-900">{portal.name}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-medium text-gray-900">{portal.name}</div>
                           <a
                             href={portal.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:underline truncate block"
+                            className="block truncate text-xs text-blue-600 hover:underline"
                             title={portal.url}
                           >
                             {portal.url}
@@ -1155,21 +1310,41 @@ export default function JobsPage() {
                         <Button
                           onClick={() => startEditPortal(index)}
                           variant="ghost"
-                          className="p-1.5 hover:bg-blue-100 rounded-lg text-gray-400 hover:text-blue-500 transition-colors opacity-0 group-hover:opacity-100"
+                          className="rounded-lg p-1.5 text-gray-400 opacity-0 transition-colors group-hover:opacity-100 hover:bg-blue-100 hover:text-blue-500"
                           title="Edit this portal"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
                           </svg>
                         </Button>
                         <Button
                           onClick={() => removeExternalPortal(index)}
                           variant="ghost"
-                          className="p-1.5 hover:bg-red-100 rounded-lg text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                          className="rounded-lg p-1.5 text-gray-400 opacity-0 transition-colors group-hover:opacity-100 hover:bg-red-100 hover:text-red-500"
                           title="Delete this portal"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
                           </svg>
                         </Button>
                       </div>
@@ -1180,7 +1355,7 @@ export default function JobsPage() {
 
               {/* Add/Edit Portal */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700">
                   {editingPortalIndex !== null ? "Edit Portal" : "Add New Portal"}
                 </label>
                 <div className="space-y-2">
@@ -1190,14 +1365,14 @@ export default function JobsPage() {
                     value={newPortalName}
                     onChange={(e) => setNewPortalName(e.target.value)}
                     placeholder="Portal name (e.g., Handshake)"
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                    className="focus:border-primary focus:ring-primary/20 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2"
                   />
                   <input
                     type="url"
                     value={newPortalUrl}
                     onChange={(e) => setNewPortalUrl(e.target.value)}
                     placeholder="https://app.joinhandshake.com/stu/postings"
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                    className="focus:border-primary focus:ring-primary/20 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2"
                   />
                   <input
                     type="url"
@@ -1210,14 +1385,14 @@ export default function JobsPage() {
                       }
                     }}
                     placeholder="Logo URL (optional) - e.g., https://example.com/logo.png"
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-sm"
+                    className="focus:border-primary focus:ring-primary/20 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2"
                   />
                   <div className="flex gap-2">
                     {editingPortalIndex !== null && (
                       <Button
                         onClick={cancelEditPortal}
                         variant="secondary"
-                        className="flex-1 flex items-center justify-center gap-2"
+                        className="flex flex-1 items-center justify-center gap-2"
                       >
                         Cancel
                       </Button>
@@ -1226,10 +1401,20 @@ export default function JobsPage() {
                       onClick={addExternalPortal}
                       disabled={!newPortalName.trim() || !newPortalUrl.trim()}
                       variant="primary"
-                      className={`${editingPortalIndex !== null ? "flex-1" : "w-full"} disabled:opacity-50 flex items-center justify-center gap-2`}
+                      className={`${editingPortalIndex !== null ? "flex-1" : "w-full"} flex items-center justify-center gap-2 disabled:opacity-50`}
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={editingPortalIndex !== null ? "M5 13l4 4L19 7" : "M12 4v16m8-8H4"} />
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d={editingPortalIndex !== null ? "M5 13l4 4L19 7" : "M12 4v16m8-8H4"}
+                        />
                       </svg>
                       {editingPortalIndex !== null ? "Save Changes" : "Add Portal"}
                     </Button>
@@ -1239,11 +1424,8 @@ export default function JobsPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-5 border-t border-gray-100 bg-gray-50 flex justify-end">
-              <Button
-                onClick={() => setPortalModalOpen(false)}
-                variant="primary"
-              >
+            <div className="flex justify-end border-t border-gray-100 bg-gray-50 p-5">
+              <Button onClick={() => setPortalModalOpen(false)} variant="primary">
                 Done
               </Button>
             </div>

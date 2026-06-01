@@ -1,20 +1,11 @@
 "use client";
 
-import {
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  lazy,
-  Suspense,
-} from "react";
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import CopyButton from "./CopyButton";
 import Button from "./Button";
 
 // Lazy load the PDF preview component
-const PDFPreview = lazy(() =>
-  import("./PDFPreview").then((mod) => ({ default: mod.PDFPreview })),
-);
+const PDFPreview = lazy(() => import("./PDFPreview").then((mod) => ({ default: mod.PDFPreview })));
 
 interface LaTeXEditorProps {
   code: string;
@@ -48,9 +39,7 @@ export default function LaTeXEditor({
   const [compileError, setCompileError] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [comment, setComment] = useState("");
-  const [viewMode, setViewMode] = useState<"split" | "code" | "preview">(
-    "split",
-  );
+  const [viewMode, setViewMode] = useState<"split" | "code" | "preview">("split");
   const [isEditing, setIsEditing] = useState(false);
   const [autoCompile, setAutoCompile] = useState(false); // Auto-compile OFF by default
   // Search state
@@ -118,9 +107,7 @@ export default function LaTeXEditor({
 
         setPdfUrl(url);
       } catch (err) {
-        setCompileError(
-          err instanceof Error ? err.message : "Compilation failed",
-        );
+        setCompileError(err instanceof Error ? err.message : "Compilation failed");
         setPdfUrl(null);
         setPdfBase64(null);
       } finally {
@@ -193,7 +180,28 @@ export default function LaTeXEditor({
     compileLatex(editableCode);
   };
 
-  // Search functions
+  // Scroll to match position in textarea
+  const scrollToMatch = useCallback(
+    (position: number, length: number, shouldFocus = false) => {
+      if (!textareaRef.current) return;
+      const textarea = textareaRef.current;
+
+      // Calculate scroll position first
+      const textBeforeMatch = editableCode.substring(0, position);
+      const linesBefore = textBeforeMatch.split("\n").length - 1;
+      const lineHeight = 20; // approximate line height
+      const scrollTop = Math.max(0, linesBefore * lineHeight - 100);
+      textarea.scrollTop = scrollTop;
+
+      // Focus textarea and set selection (this highlights the match and keeps it visible)
+      if (shouldFocus) {
+        textarea.focus();
+      }
+      textarea.setSelectionRange(position, position + length);
+    },
+    [editableCode],
+  );
+
   const findMatches = useCallback(
     (query: string) => {
       if (!query.trim()) {
@@ -215,30 +223,8 @@ export default function LaTeXEditor({
         scrollToMatch(matches[0], query.length, false);
       }
     },
-    [editableCode],
+    [editableCode, scrollToMatch],
   );
-
-  const scrollToMatch = (
-    position: number,
-    length: number,
-    shouldFocus = false,
-  ) => {
-    if (!textareaRef.current) return;
-    const textarea = textareaRef.current;
-
-    // Calculate scroll position first
-    const textBeforeMatch = editableCode.substring(0, position);
-    const linesBefore = textBeforeMatch.split("\n").length - 1;
-    const lineHeight = 20; // approximate line height
-    const scrollTop = Math.max(0, linesBefore * lineHeight - 100);
-    textarea.scrollTop = scrollTop;
-
-    // Focus textarea and set selection (this highlights the match and keeps it visible)
-    if (shouldFocus) {
-      textarea.focus();
-    }
-    textarea.setSelectionRange(position, position + length);
-  };
 
   const goToNextMatch = () => {
     if (searchMatches.length === 0) return;
@@ -252,8 +238,7 @@ export default function LaTeXEditor({
 
   const goToPrevMatch = () => {
     if (searchMatches.length === 0) return;
-    const prevIndex =
-      currentMatchIndex <= 0 ? searchMatches.length - 1 : currentMatchIndex - 1;
+    const prevIndex = currentMatchIndex <= 0 ? searchMatches.length - 1 : currentMatchIndex - 1;
     setCurrentMatchIndex(prevIndex);
     const matchPosition = searchMatches[prevIndex];
     if (matchPosition !== undefined) {
@@ -268,8 +253,7 @@ export default function LaTeXEditor({
 
   // Replace current match
   const handleReplaceCurrent = useCallback(() => {
-    if (searchMatches.length === 0 || currentMatchIndex < 0 || !searchQuery)
-      return;
+    if (searchMatches.length === 0 || currentMatchIndex < 0 || !searchQuery) return;
 
     const matchPosition = searchMatches[currentMatchIndex];
     if (matchPosition === undefined) return;
@@ -300,10 +284,7 @@ export default function LaTeXEditor({
     if (searchMatches.length === 0 || !searchQuery) return;
 
     // Use a case-insensitive global replace
-    const regex = new RegExp(
-      searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-      "gi",
-    );
+    const regex = new RegExp(searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
     const newCode = editableCode.replace(regex, replaceQuery);
 
     setEditableCode(newCode);
@@ -343,6 +324,7 @@ export default function LaTeXEditor({
     if (showPreview && code && !pdfUrl && !isCompiling) {
       compileLatex(code);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showPreview, code]);
 
   // Cleanup on unmount
@@ -355,6 +337,7 @@ export default function LaTeXEditor({
         URL.revokeObjectURL(pdfUrl);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRegenerate = async () => {
@@ -463,23 +446,19 @@ export default function LaTeXEditor({
   };
 
   return (
-    <div
-      className={`glass-card fade-in flex flex-col ${fullHeight ? "h-full" : ""}`}
-    >
+    <div className={`glass-card fade-in flex flex-col ${fullHeight ? "h-full" : ""}`}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-card-border shrink-0">
+      <div className="border-card-border flex shrink-0 items-center justify-between border-b px-4 py-2">
         <div className="flex items-center gap-3">
           {/* Mac-style window controls */}
           <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
-            <div className="w-2.5 h-2.5 rounded-full bg-green-400/80" />
+            <div className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
+            <div className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
+            <div className="h-2.5 w-2.5 rounded-full bg-green-400/80" />
           </div>
-          <h3 className="text-sm font-medium text-foreground/80 truncate">
-            {title}
-          </h3>
+          <h3 className="text-foreground/80 truncate text-sm font-medium">{title}</h3>
           {jobUrl && (
-            <div className="flex items-center gap-2 max-w-[200px] sm:max-w-xs overflow-hidden">
+            <div className="flex max-w-[200px] items-center gap-2 overflow-hidden sm:max-w-xs">
               <svg
                 width="12"
                 height="12"
@@ -496,7 +475,7 @@ export default function LaTeXEditor({
                 href={jobUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[11px] font-medium text-primary hover:underline truncate"
+                className="text-primary truncate text-[11px] font-medium hover:underline"
                 title={jobUrl}
               >
                 {jobUrl.replace(/^https?:\/\/(www\.)?/, "")}
@@ -514,13 +493,11 @@ export default function LaTeXEditor({
         <div className="flex items-center gap-2">
           {/* View Mode Toggle */}
           {showPreview && (
-            <div className="flex bg-surface-hover rounded-lg p-0.5 gap-0.5">
+            <div className="bg-surface-hover flex gap-0.5 rounded-lg p-0.5">
               <button
                 onClick={() => setViewMode("code")}
-                className={`px-2 py-1 text-xs rounded-md transition-colors ${
-                  viewMode === "code"
-                    ? "bg-primary text-white"
-                    : "text-muted hover:text-foreground"
+                className={`rounded-md px-2 py-1 text-xs transition-colors ${
+                  viewMode === "code" ? "bg-primary text-white" : "text-muted hover:text-foreground"
                 }`}
                 title="Code only"
               >
@@ -538,7 +515,7 @@ export default function LaTeXEditor({
               </button>
               <button
                 onClick={() => setViewMode("split")}
-                className={`px-2 py-1 text-xs rounded-md transition-colors ${
+                className={`rounded-md px-2 py-1 text-xs transition-colors ${
                   viewMode === "split"
                     ? "bg-primary text-white"
                     : "text-muted hover:text-foreground"
@@ -559,7 +536,7 @@ export default function LaTeXEditor({
               </button>
               <button
                 onClick={() => setViewMode("preview")}
-                className={`px-2 py-1 text-xs rounded-md transition-colors ${
+                className={`rounded-md px-2 py-1 text-xs transition-colors ${
                   viewMode === "preview"
                     ? "bg-primary text-white"
                     : "text-muted hover:text-foreground"
@@ -654,10 +631,10 @@ export default function LaTeXEditor({
               </Button>
               <button
                 onClick={() => setAutoCompile(!autoCompile)}
-                className={`px-2 py-1 text-xs rounded-md transition-colors ${
+                className={`rounded-md px-2 py-1 text-xs transition-colors ${
                   autoCompile
-                    ? "bg-green-100 text-green-700 border border-green-300"
-                    : "bg-gray-100 text-gray-500 border border-gray-200"
+                    ? "border border-green-300 bg-green-100 text-green-700"
+                    : "border border-gray-200 bg-gray-100 text-gray-500"
                 }`}
                 title={
                   autoCompile
@@ -720,17 +697,17 @@ export default function LaTeXEditor({
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Code Editor */}
         {(viewMode === "code" || viewMode === "split") && (
           <div
-            className={`flex flex-col overflow-hidden ${viewMode === "split" ? "w-1/2 border-r border-card-border" : "w-full"}`}
+            className={`flex flex-col overflow-hidden ${viewMode === "split" ? "border-card-border w-1/2 border-r" : "w-full"}`}
           >
-            <div className="relative flex-1 min-h-0 w-full">
+            <div className="relative min-h-0 w-full flex-1">
               {/* Backdrop for Highlights */}
               <div
                 ref={backdropRef}
-                className="absolute inset-0 p-4 bg-transparent font-mono text-sm whitespace-pre-wrap break-words pointer-events-none text-transparent overflow-hidden"
+                className="pointer-events-none absolute inset-0 overflow-hidden bg-transparent p-4 font-mono text-sm break-words whitespace-pre-wrap text-transparent"
                 aria-hidden="true"
                 style={{
                   color: "transparent",
@@ -747,7 +724,7 @@ export default function LaTeXEditor({
                 onFocus={() => setIsEditing(true)}
                 onBlur={() => setTimeout(() => setIsEditing(false), 100)}
                 onScroll={handleScroll}
-                className="absolute inset-0 w-full h-full p-4 bg-transparent text-sm font-mono text-foreground resize-none focus:outline-none overflow-auto whitespace-pre-wrap break-words"
+                className="text-foreground absolute inset-0 h-full w-full resize-none overflow-auto bg-transparent p-4 font-mono text-sm break-words whitespace-pre-wrap focus:outline-none"
                 placeholder="Paste your LaTeX code here... (Ctrl+S to compile)"
                 spellCheck={false}
               />
@@ -755,8 +732,8 @@ export default function LaTeXEditor({
 
             {/* Find Bar - Bottom of code section */}
             {showSearch && (
-              <div className="flex items-center gap-2 px-4 py-2 border-t border-card-border bg-surface-hover/50 shrink-0">
-                <div className="flex items-center gap-1 flex-1">
+              <div className="border-card-border bg-surface-hover/50 flex shrink-0 items-center gap-2 border-t px-4 py-2">
+                <div className="flex flex-1 items-center gap-1">
                   <svg
                     width="14"
                     height="14"
@@ -792,11 +769,11 @@ export default function LaTeXEditor({
                       }
                     }}
                     placeholder="Find in code... (Enter for next, Shift+Enter for prev)"
-                    className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted focus:outline-none"
+                    className="text-foreground placeholder:text-muted flex-1 bg-transparent text-sm focus:outline-none"
                   />
                 </div>
                 {searchQuery && (
-                  <span className="text-xs text-muted">
+                  <span className="text-muted text-xs">
                     {searchMatches.length > 0
                       ? `${currentMatchIndex + 1} of ${searchMatches.length}`
                       : "No matches"}
@@ -806,7 +783,7 @@ export default function LaTeXEditor({
                   <button
                     onClick={goToPrevMatch}
                     disabled={searchMatches.length === 0}
-                    className="p-1 rounded hover:bg-surface-hover disabled:opacity-40"
+                    className="hover:bg-surface-hover rounded p-1 disabled:opacity-40"
                     title="Previous match (Shift+Enter)"
                   >
                     <svg
@@ -823,7 +800,7 @@ export default function LaTeXEditor({
                   <button
                     onClick={goToNextMatch}
                     disabled={searchMatches.length === 0}
-                    className="p-1 rounded hover:bg-surface-hover disabled:opacity-40"
+                    className="hover:bg-surface-hover rounded p-1 disabled:opacity-40"
                     title="Next match (Enter)"
                   >
                     <svg
@@ -846,7 +823,7 @@ export default function LaTeXEditor({
                     setReplaceQuery("");
                     setSearchMatches([]);
                   }}
-                  className="p-1 rounded hover:bg-surface-hover text-muted hover:text-foreground"
+                  className="hover:bg-surface-hover text-muted hover:text-foreground rounded p-1"
                   title="Close (Esc)"
                 >
                   <svg
@@ -866,8 +843,8 @@ export default function LaTeXEditor({
 
             {/* Replace Bar - Bottom of code section */}
             {showSearch && showReplace && (
-              <div className="flex items-center gap-2 px-4 py-2 border-t border-card-border bg-surface-hover/50 shrink-0">
-                <div className="flex items-center gap-1 flex-1">
+              <div className="border-card-border bg-surface-hover/50 flex shrink-0 items-center gap-2 border-t px-4 py-2">
+                <div className="flex flex-1 items-center gap-1">
                   <svg
                     width="14"
                     height="14"
@@ -904,14 +881,14 @@ export default function LaTeXEditor({
                       }
                     }}
                     placeholder="Replace with... (Enter to replace, Ctrl+Enter to replace all)"
-                    className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted focus:outline-none"
+                    className="text-foreground placeholder:text-muted flex-1 bg-transparent text-sm focus:outline-none"
                   />
                 </div>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={handleReplaceCurrent}
                     disabled={searchMatches.length === 0}
-                    className="px-2 py-1 text-xs rounded hover:bg-surface-hover disabled:opacity-40 border border-card-border"
+                    className="hover:bg-surface-hover border-card-border rounded border px-2 py-1 text-xs disabled:opacity-40"
                     title="Replace current match (Enter)"
                   >
                     Replace
@@ -919,7 +896,7 @@ export default function LaTeXEditor({
                   <button
                     onClick={handleReplaceAll}
                     disabled={searchMatches.length === 0}
-                    className="px-2 py-1 text-xs rounded hover:bg-surface-hover disabled:opacity-40 border border-card-border"
+                    className="hover:bg-surface-hover border-card-border rounded border px-2 py-1 text-xs disabled:opacity-40"
                     title="Replace all matches (Ctrl+Enter)"
                   >
                     Replace All
@@ -934,13 +911,13 @@ export default function LaTeXEditor({
         {showPreview && (viewMode === "preview" || viewMode === "split") && (
           <div
             ref={pdfContainerRef}
-            className={`flex flex-col bg-gray-100 overflow-auto ${viewMode === "split" ? "w-1/2" : "w-full"} relative group`}
+            className={`flex flex-col overflow-auto bg-gray-100 ${viewMode === "split" ? "w-1/2" : "w-full"} group relative`}
           >
             <Suspense
               fallback={
-                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
                   <span className="spinner mb-4" />
-                  <p className="text-sm text-muted">Loading preview...</p>
+                  <p className="text-muted text-sm">Loading preview...</p>
                 </div>
               }
             >
@@ -959,7 +936,7 @@ export default function LaTeXEditor({
       {/* Status Bar */}
       {/* Status Bar - only show when not in full height mode */}
       {showPreview && !fullHeight && (
-        <div className="px-4 py-2 border-t border-card-border bg-surface-hover/50 flex items-center justify-between text-xs text-muted shrink-0">
+        <div className="border-card-border bg-surface-hover/50 text-muted flex shrink-0 items-center justify-between border-t px-4 py-2 text-xs">
           <span>
             {isCompiling
               ? "Compiling..."
@@ -978,7 +955,7 @@ export default function LaTeXEditor({
       {/* Regenerate Feedback Section */}
       {showFeedback && onRegenerate && (
         <div className="regenerate-section fade-in shrink-0">
-          <label className="text-xs font-medium text-muted mb-2 block">
+          <label className="text-muted mb-2 block text-xs font-medium">
             What changes would you like?
           </label>
           <textarea
@@ -988,14 +965,14 @@ export default function LaTeXEditor({
             className="regenerate-input mb-3"
             rows={2}
           />
-          <div className="flex gap-2 justify-end">
+          <div className="flex justify-end gap-2">
             <Button
               onClick={() => {
                 setShowFeedback(false);
                 setComment("");
               }}
               variant="secondary"
-              className="text-xs py-2 px-3"
+              className="px-3 py-2 text-xs"
             >
               Cancel
             </Button>

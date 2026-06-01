@@ -9,7 +9,8 @@ RUN npm ci --omit=dev
 
 # Copy source and build
 COPY . .
-COPY .env.example .env.local
+# IMPORTANT: Inject env vars at runtime (docker run -e or --env-file).
+# Do NOT bake .env into the image — use runtime configuration.
 RUN npm run build
 
 # Production stage

@@ -1,40 +1,41 @@
 import { NextResponse } from "next/server";
 import { getQueue, addJobToQueue, setQueue, QueuedJob } from "@/lib/db";
+import { corsHeaders } from "@/lib/cors";
+import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
 
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, DELETE, PATCH, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
+function h() {
+  return corsHeaders("GET, POST, DELETE, PATCH, OPTIONS");
 }
 
 export async function OPTIONS() {
-  return NextResponse.json({}, { headers: corsHeaders() });
+  return NextResponse.json({}, { headers: h() });
 }
 
 export async function GET() {
   try {
     const queue = await getQueue();
-    return NextResponse.json(queue, { headers: corsHeaders() });
+    return NextResponse.json(queue, { headers: h() });
   } catch (error) {
     console.error("Queue GET error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch queue" },
-      { status: 500, headers: corsHeaders() },
-    );
+    return NextResponse.json({ error: "Failed to fetch queue" }, { status: 500, headers: h() });
   }
 }
 
 export async function POST(request: Request) {
+  const clientId = getClientIdentifier(request);
+  const rl = checkRateLimit(`queue_write_${clientId}`, RATE_LIMITS.GENERAL);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { ...h(), "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   try {
     const body = await request.json();
 
     if (!body.companyName || !body.positionTitle || !body.companyUrl || !body.jobDescription) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400, headers: corsHeaders() },
-      );
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: h() });
     }
 
     const newJob: QueuedJob = {
@@ -59,21 +60,27 @@ export async function POST(request: Request) {
     if (!success) {
       return NextResponse.json(
         { error: "Failed to add job (duplicate ID?)" },
-        { status: 500, headers: corsHeaders() },
+        { status: 500, headers: h() },
       );
     }
 
-    return NextResponse.json({ success: true, job: newJob }, { headers: corsHeaders() });
+    return NextResponse.json({ success: true, job: newJob }, { headers: h() });
   } catch (error) {
     console.error("Queue POST error:", error);
-    return NextResponse.json(
-      { error: "Failed to add job" },
-      { status: 500, headers: corsHeaders() },
-    );
+    return NextResponse.json({ error: "Failed to add job" }, { status: 500, headers: h() });
   }
 }
 
 export async function DELETE(request: Request) {
+  const clientId = getClientIdentifier(request);
+  const rl = checkRateLimit(`queue_write_${clientId}`, RATE_LIMITS.GENERAL);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { ...h(), "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -82,45 +89,45 @@ export async function DELETE(request: Request) {
       const queue = await getQueue();
       const newQueue = queue.filter((j) => j.id !== id);
       await setQueue(newQueue);
-      return NextResponse.json({ success: true }, { headers: corsHeaders() });
+      return NextResponse.json({ success: true }, { headers: h() });
     } else {
       await setQueue([]);
-      return NextResponse.json({ success: true }, { headers: corsHeaders() });
+      return NextResponse.json({ success: true }, { headers: h() });
     }
   } catch (error) {
     console.error("Queue DELETE error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete job(s)" },
-      { status: 500, headers: corsHeaders() },
-    );
+    return NextResponse.json({ error: "Failed to delete job(s)" }, { status: 500, headers: h() });
   }
 }
 
 export async function PATCH(request: Request) {
+  const clientId = getClientIdentifier(request);
+  const rl = checkRateLimit(`queue_write_${clientId}`, RATE_LIMITS.GENERAL);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { ...h(), "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   try {
     const body = await request.json();
     const { id, updates } = body;
 
     if (!id || !updates) {
-      return NextResponse.json(
-        { error: "Missing id or updates" },
-        { status: 400, headers: corsHeaders() },
-      );
+      return NextResponse.json({ error: "Missing id or updates" }, { status: 400, headers: h() });
     }
 
     const { updateJobInQueue } = await import("@/lib/db");
     const updatedJob = await updateJobInQueue(id, updates);
 
     if (!updatedJob) {
-      return NextResponse.json({ error: "Job not found" }, { status: 404, headers: corsHeaders() });
+      return NextResponse.json({ error: "Job not found" }, { status: 404, headers: h() });
     }
 
-    return NextResponse.json({ success: true, job: updatedJob }, { headers: corsHeaders() });
+    return NextResponse.json({ success: true, job: updatedJob }, { headers: h() });
   } catch (error) {
     console.error("Queue PATCH error:", error);
-    return NextResponse.json(
-      { error: "Failed to update job" },
-      { status: 500, headers: corsHeaders() },
-    );
+    return NextResponse.json({ error: "Failed to update job" }, { status: 500, headers: h() });
   }
 }

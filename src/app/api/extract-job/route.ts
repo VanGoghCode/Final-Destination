@@ -1,35 +1,39 @@
 import { NextResponse } from "next/server";
 import { DeepSeekProvider } from "@/lib/ai-providers/deepseek";
+import { corsHeaders } from "@/lib/cors";
+import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
 
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-  };
+function h() {
+  return corsHeaders("POST, OPTIONS");
 }
 
 export async function OPTIONS() {
-  return NextResponse.json({}, { headers: corsHeaders() });
+  return NextResponse.json({}, { headers: h() });
 }
 
 export async function POST(request: Request) {
+  const clientId = getClientIdentifier(request);
+  const rl = checkRateLimit(`extract_job_${clientId}`, RATE_LIMITS.RESEARCH);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { ...h(), "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   try {
     const { pageTitle, pageUrl, pageContent } = await request.json();
 
     if (!pageTitle && !pageUrl) {
       return NextResponse.json(
         { error: "Page title or URL required" },
-        { status: 400, headers: corsHeaders() },
+        { status: 400, headers: h() },
       );
     }
 
     const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) {
-      return NextResponse.json(
-        { error: "API key not configured" },
-        { status: 500, headers: corsHeaders() },
-      );
+      return NextResponse.json({ error: "API key not configured" }, { status: 500, headers: h() });
     }
 
     const prompt = `You are a job listing analyzer. Extract accurate information from this job page.
@@ -41,7 +45,7 @@ ${pageContent ? `- Page Content (first 2000 chars): ${pageContent.slice(0, 2000)
 
 ## EXTRACTION RULES:
 1. **companyName**: Extract the ACTUAL company name, NOT the job portal name.
-   - Remove suffixes like "Careers", "Jobs", "Hiring", "– Work with us"
+   - Remove suffixes like "Careers", "Jobs", "Hiring", "\u2013 Work with us"
    - Extract from the URL domain structure
    - NEVER return portal names like "LinkedIn", "Indeed", "Glassdoor", "Lever", "Greenhouse"
 
@@ -93,7 +97,7 @@ Be accurate and truthful. Do NOT use markdown formatting. Output ONLY the JSON.`
               companyUrl: "low",
             },
           },
-          { headers: corsHeaders() },
+          { headers: h() },
         );
       } catch {
         // JSON parse failed
@@ -106,19 +110,15 @@ Be accurate and truthful. Do NOT use markdown formatting. Output ONLY the JSON.`
         companyName: "",
         positionTitle: "",
         companyUrl: "",
-        confidence: {
-          companyName: "low",
-          positionTitle: "low",
-          companyUrl: "low",
-        },
+        confidence: { companyName: "low", positionTitle: "low", companyUrl: "low" },
       },
-      { headers: corsHeaders() },
+      { headers: h() },
     );
   } catch (error) {
     console.error("[extract-job] Error:", error);
     return NextResponse.json(
       { error: "Failed to extract job info" },
-      { status: 500, headers: corsHeaders() },
+      { status: 500, headers: h() },
     );
   }
 }

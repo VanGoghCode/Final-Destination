@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
+import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
 
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID || "";
 const SHEET_NAME = "tracker";
@@ -21,6 +22,15 @@ function getAuth() {
 }
 
 export async function POST(request: Request) {
+  const clientId = getClientIdentifier(request);
+  const rl = checkRateLimit(`sheets_${clientId}`, RATE_LIMITS.GENERAL);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   try {
     const body = await request.json();
     const { companyName, positionTitle, applicationLink, notes, other } = body;
@@ -82,8 +92,7 @@ export async function POST(request: Request) {
     console.error("Error logging to Google Sheets:", error);
     return NextResponse.json(
       {
-        error:
-          "Failed to log application. Please check your Google Sheets configuration.",
+        error: "Failed to log application. Please check your Google Sheets configuration.",
       },
       { status: 500 },
     );

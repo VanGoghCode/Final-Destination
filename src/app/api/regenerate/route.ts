@@ -5,13 +5,9 @@ import {
   regenerateAnswers,
   regenerateEmail,
 } from "@/lib/ai";
+import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
 
-export type RegenerateType =
-  | "resume"
-  | "coverLetter"
-  | "answers"
-  | "coldEmail"
-  | "referenceEmail";
+export type RegenerateType = "resume" | "coverLetter" | "answers" | "coldEmail" | "referenceEmail";
 
 interface RegenerateRequest {
   type: RegenerateType;
@@ -31,6 +27,15 @@ interface RegenerateRequest {
 }
 
 export async function POST(request: Request) {
+  const clientId = getClientIdentifier(request);
+  const rl = checkRateLimit(`regenerate_${clientId}`, RATE_LIMITS.AI_GENERATION);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   try {
     const body: RegenerateRequest = await request.json();
     const {
@@ -67,8 +72,12 @@ export async function POST(request: Request) {
           );
         }
         regeneratedContent = await regenerateResume(
-          currentContent, comment, resumeLatex, jobDescription,
-          personalDetails || "", masterContext || "",
+          currentContent,
+          comment,
+          resumeLatex,
+          jobDescription,
+          personalDetails || "",
+          masterContext || "",
         );
         break;
 
@@ -80,8 +89,12 @@ export async function POST(request: Request) {
           );
         }
         regeneratedContent = await regenerateCoverLetter(
-          currentContent, comment, coverLetterLatex, jobDescription,
-          personalDetails || "", masterContext || "",
+          currentContent,
+          comment,
+          coverLetterLatex,
+          jobDescription,
+          personalDetails || "",
+          masterContext || "",
         );
         break;
 
@@ -93,8 +106,13 @@ export async function POST(request: Request) {
           );
         }
         regeneratedContent = await regenerateAnswers(
-          currentContent, comment, questions, tailoredResume, tailoredCoverLetter,
-          jobDescription || "", masterContext || "",
+          currentContent,
+          comment,
+          questions,
+          tailoredResume,
+          tailoredCoverLetter,
+          jobDescription || "",
+          masterContext || "",
         );
         break;
 
@@ -107,17 +125,20 @@ export async function POST(request: Request) {
           );
         }
         regeneratedContent = await regenerateEmail(
-          type, currentContent, comment, tailoredResume, tailoredCoverLetter,
-          jobDescription || "", masterContext || "",
-          positionTitle || "", companyName || "",
+          type,
+          currentContent,
+          comment,
+          tailoredResume,
+          tailoredCoverLetter,
+          jobDescription || "",
+          masterContext || "",
+          positionTitle || "",
+          companyName || "",
         );
         break;
 
       default:
-        return NextResponse.json(
-          { error: "Invalid regeneration type" },
-          { status: 400 },
-        );
+        return NextResponse.json({ error: "Invalid regeneration type" }, { status: 400 });
     }
 
     return NextResponse.json({ regeneratedContent });
@@ -125,8 +146,7 @@ export async function POST(request: Request) {
     console.error("Error regenerating content:", error);
     return NextResponse.json(
       {
-        error:
-          "Failed to regenerate content. Please check your API key and try again.",
+        error: "Failed to regenerate content. Please check your API key and try again.",
       },
       { status: 500 },
     );

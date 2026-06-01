@@ -17,10 +17,6 @@ export function getGoogleAuthCredentials(): GoogleAuth {
       });
     } catch (e) {
       console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY:", e);
-      console.error(
-        "Raw value starts with:",
-        process.env.GOOGLE_SERVICE_ACCOUNT_KEY?.substring(0, 50),
-      );
       throw new Error("Invalid GOOGLE_SERVICE_ACCOUNT_KEY format");
     }
   }

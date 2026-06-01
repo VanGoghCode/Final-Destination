@@ -2,8 +2,20 @@ import { NextResponse } from "next/server";
 import { getProfiles } from "@/lib/db";
 import { getQueue } from "@/lib/db";
 import { isRedisConfigured } from "@/lib/db";
+import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
+import { validateAdminRequest, adminUnauthorizedResponse } from "@/lib/admin-auth";
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!validateAdminRequest(request)) return adminUnauthorizedResponse();
+
+  const clientId = getClientIdentifier(request);
+  const rl = checkRateLimit(`admin_${clientId}`, RATE_LIMITS.GENERAL);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
   try {
     if (!isRedisConfigured()) {
       return NextResponse.json({
@@ -39,7 +51,17 @@ export async function GET() {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  if (!validateAdminRequest(request)) return adminUnauthorizedResponse();
+
+  const clientId = getClientIdentifier(request);
+  const rl = checkRateLimit(`admin_${clientId}`, RATE_LIMITS.GENERAL);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
   try {
     if (!isRedisConfigured()) {
       return NextResponse.json({ error: "Redis not configured" }, { status: 400 });

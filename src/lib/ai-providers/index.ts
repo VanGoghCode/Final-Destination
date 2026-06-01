@@ -7,7 +7,8 @@ import { DeepSeekProvider } from "./deepseek";
 export * from "./types";
 export { DeepSeekProvider } from "./deepseek";
 
-export function getAIProvider(_provider?: AIProvider): AIProviderInterface {
+export function getAIProvider(provider?: AIProvider): AIProviderInterface {
+  void provider;
   return new DeepSeekProvider();
 }
 
@@ -17,7 +18,8 @@ export function getDefaultProvider(): AIProvider {
 
 export async function generateContentWithProvider(
   prompt: string,
-  _provider?: AIProvider,
+  provider?: AIProvider,
 ): Promise<string> {
+  void provider;
   return getAIProvider().generateContent(prompt);
 }

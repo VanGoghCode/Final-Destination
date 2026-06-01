@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { Redis } from "@upstash/redis";
+import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
+import { validateAdminRequest, adminUnauthorizedResponse } from "@/lib/admin-auth";
 
 // Only initialize Redis if configured
 function getRedis(): Redis | null {
@@ -61,6 +63,17 @@ export async function GET(request: Request) {
 
 // POST - Store a value
 export async function POST(request: Request) {
+  if (!validateAdminRequest(request)) return adminUnauthorizedResponse();
+
+  const clientId = getClientIdentifier(request);
+  const rl = checkRateLimit(`storage_write_${clientId}`, RATE_LIMITS.GENERAL);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   const redis = getRedis();
   if (!redis) return notConfigured();
 
@@ -83,6 +96,17 @@ export async function POST(request: Request) {
 
 // DELETE - Remove a value
 export async function DELETE(request: Request) {
+  if (!validateAdminRequest(request)) return adminUnauthorizedResponse();
+
+  const clientId = getClientIdentifier(request);
+  const rl = checkRateLimit(`storage_write_${clientId}`, RATE_LIMITS.GENERAL);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   const redis = getRedis();
   if (!redis) return notConfigured();
 
@@ -105,6 +129,17 @@ export async function DELETE(request: Request) {
 
 // PUT - Bulk import (for migration from localStorage)
 export async function PUT(request: Request) {
+  if (!validateAdminRequest(request)) return adminUnauthorizedResponse();
+
+  const clientId = getClientIdentifier(request);
+  const rl = checkRateLimit(`storage_write_${clientId}`, RATE_LIMITS.GENERAL);
+  if (!rl.success) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   const redis = getRedis();
   if (!redis) return notConfigured();
 

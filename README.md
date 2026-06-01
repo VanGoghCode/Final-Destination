@@ -103,8 +103,8 @@ Create `.env.local` in the project root:
 # ============================================
 # REQUIRED - AI Features
 # ============================================
-# Get from: https://aistudio.google.com/apikey
-GOOGLE_GENAI_API_KEY=your-gemini-api-key
+# Get from: https://api.deepseek.com
+DEEPSEEK_API_KEY=sk-your-deepseek-api-key
 
 # ============================================
 # OPTIONAL - Google Sheets Integration

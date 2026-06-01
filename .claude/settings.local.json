@@ -5,7 +5,11 @@
       "Bash(npx tsc:*)",
       "Bash(npx bun:*)",
       "Bash(ls lint_errors* tsc_errors*)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(npx eslint:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(npm install:*)"
     ]
   }
 }

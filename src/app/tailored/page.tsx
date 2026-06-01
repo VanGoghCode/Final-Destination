@@ -32,13 +32,11 @@ export default function TailoredPage() {
   const [copiedResume, setCopiedResume] = useState(false);
   const [copiedCoverLetter, setCopiedCoverLetter] = useState(false);
   const [copiedResumeDetailed, setCopiedResumeDetailed] = useState(false);
-  const [copiedCoverLetterDetailed, setCopiedCoverLetterDetailed] =
-    useState(false);
+  const [copiedCoverLetterDetailed, setCopiedCoverLetterDetailed] = useState(false);
 
   // Regeneration state
   const [isRegeneratingResume, setIsRegeneratingResume] = useState(false);
-  const [isRegeneratingCoverLetter, setIsRegeneratingCoverLetter] =
-    useState(false);
+  const [isRegeneratingCoverLetter, setIsRegeneratingCoverLetter] = useState(false);
   const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
   const [showCoverLetterPreview, setShowCoverLetterPreview] = useState(false);
 
@@ -51,9 +49,7 @@ export default function TailoredPage() {
   const [logSuccess, setLogSuccess] = useState(false);
   const [logError, setLogError] = useState("");
   const [country, setCountry] = useState("");
-  const [workMode, setWorkMode] = useState<
-    "" | "Remote" | "Hybrid" | "On-site"
-  >("");
+  const [workMode, setWorkMode] = useState<"" | "Remote" | "Hybrid" | "On-site">("");
   const [editableCompanyName, setEditableCompanyName] = useState("");
   const [editablePositionTitle, setEditablePositionTitle] = useState("");
   const applicationLinkRef = useRef<HTMLInputElement>(null);
@@ -62,13 +58,9 @@ export default function TailoredPage() {
   const [generalQuestion, setGeneralQuestion] = useState("");
   const [generalAnswer, setGeneralAnswer] = useState("");
   const [isAskingQuestion, setIsAskingQuestion] = useState(false);
-  const [limitType, setLimitType] = useState<"none" | "words" | "characters">(
-    "none",
-  );
+  const [limitType, setLimitType] = useState<"none" | "words" | "characters">("none");
   const [limitValue, setLimitValue] = useState<number>(10);
-  const [searchMode, _setSearchMode] = useState<
-    "context" | "context+internet" | "internet"
-  >("context");
+  const [searchMode] = useState<"context" | "context+internet" | "internet">("context");
 
   // Collapsible sections state
   const [showFilenames, setShowFilenames] = useState(false);
@@ -276,17 +268,17 @@ export default function TailoredPage() {
   };
 
   return (
-    <div className="h-screen flex overflow-hidden">
+    <div className="flex h-screen overflow-hidden">
       {/* Collapsible Sidebar */}
       <Sidebar title="Step 2: Review">
         {/* Step Navigation */}
-        <div className="p-3 border-b border-gray-100">
+        <div className="border-b border-gray-100 p-3">
           <div className="flex items-center gap-1">
             <button
               onClick={() => router.push("/")}
-              className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
+              className="hover:bg-surface-hover text-muted hover:text-foreground flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-colors"
             >
-              <span className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center text-[10px] font-bold">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-[10px] font-bold text-white">
                 ✓
               </span>
               Input
@@ -302,8 +294,8 @@ export default function TailoredPage() {
             >
               <polyline points="9 18 15 12 9 6" />
             </svg>
-            <div className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-primary/10 border border-primary text-primary text-xs font-medium">
-              <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold">
+            <div className="bg-primary/10 border-primary text-primary flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium">
+              <span className="bg-primary flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white">
                 2
               </span>
               Review
@@ -321,9 +313,9 @@ export default function TailoredPage() {
             </svg>
             <button
               onClick={() => router.push("/questions")}
-              className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
+              className="hover:bg-surface-hover text-muted hover:text-foreground flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-colors"
             >
-              <span className="w-5 h-5 rounded-full bg-card-border text-muted flex items-center justify-center text-[10px] font-bold">
+              <span className="bg-card-border text-muted flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold">
                 3
               </span>
               Q&A
@@ -332,12 +324,12 @@ export default function TailoredPage() {
         </div>
 
         {/* Sidebar Header with Actions */}
-        <div className="p-4 border-b border-gray-100 space-y-3">
+        <div className="space-y-3 border-b border-gray-100 p-4">
           <div className="flex gap-2">
             <Button
               onClick={() => setShowLogModal(true)}
               variant="secondary"
-              className="flex-1 text-xs py-2"
+              className="flex-1 py-2 text-xs"
             >
               <svg
                 width="14"
@@ -356,7 +348,7 @@ export default function TailoredPage() {
             <Button
               onClick={() => router.push("/jobs")}
               variant="secondary"
-              className="flex-1 text-xs py-2"
+              className="flex-1 py-2 text-xs"
             >
               <svg
                 width="14"
@@ -374,15 +366,13 @@ export default function TailoredPage() {
         </div>
 
         {/* Sidebar Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-5 border-b border-gray-200 pb-4 mb-4">
+        <div className="mb-4 flex-1 space-y-5 overflow-y-auto border-b border-gray-200 p-4 pb-4">
           {/* Generate Cover Letter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Cover Letter
-            </label>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Cover Letter</label>
             {tailoredCoverLetter ? (
               <div className="space-y-2">
-                <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-200">
+                <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-2">
                   <svg
                     width="16"
                     height="16"
@@ -393,15 +383,13 @@ export default function TailoredPage() {
                   >
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  <span className="text-xs text-green-700 font-medium">
-                    Generated
-                  </span>
+                  <span className="text-xs font-medium text-green-700">Generated</span>
                 </div>
-                <div className="p-4 bg-green-50/50 rounded-lg border border-green-200 mb-4">
-                  <div className="flex items-center justify-between mb-3">
+                <div className="mb-4 rounded-lg border border-green-200 bg-green-50/50 p-4">
+                  <div className="mb-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                      <span className="text-xs font-bold text-green-700 tracking-tight">
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+                      <span className="text-xs font-bold tracking-tight text-green-700">
                         COVER LETTER READY
                       </span>
                     </div>
@@ -409,29 +397,24 @@ export default function TailoredPage() {
                       <Button
                         onClick={() => setShowCoverLetterPreview(true)}
                         variant="ghost"
-                        className="text-[10px] py-1 px-2.5 bg-green-100/50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors cursor-pointer"
+                        className="cursor-pointer rounded-lg bg-green-100/50 px-2.5 py-1 text-[10px] font-bold text-green-700 transition-colors hover:bg-green-100"
                       >
                         PREVIEW
                       </Button>
                       <Button
-                        onClick={() =>
-                          navigator.clipboard.writeText(tailoredCoverLetter)
-                        }
+                        onClick={() => navigator.clipboard.writeText(tailoredCoverLetter)}
                         variant="ghost"
-                        className="text-[10px] py-1 px-2.5 bg-green-100/50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors cursor-pointer"
+                        className="cursor-pointer rounded-lg bg-green-100/50 px-2.5 py-1 text-[10px] font-bold text-green-700 transition-colors hover:bg-green-100"
                       >
                         COPY
                       </Button>
                     </div>
                   </div>
                   <Button
-                    onClick={handleRegenerateCoverLetter.bind(
-                      null,
-                      "Improve it",
-                    )}
+                    onClick={handleRegenerateCoverLetter.bind(null, "Improve it")}
                     disabled={isRegeneratingCoverLetter}
                     variant="ghost"
-                    className="w-full text-xs py-2 border border-green-200 bg-white hover:bg-green-50 text-green-700 transition-all cursor-pointer shadow-none"
+                    className="w-full cursor-pointer border border-green-200 bg-white py-2 text-xs text-green-700 shadow-none transition-all hover:bg-green-50"
                   >
                     {isRegeneratingCoverLetter ? (
                       <>
@@ -463,7 +446,7 @@ export default function TailoredPage() {
                 onClick={handleGenerateCoverLetter}
                 disabled={isGeneratingCoverLetter || !coverLetterLatex}
                 variant="primary"
-                className="w-full text-sm py-2.5"
+                className="w-full py-2.5 text-sm"
               >
                 {isGeneratingCoverLetter ? (
                   <>
@@ -488,21 +471,21 @@ export default function TailoredPage() {
               </Button>
             )}
             {!coverLetterLatex && !tailoredCoverLetter && (
-              <p className="text-xs text-red-400 mt-2 border-b border-gray-200 pb-4 mb-4">
+              <p className="mt-2 mb-4 border-b border-gray-200 pb-4 text-xs text-red-400">
                 Add a cover letter template first.
               </p>
             )}
           </div>
 
           {/* Collapsible Filenames Section */}
-          <div className="border-b border-gray-200 pb-4 mb-4">
+          <div className="mb-4 border-b border-gray-200 pb-4">
             <button
               onClick={() => setShowFilenames(!showFilenames)}
-              className="flex items-center justify-between w-full text-sm font-medium text-gray-700 hover:text-foreground py-2"
+              className="hover:text-foreground flex w-full items-center justify-between py-2 text-sm font-medium text-gray-700"
             >
               <span>📁 Filenames</span>
               <svg
-                className={`w-4 h-4 transition-transform ${showFilenames ? "rotate-180" : ""}`}
+                className={`h-4 w-4 transition-transform ${showFilenames ? "rotate-180" : ""}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -511,40 +494,31 @@ export default function TailoredPage() {
               </svg>
             </button>
             {showFilenames && (
-              <div className="space-y-4 mt-3">
+              <div className="mt-3 space-y-4">
                 {/* Resume Filenames */}
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-2">
-                    Resume
-                  </label>
+                  <label className="text-muted mb-2 block text-xs font-medium">Resume</label>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-[10px] font-mono text-foreground truncate">
+                      <code className="bg-surface-hover text-foreground flex-1 truncate rounded-lg px-2 py-1.5 font-mono text-[10px]">
                         {resumeFileNamePlain}
                       </code>
                       <Button
-                        onClick={() =>
-                          copyToClipboard(resumeFileNamePlain, "resume")
-                        }
+                        onClick={() => copyToClipboard(resumeFileNamePlain, "resume")}
                         variant="ghost"
-                        className="copy-btn shrink-0 text-xs py-1 px-2"
+                        className="copy-btn shrink-0 px-2 py-1 text-xs"
                       >
                         {copiedResume ? "✓" : "Copy"}
                       </Button>
                     </div>
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-[10px] font-mono text-foreground truncate">
+                      <code className="bg-surface-hover text-foreground flex-1 truncate rounded-lg px-2 py-1.5 font-mono text-[10px]">
                         {resumeFileNameDetailed}
                       </code>
                       <Button
-                        onClick={() =>
-                          copyToClipboard(
-                            resumeFileNameDetailed,
-                            "resumeDetailed",
-                          )
-                        }
+                        onClick={() => copyToClipboard(resumeFileNameDetailed, "resumeDetailed")}
                         variant="ghost"
-                        className="copy-btn shrink-0 text-xs py-1 px-2"
+                        className="copy-btn shrink-0 px-2 py-1 text-xs"
                       >
                         {copiedResumeDetailed ? "✓" : "Copy"}
                       </Button>
@@ -554,40 +528,30 @@ export default function TailoredPage() {
 
                 {/* Cover Letter Filenames */}
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-2">
-                    Cover Letter
-                  </label>
+                  <label className="text-muted mb-2 block text-xs font-medium">Cover Letter</label>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-[10px] font-mono text-foreground truncate">
+                      <code className="bg-surface-hover text-foreground flex-1 truncate rounded-lg px-2 py-1.5 font-mono text-[10px]">
                         {coverLetterFileNamePlain}
                       </code>
                       <Button
-                        onClick={() =>
-                          copyToClipboard(
-                            coverLetterFileNamePlain,
-                            "coverLetter",
-                          )
-                        }
+                        onClick={() => copyToClipboard(coverLetterFileNamePlain, "coverLetter")}
                         variant="ghost"
-                        className="copy-btn shrink-0 text-xs py-1 px-2"
+                        className="copy-btn shrink-0 px-2 py-1 text-xs"
                       >
                         {copiedCoverLetter ? "✓" : "Copy"}
                       </Button>
                     </div>
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 bg-surface-hover px-2 py-1.5 rounded-lg text-[10px] font-mono text-foreground truncate">
+                      <code className="bg-surface-hover text-foreground flex-1 truncate rounded-lg px-2 py-1.5 font-mono text-[10px]">
                         {coverLetterFileNameDetailed}
                       </code>
                       <Button
                         onClick={() =>
-                          copyToClipboard(
-                            coverLetterFileNameDetailed,
-                            "coverLetterDetailed",
-                          )
+                          copyToClipboard(coverLetterFileNameDetailed, "coverLetterDetailed")
                         }
                         variant="ghost"
-                        className="copy-btn shrink-0 text-xs py-1 px-2"
+                        className="copy-btn shrink-0 px-2 py-1 text-xs"
                       >
                         {copiedCoverLetterDetailed ? "✓" : "Copy"}
                       </Button>
@@ -600,17 +564,15 @@ export default function TailoredPage() {
 
           {/* Quick Q&A */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Quick Question
-            </label>
+            <label className="mb-2 block text-sm font-medium text-gray-700">Quick Question</label>
             <textarea
               value={generalQuestion}
               onChange={(e) => setGeneralQuestion(e.target.value)}
               placeholder="Ask about salary range, required skills..."
-              className="input-field text-sm mb-2"
+              className="input-field mb-2 text-sm"
               rows={2}
             />
-            <div className="flex gap-2 mb-2">
+            <div className="mb-2 flex gap-2">
               {[
                 { value: "none", label: "No Limit" },
                 { value: "words", label: "Words" },
@@ -619,11 +581,9 @@ export default function TailoredPage() {
                 <button
                   key={opt.value}
                   onClick={() =>
-                    handleLimitTypeChange(
-                      opt.value as "none" | "words" | "characters",
-                    )
+                    handleLimitTypeChange(opt.value as "none" | "words" | "characters")
                   }
-                  className={`flex-1 px-2 py-1 text-xs font-medium rounded-lg transition-all ${
+                  className={`flex-1 rounded-lg px-2 py-1 text-xs font-medium transition-all ${
                     limitType === opt.value
                       ? "bg-primary text-white"
                       : "bg-surface-hover text-muted hover:bg-gray-200"
@@ -637,10 +597,8 @@ export default function TailoredPage() {
               <input
                 type="number"
                 value={limitValue}
-                onChange={(e) =>
-                  setLimitValue(Math.max(1, parseInt(e.target.value) || 1))
-                }
-                className="w-full px-3 py-1.5 text-sm rounded-lg border border-card-border mb-2"
+                onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value) || 1))}
+                className="border-card-border mb-2 w-full rounded-lg border px-3 py-1.5 text-sm"
                 min="1"
               />
             )}
@@ -668,10 +626,7 @@ export default function TailoredPage() {
                   setGeneralAnswer(data.answer);
                 } catch (err) {
                   setGeneralAnswer(
-                    "Error: " +
-                      (err instanceof Error
-                        ? err.message
-                        : "Failed to get answer"),
+                    "Error: " + (err instanceof Error ? err.message : "Failed to get answer"),
                   );
                 } finally {
                   setIsAskingQuestion(false);
@@ -679,7 +634,7 @@ export default function TailoredPage() {
               }}
               disabled={!generalQuestion.trim() || isAskingQuestion}
               variant="primary"
-              className="w-full text-sm py-2"
+              className="w-full py-2 text-sm"
             >
               {isAskingQuestion ? (
                 <>
@@ -692,44 +647,36 @@ export default function TailoredPage() {
             </Button>
 
             {/* Quick Question Shortcuts */}
-            <div className="flex gap-2 mt-2">
+            <div className="mt-2 flex gap-2">
               <button
-                onClick={() =>
-                  setGeneralQuestion(
-                    "What is the salary range for this position?",
-                  )
-                }
-                className="flex-1 px-2 py-1.5 text-xs font-medium text-muted bg-surface-hover hover:bg-gray-200 rounded-lg transition-colors border border-card-border/50"
+                onClick={() => setGeneralQuestion("What is the salary range for this position?")}
+                className="text-muted bg-surface-hover border-card-border/50 flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors hover:bg-gray-200"
               >
                 💰 Salary Range
               </button>
               <button
                 onClick={() =>
-                  setGeneralQuestion(
-                    "What are the key skills required for this role?",
-                  )
+                  setGeneralQuestion("What are the key skills required for this role?")
                 }
-                className="flex-1 px-2 py-1.5 text-xs font-medium text-muted bg-surface-hover hover:bg-gray-200 rounded-lg transition-colors border border-card-border/50"
+                className="text-muted bg-surface-hover border-card-border/50 flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors hover:bg-gray-200"
               >
                 🎯 Key Skills
               </button>
             </div>
 
             {generalAnswer && (
-              <div className="mt-3 p-3 bg-surface-hover rounded-lg border border-card-border">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-muted">Answer</span>
+              <div className="bg-surface-hover border-card-border mt-3 rounded-lg border p-3">
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-muted text-xs font-medium">Answer</span>
                   <Button
                     onClick={() => navigator.clipboard.writeText(generalAnswer)}
                     variant="ghost"
-                    className="copy-btn text-xs py-0.5 px-1.5"
+                    className="copy-btn px-1.5 py-0.5 text-xs"
                   >
                     Copy
                   </Button>
                 </div>
-                <p className="text-xs text-foreground whitespace-pre-wrap">
-                  {generalAnswer}
-                </p>
+                <p className="text-foreground text-xs whitespace-pre-wrap">{generalAnswer}</p>
               </div>
             )}
           </div>
@@ -737,7 +684,7 @@ export default function TailoredPage() {
       </Sidebar>
 
       {/* Main Content - Full Screen LaTeX Editor */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex flex-1 flex-col overflow-hidden">
         <LaTeXEditor
           title="Tailored Resume"
           code={tailoredResume}
@@ -753,13 +700,13 @@ export default function TailoredPage() {
       {/* Log to Sheet Modal */}
       {showLogModal && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowLogModal(false);
           }}
         >
           <div
-            className="glass-card p-6 max-w-md w-full fade-in relative"
+            className="glass-card fade-in relative w-full max-w-md p-6"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey && !isLogging) {
                 e.preventDefault();
@@ -770,7 +717,7 @@ export default function TailoredPage() {
             {/* Close button */}
             <button
               onClick={() => setShowLogModal(false)}
-              className="absolute top-4 right-4 p-1 text-muted hover:text-foreground transition-colors rounded-lg hover:bg-surface-hover"
+              className="text-muted hover:text-foreground hover:bg-surface-hover absolute top-4 right-4 rounded-lg p-1 transition-colors"
               aria-label="Close"
             >
               <svg
@@ -786,14 +733,12 @@ export default function TailoredPage() {
               </svg>
             </button>
 
-            <h3 className="text-xl font-bold text-foreground mb-4">
-              Log Application to Sheet
-            </h3>
+            <h3 className="text-foreground mb-4 text-xl font-bold">Log Application to Sheet</h3>
 
             {logSuccess ? (
-              <div className="text-center py-8">
+              <div className="py-8 text-center">
                 <svg
-                  className="w-16 h-16 mx-auto text-green-500 mb-4"
+                  className="mx-auto mb-4 h-16 w-16 text-green-500"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -802,18 +747,14 @@ export default function TailoredPage() {
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                   <polyline points="22 4 12 14.01 9 11.01" />
                 </svg>
-                <p className="text-lg font-medium text-foreground">
-                  Logged successfully!
-                </p>
+                <p className="text-foreground text-lg font-medium">Logged successfully!</p>
               </div>
             ) : (
               <>
                 {/* Editable Company Name and Position */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="mb-4 grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-sm text-muted mb-1 block">
-                      Company Name
-                    </label>
+                    <label className="text-muted mb-1 block text-sm">Company Name</label>
                     <input
                       type="text"
                       value={editableCompanyName}
@@ -823,9 +764,7 @@ export default function TailoredPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-muted mb-1 block">
-                      Position
-                    </label>
+                    <label className="text-muted mb-1 block text-sm">Position</label>
                     <input
                       type="text"
                       value={editablePositionTitle}
@@ -838,9 +777,8 @@ export default function TailoredPage() {
 
                 {/* Application Link field */}
                 <div className="mb-4">
-                  <label className="text-sm text-muted mb-1 block">
-                    Application Link{" "}
-                    <span className="text-xs text-gray-400">(optional)</span>
+                  <label className="text-muted mb-1 block text-sm">
+                    Application Link <span className="text-xs text-gray-400">(optional)</span>
                   </label>
                   <input
                     ref={applicationLinkRef}
@@ -854,12 +792,10 @@ export default function TailoredPage() {
 
                 {/* Country and Work Mode */}
                 <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm text-muted">
-                      Location & Work Mode
-                    </label>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className="text-muted text-sm">Location & Work Mode</label>
                     {(jobCountry || jobWorkMode) && (
-                      <span className="text-xs text-green-500 flex items-center gap-1">
+                      <span className="flex items-center gap-1 text-xs text-green-500">
                         <svg
                           width="12"
                           height="12"
@@ -887,32 +823,27 @@ export default function TailoredPage() {
                     </div>
                     {/* Work Mode Buttons */}
                     <div className="flex gap-1">
-                      {(["Remote", "Hybrid", "On-site"] as const).map(
-                        (mode) => (
-                          <button
-                            key={mode}
-                            onClick={() =>
-                              setWorkMode(workMode === mode ? "" : mode)
-                            }
-                            className={`px-3 py-2 text-xs font-medium rounded-xl border transition-colors ${
-                              workMode === mode
-                                ? "bg-primary text-white border-primary"
-                                : "bg-surface-hover text-muted border-card-border hover:border-primary/50"
-                            }`}
-                          >
-                            {mode}
-                          </button>
-                        ),
-                      )}
+                      {(["Remote", "Hybrid", "On-site"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          onClick={() => setWorkMode(workMode === mode ? "" : mode)}
+                          className={`rounded-xl border px-3 py-2 text-xs font-medium transition-colors ${
+                            workMode === mode
+                              ? "bg-primary border-primary text-white"
+                              : "bg-surface-hover text-muted border-card-border hover:border-primary/50"
+                          }`}
+                        >
+                          {mode}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
 
                 {/* Notes field */}
                 <div className="mb-4">
-                  <label className="text-sm text-muted mb-1 block">
-                    Notes{" "}
-                    <span className="text-xs text-gray-400">(optional)</span>
+                  <label className="text-muted mb-1 block text-sm">
+                    Notes <span className="text-xs text-gray-400">(optional)</span>
                   </label>
                   <textarea
                     value={notes}
@@ -924,9 +855,8 @@ export default function TailoredPage() {
 
                 {/* Other field */}
                 <div className="mb-4">
-                  <label className="text-sm text-muted mb-1 block">
-                    Other{" "}
-                    <span className="text-xs text-gray-400">(optional)</span>
+                  <label className="text-muted mb-1 block text-sm">
+                    Other <span className="text-xs text-gray-400">(optional)</span>
                   </label>
                   <input
                     type="text"
@@ -937,9 +867,7 @@ export default function TailoredPage() {
                   />
                 </div>
 
-                {logError && (
-                  <p className="text-red-500 text-sm mb-4">{logError}</p>
-                )}
+                {logError && <p className="mb-4 text-sm text-red-500">{logError}</p>}
 
                 <div className="flex gap-3">
                   <Button
@@ -972,11 +900,11 @@ export default function TailoredPage() {
       )}
       {/* Cover Letter Preview Modal */}
       {showCoverLetterPreview && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 sm:p-8">
-          <div className="bg-white rounded-2xl shadow-2xl w-full h-full max-w-6xl flex flex-col overflow-hidden relative">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 sm:p-8">
+          <div className="relative flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
             <button
               onClick={() => setShowCoverLetterPreview(false)}
-              className="absolute top-4 right-4 z-[70] p-2 bg-white/80 hover:bg-white rounded-full shadow-md text-gray-500 hover:text-gray-800 transition-all border border-gray-100"
+              className="absolute top-4 right-4 z-[70] rounded-full border border-gray-100 bg-white/80 p-2 text-gray-500 shadow-md transition-all hover:bg-white hover:text-gray-800"
               title="Close Preview"
             >
               <svg
@@ -991,7 +919,7 @@ export default function TailoredPage() {
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
-            <div className="flex-1 min-h-0">
+            <div className="min-h-0 flex-1">
               <LaTeXEditor
                 title="Cover Letter Preview"
                 code={tailoredCoverLetter}
@@ -1000,10 +928,7 @@ export default function TailoredPage() {
                 isRegenerating={isRegeneratingCoverLetter}
                 showPreview={true}
                 fullHeight={true}
-                downloadFileNames={[
-                  coverLetterFileNamePlain,
-                  coverLetterFileNameDetailed,
-                ]}
+                downloadFileNames={[coverLetterFileNamePlain, coverLetterFileNameDetailed]}
               />
             </div>
           </div>
