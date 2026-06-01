@@ -51,12 +51,7 @@ const STATUS_CONFIG: Record<
     color: "text-gray-600",
     bgColor: "bg-gray-100",
     icon: (
-      <svg
-        className="w-3.5 h-3.5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
+      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <circle cx="12" cy="12" r="10" strokeWidth="2" />
         <path strokeWidth="2" d="M12 6v6l4 2" />
       </svg>
@@ -68,7 +63,7 @@ const STATUS_CONFIG: Record<
     bgColor: "bg-blue-50",
     icon: (
       <svg
-        className="w-3.5 h-3.5 animate-pulse"
+        className="h-3.5 w-3.5 animate-pulse"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -84,7 +79,7 @@ const STATUS_CONFIG: Record<
     bgColor: "bg-purple-50",
     icon: (
       <svg
-        className="w-3.5 h-3.5 animate-spin"
+        className="h-3.5 w-3.5 animate-spin"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -102,7 +97,7 @@ const STATUS_CONFIG: Record<
     bgColor: "bg-indigo-50",
     icon: (
       <svg
-        className="w-3.5 h-3.5 animate-spin"
+        className="h-3.5 w-3.5 animate-spin"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -119,18 +114,8 @@ const STATUS_CONFIG: Record<
     color: "text-green-700",
     bgColor: "bg-green-50",
     icon: (
-      <svg
-        className="w-3.5 h-3.5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M5 13l4 4L19 7"
-        />
+      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
     ),
   },
@@ -139,12 +124,7 @@ const STATUS_CONFIG: Record<
     color: "text-red-700",
     bgColor: "bg-red-50",
     icon: (
-      <svg
-        className="w-3.5 h-3.5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
+      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path
           strokeWidth="2"
           strokeLinecap="round"
@@ -159,12 +139,7 @@ const STATUS_CONFIG: Record<
     color: "text-orange-700",
     bgColor: "bg-orange-50",
     icon: (
-      <svg
-        className="w-3.5 h-3.5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
+      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path
           strokeWidth="2"
           strokeLinecap="round"
@@ -185,54 +160,46 @@ export default function JobQueueCard({
   isCurrentJob,
 }: JobQueueCardProps) {
   const config = STATUS_CONFIG[job.status];
-  const isProcessing = [
-    "researching",
-    "tailoring-resume",
-    "tailoring-cover-letter",
-  ].includes(job.status);
+  const isProcessing = ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(
+    job.status,
+  );
   const [messageIndex, setMessageIndex] = useState(0);
 
-  // Animated progress state - slowly increments through phase ranges
-  const [animatedProgress, setAnimatedProgress] = useState(0);
-  const lastStatusRef = useRef<string | null>(null);
+  // Animated progress state — only updated via interval callback (async)
+  const [animatedProgress, setAnimatedProgress] = useState(job.progress);
+  const lastStatusRef = useRef(job.status);
+  const pendingResetRef = useRef<number | null>(null);
 
-  // Reset and animate progress for processing jobs
+  // Derive display: animate during processing, use real progress otherwise
+  const displayProgress = isProcessing ? animatedProgress : job.progress;
+
+  // Animate progress during processing
   useEffect(() => {
-    if (!isProcessing) {
-      setAnimatedProgress(job.progress);
-      return;
-    }
+    if (!isProcessing) return;
 
-    // Get the progress range for current status
     const range = PROGRESS_RANGES[job.status as keyof typeof PROGRESS_RANGES];
-    if (!range) {
-      setAnimatedProgress(job.progress);
-      return;
-    }
+    if (!range) return;
 
-    // If status changed, reset to start of new range
+    // Defer status-change reset to interval callback (avoids sync setState)
     if (lastStatusRef.current !== job.status) {
-      setAnimatedProgress(range.start);
       lastStatusRef.current = job.status;
+      pendingResetRef.current = range.start;
     }
 
-    // Animate progress incrementally
     const interval = setInterval(() => {
       setAnimatedProgress((prev) => {
-        // Don't exceed the end of the current phase range
-        if (prev >= range.end) {
-          return range.end;
+        if (pendingResetRef.current !== null) {
+          const reset = pendingResetRef.current;
+          pendingResetRef.current = null;
+          return reset;
         }
-        // Increment by 1
+        if (prev >= range.end) return range.end;
         return prev + 1;
       });
-    }, 500); // Update every 500ms for smooth animation
+    }, 500);
 
     return () => clearInterval(interval);
-  }, [isProcessing, job.status, job.progress]);
-
-  // Use animated progress for display, actual progress as fallback
-  const displayProgress = isProcessing ? animatedProgress : job.progress;
+  }, [isProcessing, job.status]);
 
   // Cycle through status messages for processing jobs
   useEffect(() => {
@@ -254,7 +221,7 @@ export default function JobQueueCard({
 
   return (
     <div
-      className={`relative p-3 rounded-lg border transition-all overflow-hidden ${
+      className={`relative overflow-hidden rounded-lg border p-3 transition-all ${
         job.status === "failed"
           ? "border-red-200 bg-red-50/30"
           : isCurrentJob
@@ -264,7 +231,7 @@ export default function JobQueueCard({
     >
       {/* Animated shimmer overlay for processing cards */}
       {isProcessing && (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div
             className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite]"
             style={{
@@ -277,7 +244,7 @@ export default function JobQueueCard({
 
       {/* Animated progress bar */}
       {isProcessing && (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-100 overflow-hidden">
+        <div className="absolute right-0 bottom-0 left-0 h-1 overflow-hidden bg-gray-100">
           <div
             className="absolute h-full bg-gradient-to-r from-gray-400 via-gray-600 to-gray-400 transition-all duration-500"
             style={{
@@ -288,7 +255,7 @@ export default function JobQueueCard({
           />
           {/* Pulsing dot at the end */}
           <div
-            className="absolute top-0 h-full w-2 bg-gray-700 rounded-full animate-pulse"
+            className="absolute top-0 h-full w-2 animate-pulse rounded-full bg-gray-700"
             style={{ left: `${Math.max(0, displayProgress - 1)}%` }}
           />
         </div>
@@ -296,32 +263,26 @@ export default function JobQueueCard({
 
       <div className="flex items-start justify-between gap-2">
         {/* Job info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="font-medium text-sm truncate">
-              {job.companyName || "Unknown Company"}
-            </h3>
+        <div className="min-w-0 flex-1">
+          <div className="mb-0.5 flex items-center gap-2">
+            <h3 className="truncate text-sm font-medium">{job.companyName || "Unknown Company"}</h3>
             {isCurrentJob && (
-              <span className="px-1.5 py-0.5 text-[9px] font-medium bg-gray-900 text-white rounded animate-pulse">
+              <span className="animate-pulse rounded bg-gray-900 px-1.5 py-0.5 text-[9px] font-medium text-white">
                 ACTIVE
               </span>
             )}
           </div>
-          <p className="text-xs text-muted truncate">
-            {job.positionTitle || "Position"}
-          </p>
+          <p className="text-muted truncate text-xs">{job.positionTitle || "Position"}</p>
 
           {/* Status badge and Profile tag */}
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <span
-              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${config.bgColor} ${config.color}`}
+              className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${config.bgColor} ${config.color}`}
             >
               {config.icon}
               {isProcessing ? (
                 <span className="inline-flex items-center gap-1">
-                  <span className="transition-opacity duration-300">
-                    {currentMessage}
-                  </span>
+                  <span className="transition-opacity duration-300">{currentMessage}</span>
                   <span className="ml-0.5 font-bold">{displayProgress}%</span>
                 </span>
               ) : (
@@ -330,10 +291,10 @@ export default function JobQueueCard({
             </span>
             {job.profileName && (
               <span
-                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600`}
+                className={`inline-flex items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600`}
               >
                 <span
-                  className={`w-3 h-3 rounded-full bg-linear-to-br ${job.profileColor || "from-gray-400 to-gray-500"} flex items-center justify-center text-white text-[6px] font-bold`}
+                  className={`h-3 w-3 rounded-full bg-linear-to-br ${job.profileColor || "from-gray-400 to-gray-500"} flex items-center justify-center text-[6px] font-bold text-white`}
                 >
                   {job.profileName[0]}
                 </span>
@@ -345,25 +306,18 @@ export default function JobQueueCard({
           {/* Error message with retry */}
           {job.status === "failed" && job.error && (
             <div className="mt-2 space-y-1.5">
-              <p className="text-[10px] text-red-600 bg-red-100 px-2 py-1 rounded">
+              <p className="rounded bg-red-100 px-2 py-1 text-[10px] text-red-600">
                 {job.error}
                 {job.retryCount && job.retryCount > 0 && (
-                  <span className="ml-1 text-red-500">
-                    (Retry #{job.retryCount})
-                  </span>
+                  <span className="ml-1 text-red-500">(Retry #{job.retryCount})</span>
                 )}
               </p>
               {onRetry && (
                 <button
                   onClick={onRetry}
-                  className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-white bg-red-500 hover:bg-red-600 rounded transition-colors"
+                  className="flex items-center gap-1 rounded bg-red-500 px-2 py-1 text-[10px] font-medium text-white transition-colors hover:bg-red-600"
                 >
-                  <svg
-                    className="w-3 h-3"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeWidth="2"
                       d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
@@ -378,7 +332,7 @@ export default function JobQueueCard({
           {/* Cancelled message with retry option */}
           {job.status === "cancelled" && (
             <div className="mt-2">
-              <p className="text-[10px] text-orange-600 bg-orange-100 px-2 py-1 rounded">
+              <p className="rounded bg-orange-100 px-2 py-1 text-[10px] text-orange-600">
                 Processing was cancelled
               </p>
             </div>
@@ -390,15 +344,10 @@ export default function JobQueueCard({
           {job.status === "completed" && onView && (
             <button
               onClick={onView}
-              className="p-1.5 rounded hover:bg-gray-100 text-gray-600 transition-colors"
+              className="rounded p-1.5 text-gray-600 transition-colors hover:bg-gray-100"
               title="View results"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path
                   strokeWidth="2"
@@ -410,15 +359,10 @@ export default function JobQueueCard({
           {onEdit && (
             <button
               onClick={onEdit}
-              className="p-1.5 rounded hover:bg-gray-100 text-gray-600 transition-colors"
+              className="rounded p-1.5 text-gray-600 transition-colors hover:bg-gray-100"
               title="Edit job"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeWidth="2"
                   strokeLinecap="round"
@@ -431,15 +375,10 @@ export default function JobQueueCard({
           {job.status === "failed" && onRetry && (
             <button
               onClick={onRetry}
-              className="p-1.5 rounded hover:bg-gray-100 text-gray-600 transition-colors"
+              className="rounded p-1.5 text-gray-600 transition-colors hover:bg-gray-100"
               title="Retry"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeWidth="2"
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
@@ -450,15 +389,10 @@ export default function JobQueueCard({
           {job.status === "cancelled" && onRetry && (
             <button
               onClick={onRetry}
-              className="p-1.5 rounded hover:bg-gray-100 text-orange-600 transition-colors"
+              className="rounded p-1.5 text-orange-600 transition-colors hover:bg-gray-100"
               title="Retry cancelled job"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeWidth="2"
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
@@ -471,11 +405,11 @@ export default function JobQueueCard({
             <Button
               onClick={onRetry}
               variant="ghost"
-              className="!bg-blue-600 !text-white !border-blue-600 hover:!bg-blue-700 hover:!border-blue-700 px-3 py-1.5 text-xs font-medium"
+              className="!border-blue-600 !bg-blue-600 px-3 py-1.5 text-xs font-medium !text-white hover:!border-blue-700 hover:!bg-blue-700"
               title="Restart job"
             >
               <svg
-                className="w-3.5 h-3.5 mr-1"
+                className="mr-1 h-3.5 w-3.5"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -491,15 +425,10 @@ export default function JobQueueCard({
           {!isProcessing && (
             <button
               onClick={onRemove}
-              className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+              className="rounded p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
               title="Remove"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeWidth="2"
                   strokeLinecap="round"

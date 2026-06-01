@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import Button from "./Button";
 import ModelSelector from "./ModelSelector";
@@ -22,7 +23,12 @@ export default function Sidebar({
 }: SidebarProps) {
   const [sidebarOpen, setSidebarOpen] = useState(defaultOpen);
   const [isMobile, setIsMobile] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("code") === "26012002";
+    }
+    return false;
+  });
 
   // Detect mobile on mount and resize
   useEffect(() => {
@@ -34,10 +40,6 @@ export default function Sidebar({
     checkMobile();
     window.addEventListener("resize", checkMobile);
 
-    // Check for admin code
-    const code = localStorage.getItem("code");
-    setIsAdmin(code === "26012002");
-
     return () => window.removeEventListener("resize", checkMobile);
   }, [defaultOpen]);
 
@@ -48,38 +50,34 @@ export default function Sidebar({
         className={`shrink-0 overflow-visible ${
           isMobile
             ? `fixed inset-0 z-40 ${sidebarOpen ? "bg-black/50" : "pointer-events-none"}`
-            : `h-screen sticky top-0 ${sidebarOpen ? "w-80" : "w-12"}`
+            : `sticky top-0 h-screen ${sidebarOpen ? "w-80" : "w-12"}`
         }`}
         onClick={(e) => {
           if (isMobile && e.target === e.currentTarget) setSidebarOpen(false);
         }}
       >
         <div
-          className={`h-full bg-white border-r border-gray-200 flex flex-col w-80 transition-transform duration-300 ${
+          className={`flex h-full w-80 flex-col border-r border-gray-200 bg-white transition-transform duration-300 ${
             isMobile
               ? `max-w-sm shadow-2xl ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`
               : `${sidebarOpen ? "translate-x-0" : "-translate-x-67"}`
           }`}
         >
           {/* Sidebar Header with Logo and Toggle */}
-          <div className="h-14 flex items-center justify-between px-3 border-b border-gray-100 bg-linear-to-r from-gray-50 to-white">
+          <div className="flex h-14 items-center justify-between border-b border-gray-100 bg-linear-to-r from-gray-50 to-white px-3">
             <div className="flex items-center gap-2">
-              <img
-                src="/logo.png?v=2"
-                alt="Logo"
-                className="w-8 h-8 rounded-lg"
-              />
-              <span className="font-bold text-sm gradient-text">{title}</span>
+              <Image src="/logo.png?v=2" alt="Logo" width={32} height={32} className="rounded-lg" />
+              <span className="gradient-text text-sm font-bold">{title}</span>
             </div>
             {!isMobile && (
               <Button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 variant="ghost"
-                className="w-7 h-7 flex items-center justify-center bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-50"
+                className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
                 title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
               >
                 <svg
-                  className={`w-4 h-4 text-gray-600 transition-transform ${sidebarOpen ? "" : "rotate-180"}`}
+                  className={`h-4 w-4 text-gray-600 transition-transform ${sidebarOpen ? "" : "rotate-180"}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -98,8 +96,8 @@ export default function Sidebar({
           {/* AI Provider Selection */}
           {!hideModelSelector && (
             <div
-              className={`px-4 py-3 border-b border-gray-100 bg-gray-50/50 transition-opacity ${
-                sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+              className={`border-b border-gray-100 bg-gray-50/50 px-4 py-3 transition-opacity ${
+                sidebarOpen ? "opacity-100" : "pointer-events-none opacity-0"
               }`}
             >
               <ModelSelector />
@@ -107,14 +105,14 @@ export default function Sidebar({
           )}
 
           <div
-            className={`flex flex-col flex-1 overflow-hidden transition-opacity ${
-              sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+            className={`flex flex-1 flex-col overflow-hidden transition-opacity ${
+              sidebarOpen ? "opacity-100" : "pointer-events-none opacity-0"
             }`}
           >
             {/* Sidebar Subtitle */}
             {subtitle && (
-              <div className="px-4 py-2 border-b border-gray-100">
-                <p className="text-xs text-muted">{subtitle}</p>
+              <div className="border-b border-gray-100 px-4 py-2">
+                <p className="text-muted text-xs">{subtitle}</p>
               </div>
             )}
 
@@ -123,10 +121,10 @@ export default function Sidebar({
 
             {/* Admin Link at the bottom */}
             {isAdmin && (
-              <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+              <div className="border-t border-gray-100 bg-gray-50/50 p-4">
                 <Link
                   href="/admin"
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-black hover:bg-gray-800 rounded-lg shadow-sm transition-colors cursor-pointer"
+                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-800"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -153,7 +151,7 @@ export default function Sidebar({
       {isMobile && (
         <button
           onClick={() => setSidebarOpen(true)}
-          className="fixed bottom-6 left-6 z-30 w-12 h-12 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
+          className="bg-primary hover:bg-primary/90 fixed bottom-6 left-6 z-30 flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg transition-colors"
         >
           <svg
             width="20"

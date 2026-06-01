@@ -1,5 +1,6 @@
 // Cloud Storage Management Utility
 // Uses Upstash Redis via API - replaces localStorage
+// No authentication required — open to everyone.
 
 // Storage Keys
 const STORAGE_KEYS = {
@@ -46,66 +47,71 @@ export const generateId = (): string => {
 };
 
 // ============ Cloud Storage Helpers ============
+// Try cloud first, fall back to localStorage for offline/local dev
+// ======================================================
 
-// Get passcode from localStorage (client-side only)
-function getPasscode(): string | null {
+const HEADERS = { "Content-Type": "application/json" };
+
+function localGet<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("fd_passcode");
-}
-
-// Get headers with passcode
-function getAuthHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  const passcode = getPasscode();
-  if (passcode) {
-    headers["x-passcode"] = passcode;
-  }
-  return headers;
-}
-
-async function cloudGet<T>(key: string): Promise<T | null> {
   try {
-    const passcode = getPasscode();
-    const headers: Record<string, string> = {};
-    if (passcode) headers["x-passcode"] = passcode;
-
-    const response = await fetch(
-      `/api/storage?key=${encodeURIComponent(key)}`,
-      {
-        headers,
-      },
-    );
-    if (!response.ok) return null;
-    const { data } = await response.json();
-    return data as T | null;
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
+function localSet<T>(key: string, value: T): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Storage full or unavailable
+  }
+}
+
+function localRemove(key: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Ignore
+  }
+}
+
+async function cloudGet<T>(key: string): Promise<T | null> {
+  try {
+    const response = await fetch(`/api/storage?key=${encodeURIComponent(key)}`);
+    if (!response.ok) return localGet<T>(key);
+    const { data } = await response.json();
+    // Sync to localStorage for offline access
+    if (data != null) localSet(key, data);
+    return data as T | null;
+  } catch {
+    return localGet<T>(key);
+  }
+}
+
 async function cloudSet<T>(key: string, value: T): Promise<void> {
+  // Always save locally first
+  localSet(key, value);
   try {
     await fetch("/api/storage", {
       method: "POST",
-      headers: getAuthHeaders(),
+      headers: HEADERS,
       body: JSON.stringify({ key, value }),
     });
   } catch (error) {
-    console.error("Failed to save to cloud:", error);
+    console.error("Failed to sync to cloud:", error);
   }
 }
 
 async function cloudRemove(key: string): Promise<void> {
+  localRemove(key);
   try {
-    const passcode = getPasscode();
-    const headers: Record<string, string> = {};
-    if (passcode) headers["x-passcode"] = passcode;
-
     await fetch(`/api/storage?key=${encodeURIComponent(key)}`, {
       method: "DELETE",
-      headers,
     });
   } catch (error) {
     console.error("Failed to remove from cloud:", error);
@@ -118,9 +124,7 @@ export const getPersonalDetails = async (): Promise<PersonalDetails | null> => {
   return cloudGet<PersonalDetails>(STORAGE_KEYS.PERSONAL_DETAILS);
 };
 
-export const savePersonalDetails = async (
-  details: PersonalDetails,
-): Promise<void> => {
+export const savePersonalDetails = async (details: PersonalDetails): Promise<void> => {
   await cloudSet(STORAGE_KEYS.PERSONAL_DETAILS, details);
 };
 
@@ -136,16 +140,11 @@ export const getResumeTemplates = async (): Promise<Template[]> => {
   return data || [];
 };
 
-export const saveResumeTemplates = async (
-  templates: Template[],
-): Promise<void> => {
+export const saveResumeTemplates = async (templates: Template[]): Promise<void> => {
   await cloudSet(STORAGE_KEYS.RESUME_TEMPLATES, templates);
 };
 
-export const addResumeTemplate = async (
-  name: string,
-  content: string,
-): Promise<Template> => {
+export const addResumeTemplate = async (name: string, content: string): Promise<Template> => {
   const templates = await getResumeTemplates();
   const newTemplate: Template = {
     id: generateId(),
@@ -216,16 +215,11 @@ export const getCoverLetterTemplates = async (): Promise<Template[]> => {
   return data || [];
 };
 
-export const saveCoverLetterTemplates = async (
-  templates: Template[],
-): Promise<void> => {
+export const saveCoverLetterTemplates = async (templates: Template[]): Promise<void> => {
   await cloudSet(STORAGE_KEYS.COVER_LETTER_TEMPLATES, templates);
 };
 
-export const addCoverLetterTemplate = async (
-  name: string,
-  content: string,
-): Promise<Template> => {
+export const addCoverLetterTemplate = async (name: string, content: string): Promise<Template> => {
   const templates = await getCoverLetterTemplates();
   const newTemplate: Template = {
     id: generateId(),
@@ -260,9 +254,7 @@ export const updateCoverLetterTemplate = async (
 };
 
 export const deleteCoverLetterTemplate = async (id: string): Promise<void> => {
-  const templates = (await getCoverLetterTemplates()).filter(
-    (t) => t.id !== id,
-  );
+  const templates = (await getCoverLetterTemplates()).filter((t) => t.id !== id);
   await saveCoverLetterTemplates(templates);
   const firstTemplate = templates[0];
   const defaultId = await getDefaultCoverLetterId();
@@ -281,16 +273,15 @@ export const setDefaultCoverLetterId = async (id: string): Promise<void> => {
   await cloudSet(STORAGE_KEYS.DEFAULT_COVER_LETTER, id);
 };
 
-export const getDefaultCoverLetterTemplate =
-  async (): Promise<Template | null> => {
-    const templates = await getCoverLetterTemplates();
-    const defaultId = await getDefaultCoverLetterId();
-    if (defaultId) {
-      const defaultTemplate = templates.find((t) => t.id === defaultId);
-      if (defaultTemplate) return defaultTemplate;
-    }
-    return templates[0] ?? null;
-  };
+export const getDefaultCoverLetterTemplate = async (): Promise<Template | null> => {
+  const templates = await getCoverLetterTemplates();
+  const defaultId = await getDefaultCoverLetterId();
+  if (defaultId) {
+    const defaultTemplate = templates.find((t) => t.id === defaultId);
+    if (defaultTemplate) return defaultTemplate;
+  }
+  return templates[0] ?? null;
+};
 
 // ============ Utility Functions ============
 
@@ -420,21 +411,14 @@ export const getNextProfileColor = async (): Promise<string> => {
 const buildMasterContextKey = (profileId: string): string =>
   `${STORAGE_KEYS.MASTER_CONTEXT}:${profileId}`;
 
-export const getMasterContext = async (
-  profileId: string,
-): Promise<string | null> => {
+export const getMasterContext = async (profileId: string): Promise<string | null> => {
   return cloudGet<string>(buildMasterContextKey(profileId));
 };
 
-export const saveMasterContext = async (
-  profileId: string,
-  content: string,
-): Promise<void> => {
+export const saveMasterContext = async (profileId: string, content: string): Promise<void> => {
   await cloudSet(buildMasterContextKey(profileId), content);
 };
 
-export const deleteMasterContext = async (
-  profileId: string,
-): Promise<void> => {
+export const deleteMasterContext = async (profileId: string): Promise<void> => {
   await cloudRemove(buildMasterContextKey(profileId));
 };

@@ -49,18 +49,16 @@ function AddJobModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-6 border-b border-gray-100">
+        <div className="border-b border-gray-100 p-6">
           <h2 className="text-lg font-semibold">Add Job to Queue</h2>
-          <p className="text-sm text-muted mt-1">
-            Job will start processing automatically
-          </p>
+          <p className="text-muted mt-1 text-sm">Job will start processing automatically</p>
         </div>
         <JobForm
           profiles={profiles}
@@ -71,12 +69,7 @@ function AddJobModal({
           }}
           submitLabel={
             <>
-              <svg
-                className="w-4 h-4 mr-1"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <svg className="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeWidth="2"
                   strokeLinecap="round"
@@ -114,11 +107,9 @@ function EditJobModal({
   }) => void;
   profiles: Profile[];
 }) {
-  const isProcessing = [
-    "researching",
-    "tailoring-resume",
-    "tailoring-cover-letter",
-  ].includes(job.status);
+  const isProcessing = ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(
+    job.status,
+  );
 
   useEffect(() => {
     if (isProcessing) {
@@ -132,25 +123,25 @@ function EditJobModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-6 border-b border-gray-100">
+        <div className="border-b border-gray-100 p-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold">Edit Job</h2>
-              <p className="text-sm text-muted mt-1">
+              <p className="text-muted mt-1 text-sm">
                 {isProcessing
                   ? "Job will restart from the beginning after saving"
                   : "Update job details and restart processing"}
               </p>
             </div>
             {isProcessing && (
-              <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-700 rounded">
+              <span className="rounded bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-700">
                 Currently Processing
               </span>
             )}
@@ -175,12 +166,7 @@ function EditJobModal({
           isProcessing={isProcessing}
           submitLabel={
             <>
-              <svg
-                className="w-4 h-4 mr-1"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <svg className="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeWidth="2"
                   strokeLinecap="round"
@@ -211,8 +197,7 @@ function getActivityColor(activity: string): { border: string; text: string } {
     return { border: "border-l-red-500", text: "text-red-600" };
   if (activity.startsWith("[Paused]") || activity.startsWith("[Cancelled]"))
     return { border: "border-l-orange-500", text: "text-orange-600" };
-  if (activity.startsWith("[Added]"))
-    return { border: "border-l-gray-400", text: "text-gray-600" };
+  if (activity.startsWith("[Added]")) return { border: "border-l-gray-400", text: "text-gray-600" };
   if (activity.startsWith("[Started]") || activity.startsWith("[Profile]"))
     return { border: "border-l-gray-500", text: "text-gray-600" };
   return { border: "border-l-gray-300", text: "text-gray-500" };
@@ -229,23 +214,21 @@ function ActivityFeed({
   currentJobStartTime: number | null;
 }) {
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 font-mono text-xs">
-      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-gray-200">
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 font-mono text-xs">
+      <div className="mb-2 flex items-center gap-2 border-b border-gray-200 pb-2">
         {currentJob ? (
-          <div className="w-2 h-2 rounded-full bg-gray-900 animate-pulse" />
+          <div className="h-2 w-2 animate-pulse rounded-full bg-gray-900" />
         ) : (
-          <div className="w-2 h-2 rounded-full bg-gray-400" />
+          <div className="h-2 w-2 rounded-full bg-gray-400" />
         )}
-        <span className="text-gray-700 font-medium">Activity Log</span>
+        <span className="font-medium text-gray-700">Activity Log</span>
         {currentJob && (
-          <span className="ml-auto text-gray-500 text-[10px]">
-            {currentJob.progress}%
-          </span>
+          <span className="ml-auto text-[10px] text-gray-500">{currentJob.progress}%</span>
         )}
       </div>
-      <div className="space-y-1 max-h-32 overflow-y-auto">
+      <div className="max-h-32 space-y-1 overflow-y-auto">
         {currentJob && (
-          <div className="flex gap-2 text-gray-700 pl-2 border-l-2 border-l-purple-500 bg-purple-50/50 py-0.5">
+          <div className="flex gap-2 border-l-2 border-l-purple-500 bg-purple-50/50 py-0.5 pl-2 text-gray-700">
             <span className="text-gray-400">
               [
               {currentJobStartTime
@@ -253,19 +236,14 @@ function ActivityFeed({
                 : "--:--:--"}
               ]
             </span>
-            <span className="text-purple-700">
-              Processing: {currentJob.companyName}
-            </span>
+            <span className="text-purple-700">Processing: {currentJob.companyName}</span>
           </div>
         )}
         {recentActivities.map((activity) => {
           const colors = getActivityColor(activity.message);
           return (
-            <div
-              key={activity.id}
-              className={`flex gap-2 pl-2 border-l-2 ${colors.border} py-0.5`}
-            >
-              <span className="text-gray-400 shrink-0">
+            <div key={activity.id} className={`flex gap-2 border-l-2 pl-2 ${colors.border} py-0.5`}>
+              <span className="shrink-0 text-gray-400">
                 [{new Date(activity.timestamp).toLocaleTimeString()}]
               </span>
               <span className={colors.text}>{activity.message}</span>
@@ -310,12 +288,9 @@ export default function BatchProcessPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingJob, setEditingJob] = useState<QueuedJob | null>(null);
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
-  const [currentJobStartTime, setCurrentJobStartTime] = useState<number | null>(
-    null,
-  );
+  const [currentJobStartTime, setCurrentJobStartTime] = useState<number | null>(null);
   const [resumeTemplate, setResumeTemplate] = useState<Template | null>(null);
-  const [coverLetterTemplate, setCoverLetterTemplate] =
-    useState<Template | null>(null);
+  const [coverLetterTemplate, setCoverLetterTemplate] = useState<Template | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [statusFilter, setStatusFilter] = useState<
@@ -349,17 +324,11 @@ export default function BatchProcessPage() {
       const localProfiles = await getProfiles();
       setProfiles(localProfiles);
 
-      // Sync to server so extension can see them (with passcode)
+      // Sync profiles to server so extension can access them
       if (localProfiles.length > 0) {
-        const passcode = localStorage.getItem("fd_passcode");
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
-        if (passcode) headers["x-passcode"] = passcode;
-
         fetch("/api/profiles", {
           method: "POST",
-          headers,
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(localProfiles),
         }).catch((err) => console.error("Failed to sync profiles:", err));
       }
@@ -392,9 +361,7 @@ export default function BatchProcessPage() {
           // Use profile-specific templates if available
           if (profile.defaultResumeId) {
             const allResumeTemplates = await getResumeTemplates();
-            const profileResume = allResumeTemplates.find(
-              (t) => t.id === profile.defaultResumeId,
-            );
+            const profileResume = allResumeTemplates.find((t) => t.id === profile.defaultResumeId);
             if (profileResume) {
               jobResumeTemplate = profileResume;
               addActivity(`[Profile] Using "${profile.name}" resume template`);
@@ -454,9 +421,7 @@ export default function BatchProcessPage() {
         // Step 2: Tailor cover letter
         if (job.includeCoverLetter && jobCoverLetterTemplate) {
           updateJobStatus(job.id, "tailoring-cover-letter", 70);
-          addActivity(
-            `[Cover] Generating cover letter for ${job.positionTitle}...`,
-          );
+          addActivity(`[Cover] Generating cover letter for ${job.positionTitle}...`);
 
           const coverLetterResponse = await fetch("/api/tailor-cover-letter", {
             method: "POST",
@@ -481,9 +446,7 @@ export default function BatchProcessPage() {
           });
           addActivity(`[Done] Cover letter generated for ${job.companyName}`);
         } else if (jobCoverLetterTemplate) {
-          addActivity(
-            `[Skip] Cover letter skipped for ${job.companyName} (default)`,
-          );
+          addActivity(`[Skip] Cover letter skipped for ${job.companyName} (default)`);
         }
 
         // Mark completed
@@ -494,8 +457,7 @@ export default function BatchProcessPage() {
           addActivity(`[Paused] Cancelled: ${job.companyName}`);
           updateJobStatus(job.id, "pending", 0);
         } else {
-          const message =
-            error instanceof Error ? error.message : "Unknown error";
+          const message = error instanceof Error ? error.message : "Unknown error";
           setJobError(job.id, message);
           addActivity(`[Error] Failed: ${job.companyName} - ${message}`);
         }
@@ -668,9 +630,7 @@ export default function BatchProcessPage() {
   }) => {
     if (editingJob) {
       updateJob(editingJob.id, updates);
-      addActivity(
-        `✏️ Edited: ${updates.companyName} - ${updates.positionTitle} (restarting)`,
-      );
+      addActivity(`✏️ Edited: ${updates.companyName} - ${updates.positionTitle} (restarting)`);
 
       // If processing is not active, start it
       setTimeout(() => {
@@ -682,12 +642,12 @@ export default function BatchProcessPage() {
   };
 
   const currentJob = queue.find((j) =>
-    ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(
-      j.status,
-    ),
+    ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(j.status),
   );
 
   // Track current job start time for stable display
+  const currentJobId = currentJob?.id;
+  const hasCurrentJob = !!currentJob;
   useEffect(() => {
     if (currentJob) {
       if (!currentJobStartTime) {
@@ -696,14 +656,12 @@ export default function BatchProcessPage() {
     } else {
       setCurrentJobStartTime(null);
     }
-  }, [currentJob?.id, !!currentJob, currentJobStartTime]);
+  }, [currentJobId, hasCurrentJob, currentJob, currentJobStartTime]);
 
   // Filter jobs by status
   const getProcessingCount = () =>
     queue.filter((j) =>
-      ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(
-        j.status,
-      ),
+      ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(j.status),
     ).length;
 
   const filteredQueue = () => {
@@ -712,11 +670,7 @@ export default function BatchProcessPage() {
         return queue.filter((j) => j.status === "pending");
       case "processing":
         return queue.filter((j) =>
-          [
-            "researching",
-            "tailoring-resume",
-            "tailoring-cover-letter",
-          ].includes(j.status),
+          ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(j.status),
         );
       case "completed":
         return queue.filter((j) => j.status === "completed");
@@ -728,69 +682,39 @@ export default function BatchProcessPage() {
   };
 
   return (
-    <div className="h-screen flex overflow-hidden">
+    <div className="flex h-screen overflow-hidden">
       {/* Smart Sidebar */}
       <div
-        className={`shrink-0 h-screen transition-all duration-300 ${sidebarCollapsed ? "w-16" : "w-80"}`}
+        className={`h-screen shrink-0 transition-all duration-300 ${sidebarCollapsed ? "w-16" : "w-80"}`}
       >
-        <div className="h-full bg-white border-r border-gray-200 flex flex-col">
+        <div className="flex h-full flex-col border-r border-gray-200 bg-white">
           {/* Header */}
-          <div className="h-14 flex items-center justify-between px-3 border-b border-gray-100">
-            <div
-              className={`flex items-center gap-2 ${sidebarCollapsed ? "hidden" : ""}`}
-            >
-              <div className="w-8 h-8 rounded-lg bg-gray-900 flex items-center justify-center">
+          <div className="flex h-14 items-center justify-between border-b border-gray-100 px-3">
+            <div className={`flex items-center gap-2 ${sidebarCollapsed ? "hidden" : ""}`}>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-900">
                 <svg
-                  className="w-4 h-4 text-white"
+                  className="h-4 w-4 text-white"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
-                  <rect
-                    x="3"
-                    y="3"
-                    width="7"
-                    height="7"
-                    rx="1"
-                    strokeWidth="2"
-                  />
-                  <rect
-                    x="14"
-                    y="3"
-                    width="7"
-                    height="7"
-                    rx="1"
-                    strokeWidth="2"
-                  />
-                  <rect
-                    x="3"
-                    y="14"
-                    width="7"
-                    height="7"
-                    rx="1"
-                    strokeWidth="2"
-                  />
-                  <rect
-                    x="14"
-                    y="14"
-                    width="7"
-                    height="7"
-                    rx="1"
-                    strokeWidth="2"
-                  />
+                  <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth="2" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" strokeWidth="2" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth="2" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" strokeWidth="2" />
                 </svg>
               </div>
               <div>
-                <span className="font-bold text-sm">Batch Mode</span>
-                <p className="text-[10px] text-muted">Auto-processing</p>
+                <span className="text-sm font-bold">Batch Mode</span>
+                <p className="text-muted text-[10px]">Auto-processing</p>
               </div>
             </div>
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="w-7 h-7 flex items-center justify-center bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-50"
+              className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
             >
               <svg
-                className={`w-4 h-4 text-gray-600 transition-transform ${sidebarCollapsed ? "rotate-180" : ""}`}
+                className={`h-4 w-4 text-gray-600 transition-transform ${sidebarCollapsed ? "rotate-180" : ""}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -807,18 +731,13 @@ export default function BatchProcessPage() {
 
           {/* Collapsed View */}
           {sidebarCollapsed ? (
-            <div className="flex-1 flex flex-col items-center py-4 gap-3">
+            <div className="flex flex-1 flex-col items-center gap-3 py-4">
               <button
                 onClick={() => router.push("/")}
-                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 text-muted"
+                className="text-muted flex h-10 w-10 items-center justify-center rounded-lg hover:bg-gray-100"
                 title="Back to Single Mode"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
               </button>
@@ -827,15 +746,10 @@ export default function BatchProcessPage() {
                   setSidebarCollapsed(false);
                   setShowAddModal(true);
                 }}
-                className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
                 title="Add Job"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeWidth="2"
                     strokeLinecap="round"
@@ -848,13 +762,13 @@ export default function BatchProcessPage() {
               {/* Mini Stats */}
               <div className="space-y-2">
                 <div
-                  className="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100 text-xs font-bold"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-xs font-bold"
                   title={`${pendingCount} pending`}
                 >
                   {pendingCount}
                 </div>
                 <div
-                  className="w-10 h-10 flex items-center justify-center rounded-lg bg-green-100 text-green-700 text-xs font-bold"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-xs font-bold text-green-700"
                   title={`${completedCount} completed`}
                 >
                   {completedCount}
@@ -864,17 +778,12 @@ export default function BatchProcessPage() {
           ) : (
             <>
               {/* Navigation */}
-              <div className="p-3 border-b border-gray-100">
+              <div className="border-b border-gray-100 p-3">
                 <button
                   onClick={() => router.push("/")}
-                  className="w-full flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-sm transition-colors"
+                  className="hover:bg-surface-hover text-muted hover:text-foreground flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
                   Single Mode
@@ -882,7 +791,7 @@ export default function BatchProcessPage() {
               </div>
 
               {/* Queue Stats */}
-              <div className="p-4 border-b border-gray-100">
+              <div className="border-b border-gray-100 p-4">
                 <QueueProgress
                   total={totalCount}
                   completed={completedCount}
@@ -893,29 +802,27 @@ export default function BatchProcessPage() {
               </div>
 
               {/* Templates Status - Compact */}
-              <div className="px-4 py-3 border-b border-gray-100">
+              <div className="border-b border-gray-100 px-4 py-3">
                 <div className="flex items-center gap-2 text-xs">
                   <div
-                    className={`w-2 h-2 rounded-full ${resumeTemplate ? "bg-green-500" : "bg-red-500"}`}
+                    className={`h-2 w-2 rounded-full ${resumeTemplate ? "bg-green-500" : "bg-red-500"}`}
                   />
                   <span className="text-muted">Resume:</span>
-                  <span className="font-medium truncate">
-                    {resumeTemplate?.name || "Not set"}
-                  </span>
+                  <span className="truncate font-medium">{resumeTemplate?.name || "Not set"}</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs mt-1">
+                <div className="mt-1 flex items-center gap-2 text-xs">
                   <div
-                    className={`w-2 h-2 rounded-full ${coverLetterTemplate ? "bg-green-500" : "bg-yellow-500"}`}
+                    className={`h-2 w-2 rounded-full ${coverLetterTemplate ? "bg-green-500" : "bg-yellow-500"}`}
                   />
                   <span className="text-muted">Cover:</span>
-                  <span className="font-medium truncate">
+                  <span className="truncate font-medium">
                     {coverLetterTemplate?.name || "Optional"}
                   </span>
                 </div>
                 {!resumeTemplate && (
                   <button
                     onClick={() => router.push("/")}
-                    className="text-xs text-primary hover:underline mt-2"
+                    className="text-primary mt-2 text-xs hover:underline"
                   >
                     Set up templates first →
                   </button>
@@ -923,14 +830,14 @@ export default function BatchProcessPage() {
               </div>
 
               {/* Actions */}
-              <div className="p-4 space-y-2 flex-1">
+              <div className="flex-1 space-y-2 p-4">
                 <Button
                   onClick={() => setShowAddModal(true)}
                   variant="primary"
                   className="w-full justify-center"
                 >
                   <svg
-                    className="w-4 h-4 mr-2"
+                    className="mr-2 h-4 w-4"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -949,18 +856,15 @@ export default function BatchProcessPage() {
                   <Button
                     onClick={handleStopProcessing}
                     variant="secondary"
-                    className="w-full justify-center bg-red-50 hover:bg-red-100 text-red-600 border-red-200"
+                    className="w-full justify-center border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
                   >
                     <svg
-                      className="w-4 h-4 mr-2 animate-pulse"
+                      className="mr-2 h-4 w-4 animate-pulse"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
                     >
-                      <path
-                        strokeWidth="2"
-                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
+                      <path strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       <path
                         strokeWidth="2"
                         d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
@@ -975,7 +879,7 @@ export default function BatchProcessPage() {
                     className="w-full justify-center"
                   >
                     <svg
-                      className="w-4 h-4 mr-2"
+                      className="mr-2 h-4 w-4"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -984,10 +888,7 @@ export default function BatchProcessPage() {
                         strokeWidth="2"
                         d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
                       />
-                      <path
-                        strokeWidth="2"
-                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
+                      <path strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     Resume ({pendingCount})
                   </Button>
@@ -998,7 +899,7 @@ export default function BatchProcessPage() {
                   {completedCount > 0 && (
                     <button
                       onClick={clearCompleted}
-                      className="flex-1 text-xs text-muted hover:text-foreground py-2 transition-colors hover:bg-gray-50 rounded-lg"
+                      className="text-muted hover:text-foreground flex-1 rounded-lg py-2 text-xs transition-colors hover:bg-gray-50"
                     >
                       Clear done ({completedCount})
                     </button>
@@ -1006,7 +907,7 @@ export default function BatchProcessPage() {
                   {totalCount > 0 && !isProcessing && (
                     <button
                       onClick={clearQueue}
-                      className="flex-1 text-xs text-red-500 hover:text-red-700 py-2 transition-colors hover:bg-red-50 rounded-lg"
+                      className="flex-1 rounded-lg py-2 text-xs text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
                     >
                       Clear all
                     </button>
@@ -1015,16 +916,12 @@ export default function BatchProcessPage() {
 
                 {/* Processing Status */}
                 {isProcessing && (
-                  <div className="mt-4 p-3 bg-gray-100 rounded-lg">
+                  <div className="mt-4 rounded-lg bg-gray-100 p-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-gray-700 animate-pulse" />
-                      <span className="text-xs font-medium text-gray-700">
-                        Processing active
-                      </span>
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-gray-700" />
+                      <span className="text-xs font-medium text-gray-700">Processing active</span>
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-1">
-                      Add more jobs anytime
-                    </p>
+                    <p className="mt-1 text-[10px] text-gray-500">Add more jobs anytime</p>
                   </div>
                 )}
               </div>
@@ -1034,27 +931,97 @@ export default function BatchProcessPage() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
-        <div className="max-w-4xl mx-auto space-y-6">
+      <main className="flex-1 overflow-y-auto bg-gray-50/50 p-6">
+        <div className="mx-auto max-w-4xl space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold">Batch Processing</h1>
-              <p className="text-sm text-muted mt-1">
+              <p className="text-muted mt-1 text-sm">
                 Add jobs anytime - they process automatically
               </p>
             </div>
             {isProcessing && currentJob && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-full">
-                <div className="w-2 h-2 rounded-full bg-gray-700 animate-pulse" />
-                <span className="text-sm font-medium text-gray-700">
-                  {currentJob.companyName}
-                </span>
-                <span className="text-xs text-gray-500">
-                  {currentJob.progress}%
-                </span>
+              <div className="flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1.5">
+                <div className="h-2 w-2 animate-pulse rounded-full bg-gray-700" />
+                <span className="text-sm font-medium text-gray-700">{currentJob.companyName}</span>
+                <span className="text-xs text-gray-500">{currentJob.progress}%</span>
               </div>
             )}
+          </div>
+
+          {/* Extension Guide */}
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <svg
+                className="h-5 w-5 text-blue-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+              <h2 className="text-sm font-bold text-blue-800">
+                Use the Chrome Extension for faster batch processing
+              </h2>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-lg bg-white p-3">
+                <div className="mb-1 flex h-6 w-6 items-center justify-center rounded bg-blue-100 text-xs font-bold text-blue-700">
+                  1
+                </div>
+                <p className="text-xs font-medium text-gray-800">Install the Extension</p>
+                <p className="text-muted mt-0.5 text-[10px]">
+                  Go to{" "}
+                  <code className="rounded bg-gray-100 px-1 text-[10px]">chrome://extensions</code>,
+                  enable Developer mode, click Load unpacked, and select the{" "}
+                  <code className="rounded bg-gray-100 px-1 text-[10px]">extension/</code> folder
+                </p>
+              </div>
+              <div className="rounded-lg bg-white p-3">
+                <div className="mb-1 flex h-6 w-6 items-center justify-center rounded bg-blue-100 text-xs font-bold text-blue-700">
+                  2
+                </div>
+                <p className="text-xs font-medium text-gray-800">Set Your Server URL</p>
+                <p className="text-muted mt-0.5 text-[10px]">
+                  In the extension popup, enter your server URL. For local dev use{" "}
+                  <code className="rounded bg-gray-100 px-1 text-[10px]">
+                    http://localhost:3000
+                  </code>
+                  . For production, use your deployed URL. A green dot means connected.
+                </p>
+              </div>
+              <div className="rounded-lg bg-white p-3">
+                <div className="mb-1 flex h-6 w-6 items-center justify-center rounded bg-blue-100 text-xs font-bold text-blue-700">
+                  3
+                </div>
+                <p className="text-xs font-medium text-gray-800">Scrape & Queue Jobs</p>
+                <p className="text-muted mt-0.5 text-[10px]">
+                  Browse job listings on any site, click the extension icon, select a profile, fill
+                  in the details, and click Add to Queue. The job auto-processes here on this page.
+                </p>
+              </div>
+            </div>
+            <details className="mt-3">
+              <summary className="cursor-pointer text-xs font-medium text-blue-700 hover:text-blue-800">
+                Pro tips for developers
+              </summary>
+              <div className="mt-2 space-y-1 text-[10px] text-gray-600">
+                <p>• The extension auto-detects company name and job title from the page URL</p>
+                <p>
+                  • Select text on the job page before opening the extension — it auto-fills the
+                  description
+                </p>
+                <p>
+                  • Use Copy/Paste buttons in the extension header to transfer company data between
+                  tabs
+                </p>
+                <p>• The green dot shows connection status — red means check your server URL</p>
+                <p>• Extension works with both local dev and deployed instances</p>
+              </div>
+            </details>
           </div>
 
           {/* Activity Feed */}
@@ -1068,7 +1035,7 @@ export default function BatchProcessPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold">Job Queue</h2>
-              <span className="text-xs text-muted">
+              <span className="text-muted text-xs">
                 {totalCount} job{totalCount !== 1 ? "s" : ""}
               </span>
             </div>
@@ -1089,7 +1056,7 @@ export default function BatchProcessPage() {
                 <button
                   key={tab.id}
                   onClick={() => setStatusFilter(tab.id as typeof statusFilter)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
                     statusFilter === tab.id
                       ? "bg-gray-900 text-white"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -1097,7 +1064,7 @@ export default function BatchProcessPage() {
                 >
                   <span>{tab.label}</span>
                   <span
-                    className={`px-1.5 py-0.5 rounded text-[10px] ${
+                    className={`rounded px-1.5 py-0.5 text-[10px] ${
                       statusFilter === tab.id ? "bg-white/20" : "bg-gray-200"
                     }`}
                   >
@@ -1108,10 +1075,10 @@ export default function BatchProcessPage() {
             </div>
 
             {queue.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gray-100 flex items-center justify-center">
+              <div className="rounded-xl border border-gray-200 bg-white py-12 text-center">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
                   <svg
-                    className="w-6 h-6 text-gray-400"
+                    className="h-6 w-6 text-gray-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -1122,12 +1089,8 @@ export default function BatchProcessPage() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-sm font-medium text-gray-600 mb-1">
-                  No jobs in queue
-                </h3>
-                <p className="text-xs text-muted mb-3">
-                  Add a job to start processing
-                </p>
+                <h3 className="mb-1 text-sm font-medium text-gray-600">No jobs in queue</h3>
+                <p className="text-muted mb-3 text-xs">Add a job to start processing</p>
                 <Button onClick={() => setShowAddModal(true)} variant="primary">
                   Add Job
                 </Button>

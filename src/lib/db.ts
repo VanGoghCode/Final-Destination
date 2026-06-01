@@ -110,10 +110,8 @@ const KEYS = {
 };
 
 // Get user-specific key for queue and profiles
-function getUserKey(baseKey: string, passcode?: string | null): string {
-  if (passcode) {
-    return `user:${passcode}:${baseKey}`;
-  }
+// (Deprecated - no auth, flat key space)
+function getKey(baseKey: string): string {
   return baseKey;
 }
 
@@ -188,9 +186,7 @@ export async function setTierData(
   }
 }
 
-export async function getAllTierData(): Promise<
-  Record<string, TierData | null>
-> {
+export async function getAllTierData(): Promise<Record<string, TierData | null>> {
   const tiers = ["top", "middle", "lower", "lowest"] as const;
   const results = await Promise.all(tiers.map((tier) => getTierData(tier)));
 
@@ -318,10 +314,10 @@ export async function deleteJob(jobId: string): Promise<boolean> {
 
 // ============== QUEUE ==============
 
-export async function getQueue(passcode?: string | null): Promise<QueuedJob[]> {
+export async function getQueue(): Promise<QueuedJob[]> {
   const redis = getRedis();
   try {
-    const key = getUserKey(KEYS.QUEUE, passcode);
+    const key = getKey(KEYS.QUEUE);
     const queue = await redis.get<QueuedJob[]>(key);
     return queue || [];
   } catch (error) {
@@ -330,13 +326,10 @@ export async function getQueue(passcode?: string | null): Promise<QueuedJob[]> {
   }
 }
 
-export async function setQueue(
-  queue: QueuedJob[],
-  passcode?: string | null,
-): Promise<boolean> {
+export async function setQueue(queue: QueuedJob[]): Promise<boolean> {
   const redis = getRedis();
   try {
-    const key = getUserKey(KEYS.QUEUE, passcode);
+    const key = getKey(KEYS.QUEUE);
     await redis.set(key, queue);
     return true;
   } catch (error) {
@@ -345,24 +338,20 @@ export async function setQueue(
   }
 }
 
-export async function addJobToQueue(
-  job: QueuedJob,
-  passcode?: string | null,
-): Promise<boolean> {
-  const queue = await getQueue(passcode);
+export async function addJobToQueue(job: QueuedJob): Promise<boolean> {
+  const queue = await getQueue();
   // Check for duplicates
   if (queue.some((j) => j.id === job.id)) return false;
 
   queue.push(job);
-  return setQueue(queue, passcode);
+  return setQueue(queue);
 }
 
 export async function updateJobInQueue(
   jobId: string,
   updates: Partial<QueuedJob>,
-  passcode?: string | null,
 ): Promise<QueuedJob | null> {
-  const queue = await getQueue(passcode);
+  const queue = await getQueue();
   const index = queue.findIndex((j) => j.id === jobId);
 
   if (index === -1) return null;
@@ -370,20 +359,17 @@ export async function updateJobInQueue(
   const updatedJob = { ...queue[index], ...updates } as QueuedJob;
   queue[index] = updatedJob;
 
-  await setQueue(queue, passcode);
+  await setQueue(queue);
   return updatedJob;
 }
 
-export async function removeJobFromQueue(
-  jobId: string,
-  passcode?: string | null,
-): Promise<boolean> {
-  const queue = await getQueue(passcode);
+export async function removeJobFromQueue(jobId: string): Promise<boolean> {
+  const queue = await getQueue();
   const newQueue = queue.filter((j) => j.id !== jobId);
 
   if (newQueue.length === queue.length) return false;
 
-  return setQueue(newQueue, passcode);
+  return setQueue(newQueue);
 }
 
 // ============== PROFILES ==============
@@ -400,12 +386,10 @@ export interface SavedProfile {
   avatarText?: string;
 }
 
-export async function getProfiles(
-  passcode?: string | null,
-): Promise<SavedProfile[]> {
+export async function getProfiles(): Promise<SavedProfile[]> {
   const redis = getRedis();
   try {
-    const key = getUserKey(KEYS.PROFILES, passcode);
+    const key = getKey(KEYS.PROFILES);
     const profiles = await redis.get<SavedProfile[]>(key);
     return profiles || [];
   } catch (error) {
@@ -414,13 +398,10 @@ export async function getProfiles(
   }
 }
 
-export async function setProfiles(
-  profiles: SavedProfile[],
-  passcode?: string | null,
-): Promise<boolean> {
+export async function setProfiles(profiles: SavedProfile[]): Promise<boolean> {
   const redis = getRedis();
   try {
-    const key = getUserKey(KEYS.PROFILES, passcode);
+    const key = getKey(KEYS.PROFILES);
     await redis.set(key, profiles);
     return true;
   } catch (error) {
@@ -431,9 +412,7 @@ export async function setProfiles(
 
 // ============== COMPANY CAREER URLS ==============
 
-export async function getCompanyCareerUrls(
-  companyId: string,
-): Promise<string[]> {
+export async function getCompanyCareerUrls(companyId: string): Promise<string[]> {
   const result = await getCompanyFromTiers(companyId);
   if (!result) return [];
   return result.company.careerUrls || [];
@@ -523,10 +502,7 @@ export async function seedAllData(data: {
   if (data.tiers) {
     for (const [tier, tierData] of Object.entries(data.tiers)) {
       if (tierData) {
-        const success = await setTierData(
-          tier as "top" | "middle" | "lower" | "lowest",
-          tierData,
-        );
+        const success = await setTierData(tier as "top" | "middle" | "lower" | "lowest", tierData);
         if (!success) errors.push(`Failed to seed ${tier}-tier`);
       }
     }
@@ -545,13 +521,7 @@ export async function clearAllData(): Promise<boolean> {
   const redis = getRedis();
 
   try {
-    const keys = [
-      KEYS.JOBS,
-      KEYS.TIER_TOP,
-      KEYS.TIER_MIDDLE,
-      KEYS.TIER_LOWER,
-      KEYS.TIER_LOWEST,
-    ];
+    const keys = [KEYS.JOBS, KEYS.TIER_TOP, KEYS.TIER_MIDDLE, KEYS.TIER_LOWER, KEYS.TIER_LOWEST];
 
     if (keys.length > 0) {
       await redis.del(...keys);
@@ -580,7 +550,7 @@ export async function cleanupUnusedKeys(): Promise<{
       try {
         await redis.del(key);
         deleted.push(key);
-      } catch (e) {
+      } catch {
         errors.push(`Failed to delete ${key}`);
       }
     }
@@ -589,7 +559,7 @@ export async function cleanupUnusedKeys(): Promise<{
     try {
       await redis.del("data:companies");
       deleted.push("data:companies");
-    } catch (e) {
+    } catch {
       errors.push("Failed to delete data:companies");
     }
 

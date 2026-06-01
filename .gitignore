@@ -1,3 +1,25 @@
+# PII Protection — NEVER commit user data
+
+# User resume/cover letter templates (contain real personal data)
+*.tex
+!**/README*.tex
+
+# User data exports and backups
+*.json.bak
+data/export*.json
+data/backup*.json
+
+# Local user storage dumps
+storage-dump*.json
+user-data*.json
+
+# PII patterns — catch accidental commits
+*resume*.tex
+*cover*letter*.tex
+*master*context*.txt
+
+# --- Original gitignore below ---
+
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies

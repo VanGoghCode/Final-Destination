@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: "standalone",
+  typescript: {
+    // TypeScript checking runs separately via `npm run typecheck`
+    ignoreBuildErrors: false,
+  },
 };
 
 export default nextConfig;

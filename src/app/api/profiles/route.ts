@@ -5,30 +5,17 @@ function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, x-passcode",
+    "Access-Control-Allow-Headers": "Content-Type",
   };
-}
-
-// Extract passcode from request headers
-function getPasscode(request: Request): string | null {
-  return request.headers.get("x-passcode");
 }
 
 export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders() });
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const passcode = getPasscode(request);
-    if (!passcode) {
-      return NextResponse.json(
-        { error: "Unauthorized: Passcode required" },
-        { status: 401, headers: corsHeaders() },
-      );
-    }
-
-    const profiles = await getProfiles(passcode);
+    const profiles = await getProfiles();
     return NextResponse.json(profiles, { headers: corsHeaders() });
   } catch (error) {
     console.error("Profiles GET error:", error);
@@ -42,14 +29,6 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const passcode = getPasscode(request);
-
-    if (!passcode) {
-      return NextResponse.json(
-        { error: "Unauthorized: Passcode required" },
-        { status: 401, headers: corsHeaders() },
-      );
-    }
 
     if (!Array.isArray(body)) {
       return NextResponse.json(
@@ -58,7 +37,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Map to SavedProfile to ensure clean data
     const profiles: SavedProfile[] = body.map((p: SavedProfile) => ({
       id: p.id,
       name: p.name,
@@ -68,7 +46,7 @@ export async function POST(request: Request) {
       avatarText: p.avatarText,
     }));
 
-    await setProfiles(profiles, passcode);
+    await setProfiles(profiles);
     return NextResponse.json({ success: true }, { headers: corsHeaders() });
   } catch (error) {
     console.error("Profiles POST error:", error);

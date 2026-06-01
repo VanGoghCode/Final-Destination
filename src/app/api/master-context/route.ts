@@ -1,20 +1,12 @@
 import { NextResponse } from "next/server";
-import {
-  getMasterContext,
-  saveMasterContext,
-  deleteMasterContext,
-} from "@/lib/storage";
+import { getMasterContext, saveMasterContext, deleteMasterContext } from "@/lib/storage";
 
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, x-passcode",
+    "Access-Control-Allow-Headers": "Content-Type",
   };
-}
-
-function getPasscode(request: Request): string | null {
-  return request.headers.get("x-passcode");
 }
 
 export async function OPTIONS() {
@@ -23,14 +15,6 @@ export async function OPTIONS() {
 
 export async function GET(request: Request) {
   try {
-    const passcode = getPasscode(request);
-    if (!passcode) {
-      return NextResponse.json(
-        { error: "Unauthorized: Passcode required" },
-        { status: 401, headers: corsHeaders() },
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const profileId = searchParams.get("profileId");
 
@@ -54,14 +38,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const passcode = getPasscode(request);
-    if (!passcode) {
-      return NextResponse.json(
-        { error: "Unauthorized: Passcode required" },
-        { status: 401, headers: corsHeaders() },
-      );
-    }
-
     const { profileId, content } = await request.json();
 
     if (!profileId || typeof content !== "string") {
@@ -71,7 +47,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Limit to 100KB (well above 2000 tokens)
     if (content.length > 100_000) {
       return NextResponse.json(
         { error: "Content too long. Maximum 100KB." },
@@ -92,14 +67,6 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const passcode = getPasscode(request);
-    if (!passcode) {
-      return NextResponse.json(
-        { error: "Unauthorized: Passcode required" },
-        { status: 401, headers: corsHeaders() },
-      );
-    }
-
     const { searchParams } = new URL(request.url);
     const profileId = searchParams.get("profileId");
 

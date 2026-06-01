@@ -1,6 +1,10 @@
 // ========================================
 // USER PROMPTS — data templates
 // Injected with actual values before sending.
+//
+// DISCLAIMER: These templates carry the user's real
+// personal data (resume, job descriptions, etc.).
+// Never commit actual user data to version control.
 // ========================================
 
 // --------------------------------------------------
@@ -33,11 +37,11 @@ ${data.jobDescription}
 ${data.personalDetails}
 ${researchBlock}
 ## INSTRUCTIONS:
-Use the Master Context as the AUTHORITATIVE source for the candidate's skills, experiences, and achievements. The Original Resume provides the LaTeX formatting and structure to preserve. Tailor the content in the LaTeX template using information from the Master Context to best match the Job Description.
+Use the Master Context as the AUTHORITATIVE source for the candidate's real skills, experiences, and achievements. The Original Resume provides the LaTeX formatting and structure to preserve. Tailor the content in the LaTeX template using information from the Master Context to best match the Job Description.
 
-Do NOT invent skills or experiences not in the Master Context. If the JD asks for something not in the Master Context, do NOT add it — the candidate will handle gaps themselves.
+CRITICAL: Do NOT invent skills, experiences, metrics, or achievements not present in the Master Context. If the JD asks for something the candidate doesn't have, do NOT add it. The candidate will address gaps themselves.
 
-The Master Context contains everything the candidate can legitimately claim. Use it wisely to show MULTIDISCIPLINARY FIT with the company's actual work.`;
+The Master Context contains everything the candidate can legitimately claim. Use it wisely to demonstrate domain fit with the company's work.`;
 }
 
 // --------------------------------------------------
@@ -75,9 +79,11 @@ ${data.jobDescription}
 ${data.personalDetails}
 ${researchBlock}${resumeBlock}
 ## INSTRUCTIONS:
-Use the Master Context as the AUTHORITATIVE source for the candidate's background, personality, and voice. The Original Cover Letter provides the LaTeX formatting. Tailor the content using information from the Master Context to show MULTIDISCIPLINARY FIT.
+Use the Master Context as the AUTHORITATIVE source for the candidate's real background, voice, and achievements. The Original Cover Letter provides the LaTeX formatting. Tailor the content using information from the Master Context to show domain fit.
 
-Craft a cover letter that sounds like a real human wrote it — passionate, direct, and genuine. Show understanding of what the company actually does. Explain how the candidate's unique combination of skills makes them the right person for THIS specific role.
+Craft a cover letter that sounds like a real person wrote it — direct, specific, and genuine. Show you understand what the company actually does. Explain how the candidate's experience makes them relevant for THIS specific role.
+
+CRITICAL: Only reference skills and experience from the Master Context. Do not fabricate achievements.
 
 Follow the tone rules in your system instructions exactly.`;
 }
@@ -113,7 +119,9 @@ ${coverLetterBlock}
 ${data.questions}
 
 ## INSTRUCTIONS:
-Answer each question in FIRST PERSON ("I", "my", "me"). Use the Master Context for accurate details about the candidate. Follow the tone rules in your system instructions exactly. If a question has a [LIMIT: X words/characters] tag, strictly adhere to the limit.`;
+Answer each question in FIRST PERSON ("I", "my", "me"). Use the Master Context for accurate details about the candidate. Follow the tone rules in your system instructions exactly. If a question has a [LIMIT: X words/characters] tag, strictly adhere to the limit.
+
+CRITICAL: Only reference real experience from the Master Context. Do not fabricate answers. If you don't have enough context to answer honestly, acknowledge that rather than inventing.`;
 }
 
 // --------------------------------------------------
@@ -141,7 +149,9 @@ ${data.masterContext}
 - Cover Letter insights: ${data.tailoredCoverLetter.slice(0, 1500)}
 
 ## INSTRUCTIONS:
-Write a compelling cold email to a hiring authority (Director, VP, Hiring Manager). Follow the tone rules in system instructions exactly. 100-200 words. Start with a hook about the company. Focus on value you bring to them. End with a clear CTA ("Would love 15 minutes to share how I could help with X"). Do NOT mention attachments.`;
+Write a compelling cold outreach email to a hiring authority (Director, VP, Hiring Manager). Follow the tone rules in system instructions exactly. 100-200 words. Start with a hook about the company. Focus on value you bring to them. End with a clear CTA ("Would love 15 minutes to discuss how I could help with X"). Do NOT mention attachments.
+
+CRITICAL: Only reference real experience. Do not fabricate credentials or claims.`;
 }
 
 // --------------------------------------------------
@@ -217,7 +227,7 @@ ${data.jobDescription}
 ${data.personalDetails}
 
 ## INSTRUCTIONS:
-Apply the user's specific feedback to the Current Tailored Resume. Use Master Context as authoritative source. Preserve LaTeX structure. Return ONLY the complete LaTeX code, no markdown wrapping. Do NOT use ** or em dashes.`;
+Apply the user's specific feedback to the Current Tailored Resume. Use Master Context as authoritative source. Preserve LaTeX structure. Return ONLY the complete LaTeX code, no markdown wrapping. Do NOT use ** or em dashes. Do not fabricate content.`;
 }
 
 export function buildCoverLetterRegenerationUserPrompt(data: RegenerationData): string {
@@ -240,7 +250,7 @@ ${data.jobDescription}
 ${data.personalDetails}
 
 ## INSTRUCTIONS:
-Apply the user's feedback to the Current Cover Letter. Use Master Context for accurate details. Preserve LaTeX structure. Keep tone 80% formal + 20% informal. Return ONLY complete LaTeX code, no markdown wrapping. Do NOT use ** or em dashes.`;
+Apply the user's feedback to the Current Cover Letter. Use Master Context for accurate details. Preserve LaTeX structure. Return ONLY complete LaTeX code, no markdown wrapping. Do NOT use ** or em dashes. Do not fabricate content.`;
 }
 
 // --------------------------------------------------
@@ -284,7 +294,7 @@ ${data.tailoredCoverLetter || "Not provided"}
 ${data.jobDescription || "Not provided"}
 
 ## INSTRUCTIONS:
-Answer in FIRST PERSON ("I", "my", "me"). Use Master Context for accurate details. Follow tone rules from system instructions. Answer directly and concisely. If information is not in the context, state that. Do NOT make up information.${limitInstruction}`;
+Answer in FIRST PERSON ("I", "my", "me"). Use Master Context for accurate details. Follow tone rules from system instructions. Answer directly and concisely. If information is not in the context, state that honestly. Do NOT fabricate information.${limitInstruction}`;
 }
 
 export function buildInternetQuestionUserPrompt(data: QuestionData): string {

@@ -68,11 +68,11 @@ function mockGenerateContentReject(error: Error) {
 }
 
 function mockGenerateContentDynamic(
-  fn: (prompt: string) => string | Promise<string>,
+  fn: (prompt: string, systemPrompt?: string) => string | Promise<string>,
 ) {
   restoreGenerateContent();
   prototypeSpy = spyOn(DeepSeekProvider.prototype, "generateContent").mockImplementation(
-    fn as (...args: unknown[]) => string | Promise<string>,
+    fn as (prompt: string, systemPrompt?: string) => Promise<string>,
   );
 }
 
@@ -183,19 +183,37 @@ describe("DeepSeekProvider", () => {
 
   describe("generateContent — errors", () => {
     it("throws on 400 Bad Request", async () => {
-      fetchMock = async () => fakeResponse({ ok: false, status: 400, statusText: "Bad Request", body: { error: "Bad Request" } });
+      fetchMock = async () =>
+        fakeResponse({
+          ok: false,
+          status: 400,
+          statusText: "Bad Request",
+          body: { error: "Bad Request" },
+        });
       const provider = createProvider();
       await expect(provider.generateContent("test")).rejects.toThrow("DeepSeek API error");
     });
 
     it("throws on 401 Unauthorized", async () => {
-      fetchMock = async () => fakeResponse({ ok: false, status: 401, statusText: "Unauthorized", body: { error: "Unauthorized" } });
+      fetchMock = async () =>
+        fakeResponse({
+          ok: false,
+          status: 401,
+          statusText: "Unauthorized",
+          body: { error: "Unauthorized" },
+        });
       const provider = createProvider();
       await expect(provider.generateContent("test")).rejects.toThrow("DeepSeek API error");
     });
 
     it("throws on 403 Forbidden", async () => {
-      fetchMock = async () => fakeResponse({ ok: false, status: 403, statusText: "Forbidden", body: { error: "Forbidden" } });
+      fetchMock = async () =>
+        fakeResponse({
+          ok: false,
+          status: 403,
+          statusText: "Forbidden",
+          body: { error: "Forbidden" },
+        });
       const provider = createProvider();
       await expect(provider.generateContent("test")).rejects.toThrow("DeepSeek API error");
     });
@@ -213,12 +231,16 @@ describe("DeepSeekProvider", () => {
 
     it("throws on null input", async () => {
       const provider = createProvider();
-      await expect(provider.generateContent(null as unknown as string)).rejects.toThrow("Invalid input");
+      await expect(provider.generateContent(null as unknown as string)).rejects.toThrow(
+        "Invalid input",
+      );
     });
 
     it("throws on undefined input", async () => {
       const provider = createProvider();
-      await expect(provider.generateContent(undefined as unknown as string)).rejects.toThrow("Invalid input");
+      await expect(provider.generateContent(undefined as unknown as string)).rejects.toThrow(
+        "Invalid input",
+      );
     });
 
     it("throws on empty string input", async () => {
@@ -238,7 +260,12 @@ describe("DeepSeekProvider", () => {
       fetchMock = async () => {
         callCount++;
         if (callCount === 1) {
-          return fakeResponse({ ok: false, status: 503, statusText: "Service Unavailable", body: { error: "server error" } });
+          return fakeResponse({
+            ok: false,
+            status: 503,
+            statusText: "Service Unavailable",
+            body: { error: "server error" },
+          });
         }
         return fakeResponse({ body: successBody("recovered") });
       };
@@ -253,7 +280,12 @@ describe("DeepSeekProvider", () => {
       fetchMock = async () => {
         callCount++;
         if (callCount === 1) {
-          return fakeResponse({ ok: false, status: 429, statusText: "Too Many Requests", body: { error: "rate limit exceeded" } });
+          return fakeResponse({
+            ok: false,
+            status: 429,
+            statusText: "Too Many Requests",
+            body: { error: "rate limit exceeded" },
+          });
         }
         return fakeResponse({ body: successBody("rate limit recovered") });
       };
@@ -290,7 +322,12 @@ describe("DeepSeekProvider", () => {
       let callCount = 0;
       fetchMock = async () => {
         callCount++;
-        return fakeResponse({ ok: false, status: 503, statusText: "Service Unavailable", body: { error: "server error" } });
+        return fakeResponse({
+          ok: false,
+          status: 503,
+          statusText: "Service Unavailable",
+          body: { error: "server error" },
+        });
       };
       const provider = createProvider();
       await expect(provider.generateContent("test")).rejects.toThrow("DeepSeek");
@@ -307,7 +344,12 @@ describe("DeepSeekProvider", () => {
       let callCount = 0;
       fetchMock = async () => {
         callCount++;
-        return fakeResponse({ ok: false, status: 400, statusText: "Bad Request", body: { error: "bad request" } });
+        return fakeResponse({
+          ok: false,
+          status: 400,
+          statusText: "Bad Request",
+          body: { error: "bad request" },
+        });
       };
       const provider = createProvider();
       await expect(provider.generateContent("test")).rejects.toThrow("DeepSeek");
@@ -318,7 +360,12 @@ describe("DeepSeekProvider", () => {
       let callCount = 0;
       fetchMock = async () => {
         callCount++;
-        return fakeResponse({ ok: false, status: 401, statusText: "Unauthorized", body: { error: "unauthorized" } });
+        return fakeResponse({
+          ok: false,
+          status: 401,
+          statusText: "Unauthorized",
+          body: { error: "unauthorized" },
+        });
       };
       const provider = createProvider();
       await expect(provider.generateContent("test")).rejects.toThrow("DeepSeek");
@@ -441,7 +488,9 @@ describe("DeepSeekProvider", () => {
 
   describe("getName", () => {
     it("returns DeepSeek V4 Flash", () => {
-      const provider = new DeepSeekProvider({ _fetch: fetchMock as typeof fetch } as ConstructorParameters<typeof DeepSeekProvider>[0]);
+      const provider = new DeepSeekProvider({
+        _fetch: fetchMock as typeof fetch,
+      } as ConstructorParameters<typeof DeepSeekProvider>[0]);
       expect(provider.getName()).toBe("DeepSeek V4 Flash");
     });
   });
@@ -541,7 +590,12 @@ describe("AI Module — exported functions", () => {
   describe("tailorResume", () => {
     it("returns cleaned LaTeX content", async () => {
       mockGenerateContent(SAMPLE_LATEX);
-      const result = await ai.tailorResume(SAMPLE_LATEX, "Software Engineer JD", "John Doe", "Company Info");
+      const result = await ai.tailorResume(
+        SAMPLE_LATEX,
+        "Software Engineer JD",
+        "John Doe",
+        "Company Info",
+      );
       expect(result).toBe(SAMPLE_LATEX);
     });
 
@@ -603,7 +657,9 @@ describe("AI Module — exported functions", () => {
       const coverLetterLatex = String.raw`\documentclass{article}\begin{document}\textbf{Cover}\end{document}`;
       mockGenerateContent("```latex\n**bold** " + coverLetterLatex + "\n```");
       const result = await ai.tailorCoverLetter(coverLetterLatex, "JD", "John", "Info");
-      expect(result).toBe(String.raw`bold \documentclass{article}\begin{document}\textbf{Cover}\end{document}`);
+      expect(result).toBe(
+        String.raw`bold \documentclass{article}\begin{document}\textbf{Cover}\end{document}`,
+      );
     });
   });
 
@@ -613,13 +669,25 @@ describe("AI Module — exported functions", () => {
   describe("tailorResume with manualResearch", () => {
     it("passes manualResearch alongside masterContext", async () => {
       mockGenerateContent(SAMPLE_LATEX);
-      const result = await ai.tailorResume(SAMPLE_LATEX, "JD", "John", "master context here", "some research notes");
+      const result = await ai.tailorResume(
+        SAMPLE_LATEX,
+        "JD",
+        "John",
+        "master context here",
+        "some research notes",
+      );
       expect(result).toBe(SAMPLE_LATEX);
     });
 
     it("handles undefined manualResearch", async () => {
       mockGenerateContent(SAMPLE_LATEX);
-      const result = await ai.tailorResume(SAMPLE_LATEX, "JD", "John", "master context here", undefined);
+      const result = await ai.tailorResume(
+        SAMPLE_LATEX,
+        "JD",
+        "John",
+        "master context here",
+        undefined,
+      );
       expect(result).toBe(SAMPLE_LATEX);
     });
 
@@ -636,7 +704,13 @@ describe("AI Module — exported functions", () => {
   describe("generateAnswers", () => {
     it("returns answers for questions", async () => {
       mockGenerateContent("Question: What is your experience?\nAnswer: I have 5 years...");
-      const result = await ai.generateAnswers("What is your experience?", "Resume", undefined, "JD", "Info");
+      const result = await ai.generateAnswers(
+        "What is your experience?",
+        "Resume",
+        undefined,
+        "JD",
+        "Info",
+      );
       expect(result).toContain("I have 5 years");
     });
 
@@ -664,7 +738,14 @@ describe("AI Module — exported functions", () => {
   describe("generateReferenceEmail", () => {
     it("returns referral request email", async () => {
       mockGenerateContent("Hi [Name],\n\nI hope you're doing well...");
-      const result = await ai.generateReferenceEmail("Resume", "Cover", "JD", "Info", "SWE", "Acme");
+      const result = await ai.generateReferenceEmail(
+        "Resume",
+        "Cover",
+        "JD",
+        "Info",
+        "SWE",
+        "Acme",
+      );
       expect(result).toContain("Hi");
     });
   });
@@ -676,7 +757,12 @@ describe("AI Module — exported functions", () => {
     it("applies feedback and returns cleaned LaTeX", async () => {
       mockGenerateContent(SAMPLE_LATEX);
       const result = await ai.regenerateResume(
-        "old content", "Add more impact verbs", SAMPLE_LATEX, "JD", "John", "Info",
+        "old content",
+        "Add more impact verbs",
+        SAMPLE_LATEX,
+        "JD",
+        "John",
+        "Info",
       );
       expect(result).toBe(SAMPLE_LATEX);
     });
@@ -692,7 +778,14 @@ describe("AI Module — exported functions", () => {
     it("applies feedback and returns cleaned LaTeX", async () => {
       const cl = String.raw`\documentclass{article}\begin{document}CL\end{document}`;
       mockGenerateContent(cl);
-      const result = await ai.regenerateCoverLetter("old cl", "make it better", cl, "JD", "John", "Info");
+      const result = await ai.regenerateCoverLetter(
+        "old cl",
+        "make it better",
+        cl,
+        "JD",
+        "John",
+        "Info",
+      );
       expect(result).toBe(cl);
     });
   });
@@ -701,7 +794,13 @@ describe("AI Module — exported functions", () => {
     it("returns regenerated answers", async () => {
       mockGenerateContent("Question 1: ...\nAnswer: Updated answer...");
       const result = await ai.regenerateAnswers(
-        "old answers", "fix Q1", "Q1", "Resume", "Cover", "JD", "Info",
+        "old answers",
+        "fix Q1",
+        "Q1",
+        "Resume",
+        "Cover",
+        "JD",
+        "Info",
       );
       expect(result).toContain("Updated answer");
     });
@@ -711,8 +810,15 @@ describe("AI Module — exported functions", () => {
     it("regenerates cold email", async () => {
       mockGenerateContent("Updated cold email...");
       const result = await ai.regenerateEmail(
-        "coldEmail", "old email", "make it shorter",
-        "Resume", "Cover", "JD", "Info", "SWE", "Acme",
+        "coldEmail",
+        "old email",
+        "make it shorter",
+        "Resume",
+        "Cover",
+        "JD",
+        "Info",
+        "SWE",
+        "Acme",
       );
       expect(result).toContain("Updated cold email");
     });
@@ -720,8 +826,15 @@ describe("AI Module — exported functions", () => {
     it("regenerates reference email", async () => {
       mockGenerateContent("Updated referral request...");
       const result = await ai.regenerateEmail(
-        "referenceEmail", "old email", "be warmer",
-        "Resume", "Cover", "JD", "Info", "SWE", "Acme",
+        "referenceEmail",
+        "old email",
+        "be warmer",
+        "Resume",
+        "Cover",
+        "JD",
+        "Info",
+        "SWE",
+        "Acme",
       );
       expect(result).toContain("Updated referral request");
     });
@@ -734,8 +847,13 @@ describe("AI Module — exported functions", () => {
     it("answers context-based question", async () => {
       mockGenerateContent("I have been working with React for 3 years...");
       const result = await ai.answerGeneralQuestion(
-        "What is your React experience?", "Resume text", "Cover text",
-        "JD", "Info", "Acme", "SWE",
+        "What is your React experience?",
+        "Resume text",
+        "Cover text",
+        "JD",
+        "Info",
+        "Acme",
+        "SWE",
       );
       expect(result).toContain("React");
     });
@@ -743,8 +861,15 @@ describe("AI Module — exported functions", () => {
     it("includes word/character limit in prompt", async () => {
       mockGenerateContent("Short answer.");
       const result = await ai.answerGeneralQuestion(
-        "Describe yourself", "Resume", "Cover", "JD", "Info", "Acme", "SWE",
-        "words", 100,
+        "Describe yourself",
+        "Resume",
+        "Cover",
+        "JD",
+        "Info",
+        "Acme",
+        "SWE",
+        "words",
+        100,
       );
       expect(result).toBe("Short answer.");
     });
@@ -752,8 +877,15 @@ describe("AI Module — exported functions", () => {
     it("handles undefined limitType", async () => {
       mockGenerateContent("Answer without limits.");
       const result = await ai.answerGeneralQuestion(
-        "Question?", "Resume", "Cover", "JD", "Info", "Acme", "SWE",
-        undefined, undefined,
+        "Question?",
+        "Resume",
+        "Cover",
+        "JD",
+        "Info",
+        "Acme",
+        "SWE",
+        undefined,
+        undefined,
       );
       expect(result).toBe("Answer without limits.");
     });
@@ -763,7 +895,13 @@ describe("AI Module — exported functions", () => {
     it("answers with context + internet", async () => {
       mockGenerateContent("Based on my experience and market research...");
       const result = await ai.answerWithInternet(
-        "What are industry trends?", "Resume", "Cover", "JD", "Info", "Acme", "SWE",
+        "What are industry trends?",
+        "Resume",
+        "Cover",
+        "JD",
+        "Info",
+        "Acme",
+        "SWE",
       );
       expect(result).toContain("market research");
     });
@@ -851,7 +989,7 @@ describe("Prompt Templates", () => {
       expect(prompt).toContain("PRESERVE STRUCTURE");
       expect(prompt).toContain("REQUIREMENTS COVERAGE");
       expect(prompt).toContain("PROOF OF WORK RULE");
-      expect(prompt).toContain("INTERVIEW-READY RULE");
+      expect(prompt).toContain("TRUTHFULNESS RULE");
       expect(prompt).toContain("WORD COUNT CONSTRAINT");
       expect(prompt).toContain("ONE PAGE");
     });
@@ -872,8 +1010,8 @@ describe("Prompt Templates", () => {
   describe("getCoverLetterTailoringPrompt", () => {
     it("includes personality and multidisciplinary", () => {
       const prompt = getCoverLetterTailoringPrompt("cl", "JD", "John", "Info");
-      expect(prompt).toContain("Passionate innovator");
-      expect(prompt).toContain("MULTIDISCIPLINARY");
+      expect(prompt).toContain("CANDIDATE VOICE");
+      expect(prompt).toContain("multidisciplinary");
     });
 
     it("forbids AI cliches (tapestry, leverage, etc.)", () => {
@@ -892,7 +1030,12 @@ describe("Prompt Templates", () => {
   describe("getResumeRegenerationPrompt", () => {
     it("includes feedback, current content, and original", () => {
       const prompt = getResumeRegenerationPrompt(
-        "Add more metrics", "current latex", "original latex", "JD", "John", "Info",
+        "Add more metrics",
+        "current latex",
+        "original latex",
+        "JD",
+        "John",
+        "Info",
       );
       expect(prompt).toContain("Add more metrics");
       expect(prompt).toContain("current latex");
@@ -913,21 +1056,43 @@ describe("Prompt Templates", () => {
   describe("getGeneralQuestionPrompt", () => {
     it("includes word limit instruction when specified", () => {
       const prompt = getGeneralQuestionPrompt(
-        "Question", "Resume", "Cover", "Position", "Company", "JD", "Info", "words", 100,
+        "Question",
+        "Resume",
+        "Cover",
+        "Position",
+        "Company",
+        "JD",
+        "Info",
+        "words",
+        100,
       );
       expect(prompt).toContain("MUST be within 100 words");
     });
 
     it("includes character limit instruction when specified", () => {
       const prompt = getGeneralQuestionPrompt(
-        "Question", "Resume", "Cover", "Position", "Company", "JD", "Info", "characters", 500,
+        "Question",
+        "Resume",
+        "Cover",
+        "Position",
+        "Company",
+        "JD",
+        "Info",
+        "characters",
+        500,
       );
       expect(prompt).toContain("MUST be within 500 characters");
     });
 
     it("does NOT include limit instruction when no limit specified", () => {
       const prompt = getGeneralQuestionPrompt(
-        "Question", "Resume", "Cover", "Position", "Company", "JD", "Info",
+        "Question",
+        "Resume",
+        "Cover",
+        "Position",
+        "Company",
+        "JD",
+        "Info",
       );
       expect(prompt).not.toContain("MUST be within");
     });
@@ -940,7 +1105,14 @@ describe("Prompt Templates", () => {
 
   describe("getColdEmailPrompt", () => {
     it("includes all context fields", () => {
-      const prompt = getColdEmailPrompt("SWE", "Acme", "JD", "Research notes", "Resume text", "Cover text");
+      const prompt = getColdEmailPrompt(
+        "SWE",
+        "Acme",
+        "JD",
+        "Research notes",
+        "Resume text",
+        "Cover text",
+      );
       expect(prompt).toContain("SWE");
       expect(prompt).toContain("Acme");
       expect(prompt).toContain("JD");
@@ -977,14 +1149,28 @@ describe("Prompt Templates", () => {
   describe("getEmailRegenerationPrompt", () => {
     it("uses 'cold outreach' for coldEmail type", () => {
       const prompt = getEmailRegenerationPrompt(
-        "coldEmail", "fix", "current", "SWE", "Acme", "JD", "Info", "Resume",
+        "coldEmail",
+        "fix",
+        "current",
+        "SWE",
+        "Acme",
+        "JD",
+        "Info",
+        "Resume",
       );
       expect(prompt).toContain("cold outreach");
     });
 
     it("uses 'referral request' for referenceEmail type", () => {
       const prompt = getEmailRegenerationPrompt(
-        "referenceEmail", "fix", "current", "SWE", "Acme", "JD", "Info", "Resume",
+        "referenceEmail",
+        "fix",
+        "current",
+        "SWE",
+        "Acme",
+        "JD",
+        "Info",
+        "Resume",
       );
       expect(prompt).toContain("referral request");
     });
@@ -1022,7 +1208,13 @@ describe("Integration — end-to-end flow", () => {
 
   it("tailors resume with master context and manual research", async () => {
     mockGenerateContent(SAMPLE_LATEX);
-    const tailored = await ai.tailorResume(SAMPLE_LATEX, "Fintech JD", "John Doe", "master context data", "manual research notes");
+    const tailored = await ai.tailorResume(
+      SAMPLE_LATEX,
+      "Fintech JD",
+      "John Doe",
+      "master context data",
+      "manual research notes",
+    );
     expect(tailored).toBe(SAMPLE_LATEX);
   });
 
@@ -1031,7 +1223,14 @@ describe("Integration — end-to-end flow", () => {
     const tailored = await ai.tailorResume(SAMPLE_LATEX, "JD", "John", "mc");
 
     mockGenerateContent(SAMPLE_LATEX.replace("Software Engineer", "Senior Software Engineer"));
-    const regenerated = await ai.regenerateResume(tailored, "Make title senior", SAMPLE_LATEX, "JD", "John", "mc");
+    const regenerated = await ai.regenerateResume(
+      tailored,
+      "Make title senior",
+      SAMPLE_LATEX,
+      "JD",
+      "John",
+      "mc",
+    );
     expect(regenerated).toContain("Senior Software Engineer");
   });
 
@@ -1080,7 +1279,13 @@ describe("Integration — end-to-end flow", () => {
 
     mockGenerateContent("I have 5 years of experience with React...");
     const answer = await ai.answerGeneralQuestion(
-      "How many years of React?", tailored, "", "JD", "Info", "Acme", "SWE",
+      "How many years of React?",
+      tailored,
+      "",
+      "JD",
+      "Info",
+      "Acme",
+      "SWE",
     );
     expect(answer).toContain("React");
   });

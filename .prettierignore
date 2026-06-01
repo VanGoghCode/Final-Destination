@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+.pnp
+.yarn/
+
+# Build output
+.next/
+out/
+build/
+dist/
+
+# Cache
+.vercel/
+*.tsbuildinfo
+
+# Data
+data/*.json
+
+# Generated
+next-env.d.ts
+
+# Misc
+coverage/
+*.md

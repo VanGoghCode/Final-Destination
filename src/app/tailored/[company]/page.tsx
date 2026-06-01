@@ -22,11 +22,7 @@ interface BatchJobData {
   profileLastName?: string;
 }
 
-export default function TailoredCompanyPage({
-  params,
-}: {
-  params: Promise<{ company: string }>;
-}) {
+export default function TailoredCompanyPage({ params }: { params: Promise<{ company: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -42,21 +38,18 @@ export default function TailoredCompanyPage({
 
   // Regeneration state
   const [isRegeneratingResume, setIsRegeneratingResume] = useState(false);
-  const [isRegeneratingCoverLetter, setIsRegeneratingCoverLetter] =
-    useState(false);
+  const [isRegeneratingCoverLetter, setIsRegeneratingCoverLetter] = useState(false);
   const [showCoverLetterPreview, setShowCoverLetterPreview] = useState(false);
 
   // Q&A state
   const [generalQuestion, setGeneralQuestion] = useState("");
   const [generalAnswer, setGeneralAnswer] = useState("");
   const [isAskingQuestion, setIsAskingQuestion] = useState(false);
-  const [limitType, setLimitType] = useState<"none" | "words" | "characters">(
-    "none",
-  );
+  const [limitType, setLimitType] = useState<"none" | "words" | "characters">("none");
   const [limitValue, setLimitValue] = useState<number>(10);
-  const [searchMode, setSearchMode] = useState<
-    "context" | "context+internet" | "internet"
-  >("context");
+  const [searchMode, setSearchMode] = useState<"context" | "context+internet" | "internet">(
+    "context",
+  );
 
   // Sheet logging state
   const [showLogModal, setShowLogModal] = useState(false);
@@ -67,9 +60,7 @@ export default function TailoredCompanyPage({
   const [logSuccess, setLogSuccess] = useState(false);
   const [logError, setLogError] = useState("");
   const [country, setCountry] = useState("");
-  const [workMode, setWorkMode] = useState<
-    "" | "Remote" | "Hybrid" | "On-site"
-  >("");
+  const [workMode, setWorkMode] = useState<"" | "Remote" | "Hybrid" | "On-site">("");
   const [editableCompanyName, setEditableCompanyName] = useState("");
   const [editablePositionTitle, setEditablePositionTitle] = useState("");
   const applicationLinkRef = useRef<HTMLInputElement>(null);
@@ -138,13 +129,8 @@ export default function TailoredCompanyPage({
 
       setIsDeletingFromBatch(true);
       try {
-        const passcode = localStorage.getItem("fd_passcode");
-        const headers: Record<string, string> = {};
-        if (passcode) headers["x-passcode"] = passcode;
-
         await fetch(`/api/queue?id=${jobId}`, {
           method: "DELETE",
-          headers,
         });
         // Remove from sessionStorage too
         sessionStorage.removeItem(`batch_job_${jobId}`);
@@ -170,12 +156,8 @@ export default function TailoredCompanyPage({
   // Use profile name if available, otherwise default to "Resume"
   const firstName = jobData?.profileFirstName || "";
   const lastName = jobData?.profileLastName || "";
-  const fullName =
-    firstName && lastName
-      ? `${formatName(firstName)}_${formatName(lastName)}`
-      : "";
-  const companyName =
-    jobData?.companyName || resolvedParams.company || "Company";
+  const fullName = firstName && lastName ? `${formatName(firstName)}_${formatName(lastName)}` : "";
+  const companyName = jobData?.companyName || resolvedParams.company || "Company";
   const positionTitle = jobData?.positionTitle || "Position";
 
   // Plain filename (just name or "Resume" if no profile)
@@ -189,10 +171,7 @@ export default function TailoredCompanyPage({
     ? `${fullName}_${formatName(companyName)}_${formatName(positionTitle)}_CoverLetter`
     : `${formatName(companyName)}_${formatName(positionTitle)}_CoverLetter`;
 
-  const copyToClipboard = async (
-    text: string,
-    type: "resume" | "coverLetter",
-  ) => {
+  const copyToClipboard = async (text: string, type: "resume" | "coverLetter") => {
     await navigator.clipboard.writeText(text);
     if (type === "resume") {
       setCopiedResume(true);
@@ -229,8 +208,7 @@ export default function TailoredCompanyPage({
 
       const data = await response.json();
 
-      if (!response.ok)
-        throw new Error(data.error || "Failed to log application");
+      if (!response.ok) throw new Error(data.error || "Failed to log application");
 
       setLogSuccess(true);
 
@@ -274,19 +252,13 @@ export default function TailoredCompanyPage({
       });
 
       const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error || "Failed to log application");
+      if (!response.ok) throw new Error(data.error || "Failed to log application");
 
       setLogSuccess(true);
 
       // Then delete from batch (no confirm needed as it's a "Log & Delete" action)
-      const passcode = localStorage.getItem("fd_passcode");
-      const headers: Record<string, string> = {};
-      if (passcode) headers["x-passcode"] = passcode;
-
       await fetch(`/api/queue?id=${jobId}`, {
         method: "DELETE",
-        headers,
       });
       sessionStorage.removeItem(`batch_job_${jobId}`);
 
@@ -359,11 +331,11 @@ export default function TailoredCompanyPage({
 
   if (!jobData && jobId) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-100 flex items-center justify-center animate-pulse">
+          <div className="mx-auto mb-4 flex h-16 w-16 animate-pulse items-center justify-center rounded-2xl bg-gray-100">
             <svg
-              className="w-8 h-8 text-gray-400"
+              className="h-8 w-8 text-gray-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -382,11 +354,11 @@ export default function TailoredCompanyPage({
 
   if (!jobData) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-100 flex items-center justify-center">
+      <div className="flex h-screen items-center justify-center">
+        <div className="max-w-md text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-100">
             <svg
-              className="w-8 h-8 text-red-500"
+              className="h-8 w-8 text-red-500"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -397,10 +369,9 @@ export default function TailoredCompanyPage({
               />
             </svg>
           </div>
-          <h2 className="text-lg font-semibold mb-2">Job data not found</h2>
-          <p className="text-sm text-muted mb-4">
-            This page requires job data from batch processing. The data may have
-            expired.
+          <h2 className="mb-2 text-lg font-semibold">Job data not found</h2>
+          <p className="text-muted mb-4 text-sm">
+            This page requires job data from batch processing. The data may have expired.
           </p>
           <Button onClick={() => router.push("/batch")} variant="primary">
             Go to Batch Processing
@@ -411,16 +382,16 @@ export default function TailoredCompanyPage({
   }
 
   return (
-    <div className="h-screen flex overflow-hidden">
+    <div className="flex h-screen overflow-hidden">
       <Sidebar title={companyName} subtitle={positionTitle} hideModelSelector>
         {/* Step Navigation - Breadcrumbs */}
-        <div className="p-3 border-b border-gray-100">
+        <div className="border-b border-gray-100 p-3">
           <div className="flex items-center gap-1">
             <button
               onClick={() => router.push("/")}
-              className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
+              className="hover:bg-surface-hover text-muted hover:text-foreground flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-colors"
             >
-              <span className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center text-[10px] font-bold">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-[10px] font-bold text-white">
                 ✓
               </span>
               Input
@@ -436,8 +407,8 @@ export default function TailoredCompanyPage({
             >
               <polyline points="9 18 15 12 9 6" />
             </svg>
-            <div className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-primary/10 border border-primary text-primary text-xs font-medium">
-              <span className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-bold">
+            <div className="bg-primary/10 border-primary text-primary flex flex-1 items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-xs font-medium">
+              <span className="bg-primary flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white">
                 2
               </span>
               Review
@@ -455,9 +426,9 @@ export default function TailoredCompanyPage({
             </svg>
             <button
               onClick={() => window.open(`/questions?jobId=${jobId}`, "_blank")}
-              className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-surface-hover text-muted hover:text-foreground text-xs transition-colors"
+              className="hover:bg-surface-hover text-muted hover:text-foreground flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-colors"
             >
-              <span className="w-5 h-5 rounded-full bg-card-border text-muted flex items-center justify-center text-[10px] font-bold">
+              <span className="bg-card-border text-muted flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold">
                 3
               </span>
               Q&A
@@ -466,11 +437,11 @@ export default function TailoredCompanyPage({
         </div>
 
         {/* Actions Row - Swapped Order */}
-        <div className="p-4 border-b border-gray-100 flex gap-2">
+        <div className="flex gap-2 border-b border-gray-100 p-4">
           <Button
             onClick={() => window.open(`/questions?jobId=${jobId}`, "_blank")}
             variant="secondary"
-            className="flex-1 text-xs py-2 h-10 cursor-pointer"
+            className="h-10 flex-1 cursor-pointer py-2 text-xs"
           >
             <svg
               width="14"
@@ -490,7 +461,7 @@ export default function TailoredCompanyPage({
           <Button
             onClick={() => setShowLogModal(true)}
             variant="secondary"
-            className="w-10 h-10 p-0 flex items-center justify-center shrink-0 cursor-pointer"
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center p-0"
             title="Log to Sheet"
           >
             <svg
@@ -509,14 +480,14 @@ export default function TailoredCompanyPage({
         </div>
 
         {/* Sidebar Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 space-y-4 overflow-y-auto p-4">
           {/* Cover Letter Section - Refined UI */}
           {tailoredCoverLetter && (
-            <div className="p-4 bg-green-50/50 rounded-2xl border border-green-200 transition-all hover:shadow-sm">
-              <div className="flex items-center justify-between mb-3">
+            <div className="rounded-2xl border border-green-200 bg-green-50/50 p-4 transition-all hover:shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-xs font-bold text-green-700 tracking-tight">
+                  <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+                  <span className="text-xs font-bold tracking-tight text-green-700">
                     COVER LETTER READY
                   </span>
                 </div>
@@ -524,16 +495,14 @@ export default function TailoredCompanyPage({
                   <Button
                     onClick={() => setShowCoverLetterPreview(true)}
                     variant="ghost"
-                    className="text-[10px] py-1 px-2.5 bg-green-100/50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors cursor-pointer"
+                    className="cursor-pointer rounded-lg bg-green-100/50 px-2.5 py-1 text-[10px] font-bold text-green-700 transition-colors hover:bg-green-100"
                   >
                     PREVIEW
                   </Button>
                   <Button
-                    onClick={() =>
-                      navigator.clipboard.writeText(tailoredCoverLetter)
-                    }
+                    onClick={() => navigator.clipboard.writeText(tailoredCoverLetter)}
                     variant="ghost"
-                    className="text-[10px] py-1 px-2.5 bg-green-100/50 hover:bg-green-100 text-green-700 font-bold rounded-lg transition-colors cursor-pointer"
+                    className="cursor-pointer rounded-lg bg-green-100/50 px-2.5 py-1 text-[10px] font-bold text-green-700 transition-colors hover:bg-green-100"
                   >
                     COPY
                   </Button>
@@ -543,25 +512,23 @@ export default function TailoredCompanyPage({
                 onClick={() => handleRegenerateCoverLetter("Improve it")}
                 disabled={isRegeneratingCoverLetter}
                 variant="ghost"
-                className="w-full text-xs py-2 border border-green-200 bg-white hover:bg-green-50 text-green-700 transition-all cursor-pointer shadow-none"
+                className="w-full cursor-pointer border border-green-200 bg-white py-2 text-xs text-green-700 shadow-none transition-all hover:bg-green-50"
               >
-                {isRegeneratingCoverLetter
-                  ? "Regenerating..."
-                  : "Regenerate Content"}
+                {isRegeneratingCoverLetter ? "Regenerating..." : "Regenerate Content"}
               </Button>
             </div>
           )}
 
           {/* Delete from Batch - Solid Red UI */}
           {jobId && (
-            <div className="border-t border-gray-100 cursor-default">
+            <div className="cursor-default border-t border-gray-100">
               <Button
                 onClick={() => handleDeleteFromBatch()}
                 disabled={isDeletingFromBatch}
-                className="w-full text-[11px] font-bold py-2.5 !bg-red-600 !text-white !border-red-600 hover:!bg-red-700 hover:!border-red-700 shadow-sm transition-all duration-300 group"
+                className="group w-full !border-red-600 !bg-red-600 py-2.5 text-[11px] font-bold !text-white shadow-sm transition-all duration-300 hover:!border-red-700 hover:!bg-red-700"
               >
                 <svg
-                  className="w-3.5 h-3.5 mr-2 transition-transform group-hover:rotate-12"
+                  className="mr-2 h-3.5 w-3.5 transition-transform group-hover:rotate-12"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -582,11 +549,11 @@ export default function TailoredCompanyPage({
           <div>
             <button
               onClick={() => setShowFilenames(!showFilenames)}
-              className="flex items-center justify-between w-full text-xs font-medium text-muted hover:text-foreground py-2"
+              className="text-muted hover:text-foreground flex w-full items-center justify-between py-2 text-xs font-medium"
             >
               <span>Filenames</span>
               <svg
-                className={`w-4 h-4 transition-transform ${showFilenames ? "rotate-180" : ""}`}
+                className={`h-4 w-4 transition-transform ${showFilenames ? "rotate-180" : ""}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -595,32 +562,25 @@ export default function TailoredCompanyPage({
               </svg>
             </button>
             {showFilenames && (
-              <div className="space-y-2 mt-2">
+              <div className="mt-2 space-y-2">
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-surface-hover px-2 py-1 rounded text-[10px] font-mono truncate">
+                  <code className="bg-surface-hover flex-1 truncate rounded px-2 py-1 font-mono text-[10px]">
                     {resumeFileNameDetailed}
                   </code>
                   <button
-                    onClick={() =>
-                      copyToClipboard(resumeFileNameDetailed, "resume")
-                    }
-                    className="text-xs text-muted hover:text-foreground"
+                    onClick={() => copyToClipboard(resumeFileNameDetailed, "resume")}
+                    className="text-muted hover:text-foreground text-xs"
                   >
                     {copiedResume ? "✓" : "Copy"}
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-surface-hover px-2 py-1 rounded text-[10px] font-mono truncate">
+                  <code className="bg-surface-hover flex-1 truncate rounded px-2 py-1 font-mono text-[10px]">
                     {coverLetterFileNameDetailed}
                   </code>
                   <button
-                    onClick={() =>
-                      copyToClipboard(
-                        coverLetterFileNameDetailed,
-                        "coverLetter",
-                      )
-                    }
-                    className="text-xs text-muted hover:text-foreground"
+                    onClick={() => copyToClipboard(coverLetterFileNameDetailed, "coverLetter")}
+                    className="text-muted hover:text-foreground text-xs"
                   >
                     {copiedCoverLetter ? "✓" : "Copy"}
                   </button>
@@ -631,17 +591,15 @@ export default function TailoredCompanyPage({
 
           {/* Quick Q&A */}
           <div>
-            <label className="block text-xs font-medium text-muted mb-2">
-              Quick Question
-            </label>
+            <label className="text-muted mb-2 block text-xs font-medium">Quick Question</label>
             <textarea
               value={generalQuestion}
               onChange={(e) => setGeneralQuestion(e.target.value)}
               placeholder="Ask about this job..."
-              className="w-full px-3 py-2 border border-card-border rounded-lg text-sm resize-none"
+              className="border-card-border w-full resize-none rounded-lg border px-3 py-2 text-sm"
               rows={2}
             />
-            <div className="flex gap-1 my-2">
+            <div className="my-2 flex gap-1">
               {[
                 { value: "context", label: "Context" },
                 { value: "context+internet", label: "Web+Context" },
@@ -650,21 +608,19 @@ export default function TailoredCompanyPage({
                 <button
                   key={opt.value}
                   onClick={() =>
-                    setSearchMode(
-                      opt.value as "context" | "context+internet" | "internet",
-                    )
+                    setSearchMode(opt.value as "context" | "context+internet" | "internet")
                   }
-                  className={`flex-1 px-1 py-1 text-[9px] font-bold rounded transition-all border ${
+                  className={`flex-1 rounded border px-1 py-1 text-[9px] font-bold transition-all ${
                     searchMode === opt.value
                       ? "bg-primary/10 text-primary border-primary"
-                      : "bg-white text-muted border-gray-200 hover:bg-gray-50"
+                      : "text-muted border-gray-200 bg-white hover:bg-gray-50"
                   }`}
                 >
                   {opt.label}
                 </button>
               ))}
             </div>
-            <div className="flex gap-1 my-2">
+            <div className="my-2 flex gap-1">
               {[
                 { value: "none", label: "No Limit" },
                 { value: "words", label: "Words" },
@@ -673,11 +629,9 @@ export default function TailoredCompanyPage({
                 <button
                   key={opt.value}
                   onClick={() =>
-                    handleLimitTypeChange(
-                      opt.value as "none" | "words" | "characters",
-                    )
+                    handleLimitTypeChange(opt.value as "none" | "words" | "characters")
                   }
-                  className={`flex-1 px-2 py-1 text-[10px] font-medium rounded transition-all ${
+                  className={`flex-1 rounded px-2 py-1 text-[10px] font-medium transition-all ${
                     limitType === opt.value
                       ? "bg-primary text-white"
                       : "bg-surface-hover text-muted hover:bg-gray-200"
@@ -691,10 +645,8 @@ export default function TailoredCompanyPage({
               <input
                 type="number"
                 value={limitValue}
-                onChange={(e) =>
-                  setLimitValue(Math.max(1, parseInt(e.target.value) || 1))
-                }
-                className="w-full px-3 py-1.5 text-xs rounded-lg border border-card-border mb-2"
+                onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value) || 1))}
+                className="border-card-border mb-2 w-full rounded-lg border px-3 py-1.5 text-xs"
                 min="1"
               />
             )}
@@ -720,58 +672,48 @@ export default function TailoredCompanyPage({
                   if (!response.ok) throw new Error(data.error);
                   setGeneralAnswer(data.answer);
                 } catch (err) {
-                  setGeneralAnswer(
-                    "Error: " + (err instanceof Error ? err.message : "Failed"),
-                  );
+                  setGeneralAnswer("Error: " + (err instanceof Error ? err.message : "Failed"));
                 } finally {
                   setIsAskingQuestion(false);
                 }
               }}
               disabled={!generalQuestion.trim() || isAskingQuestion}
               variant="primary"
-              className="w-full text-xs py-2"
+              className="w-full py-2 text-xs"
             >
               {isAskingQuestion ? "Thinking..." : "Ask"}
             </Button>
 
             {/* Quick Question Shortcuts */}
-            <div className="flex gap-2 mt-2">
+            <div className="mt-2 flex gap-2">
               <button
-                onClick={() =>
-                  setGeneralQuestion(
-                    "What is the salary range for this position?",
-                  )
-                }
-                className="flex-1 px-2 py-1.5 text-xs font-medium text-muted bg-surface-hover hover:bg-gray-200 rounded-lg transition-colors border border-card-border/50"
+                onClick={() => setGeneralQuestion("What is the salary range for this position?")}
+                className="text-muted bg-surface-hover border-card-border/50 flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors hover:bg-gray-200"
               >
                 Salary
               </button>
               <button
                 onClick={() =>
-                  setGeneralQuestion(
-                    "What are the key skills required for this role?",
-                  )
+                  setGeneralQuestion("What are the key skills required for this role?")
                 }
-                className="flex-1 px-2 py-1.5 text-xs font-medium text-muted bg-surface-hover hover:bg-gray-200 rounded-lg transition-colors border border-card-border/50"
+                className="text-muted bg-surface-hover border-card-border/50 flex-1 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors hover:bg-gray-200"
               >
                 Skills
               </button>
             </div>
 
             {generalAnswer && (
-              <div className="mt-3 p-3 bg-surface-hover rounded-lg border border-card-border">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-muted">Answer</span>
+              <div className="bg-surface-hover border-card-border mt-3 rounded-lg border p-3">
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-muted text-xs font-medium">Answer</span>
                   <button
                     onClick={() => navigator.clipboard.writeText(generalAnswer)}
-                    className="text-xs text-muted hover:text-foreground"
+                    className="text-muted hover:text-foreground text-xs"
                   >
                     Copy
                   </button>
                 </div>
-                <p className="text-xs text-foreground whitespace-pre-wrap">
-                  {generalAnswer}
-                </p>
+                <p className="text-foreground text-xs whitespace-pre-wrap">{generalAnswer}</p>
               </div>
             )}
           </div>
@@ -779,7 +721,7 @@ export default function TailoredCompanyPage({
       </Sidebar>
 
       {/* Main Content - LaTeX Editor */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex flex-1 flex-col overflow-hidden">
         <LaTeXEditor
           title="Tailored Resume"
           code={tailoredResume}
@@ -802,47 +744,41 @@ export default function TailoredCompanyPage({
       {/* Log to Sheet Modal */}
       {showLogModal && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowLogModal(false);
           }}
         >
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
-            <div className="p-6 border-b border-gray-100">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
+            <div className="border-b border-gray-100 p-6">
               <h2 className="text-lg font-semibold">Log Application</h2>
-              <p className="text-sm text-muted mt-1">
-                Record this application to your spreadsheet
-              </p>
+              <p className="text-muted mt-1 text-sm">Record this application to your spreadsheet</p>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="space-y-4 p-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-1">
-                    Company
-                  </label>
+                  <label className="text-muted mb-1 block text-xs font-medium">Company</label>
                   <input
                     type="text"
                     value={editableCompanyName}
                     onChange={(e) => setEditableCompanyName(e.target.value)}
-                    className="w-full px-3 py-2 border border-card-border rounded-lg text-sm"
+                    className="border-card-border w-full rounded-lg border px-3 py-2 text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-1">
-                    Position
-                  </label>
+                  <label className="text-muted mb-1 block text-xs font-medium">Position</label>
                   <input
                     type="text"
                     value={editablePositionTitle}
                     onChange={(e) => setEditablePositionTitle(e.target.value)}
-                    className="w-full px-3 py-2 border border-card-border rounded-lg text-sm"
+                    className="border-card-border w-full rounded-lg border px-3 py-2 text-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted mb-1">
+                <label className="text-muted mb-1 block text-xs font-medium">
                   Application Link
                 </label>
                 <input
@@ -851,35 +787,29 @@ export default function TailoredCompanyPage({
                   value={applicationLink}
                   onChange={(e) => setApplicationLink(e.target.value)}
                   placeholder="https://..."
-                  className="w-full px-3 py-2 border border-card-border rounded-lg text-sm"
+                  className="border-card-border w-full rounded-lg border px-3 py-2 text-sm"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-1">
-                    Country
-                  </label>
+                  <label className="text-muted mb-1 block text-xs font-medium">Country</label>
                   <input
                     type="text"
                     value={country}
                     onChange={(e) => setCountry(e.target.value)}
                     placeholder="e.g. USA"
-                    className="w-full px-3 py-2 border border-card-border rounded-lg text-sm"
+                    className="border-card-border w-full rounded-lg border px-3 py-2 text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted mb-1">
-                    Work Mode
-                  </label>
+                  <label className="text-muted mb-1 block text-xs font-medium">Work Mode</label>
                   <select
                     value={workMode}
                     onChange={(e) =>
-                      setWorkMode(
-                        e.target.value as "" | "Remote" | "Hybrid" | "On-site",
-                      )
+                      setWorkMode(e.target.value as "" | "Remote" | "Hybrid" | "On-site")
                     }
-                    className="w-full px-3 py-2 border border-card-border rounded-lg text-sm"
+                    className="border-card-border w-full rounded-lg border px-3 py-2 text-sm"
                   >
                     <option value="">Select...</option>
                     <option value="Remote">Remote</option>
@@ -890,14 +820,12 @@ export default function TailoredCompanyPage({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted mb-1">
-                  Notes
-                </label>
+                <label className="text-muted mb-1 block text-xs font-medium">Notes</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Any notes..."
-                  className="w-full px-3 py-2 border border-card-border rounded-lg text-sm resize-none"
+                  className="border-card-border w-full resize-none rounded-lg border px-3 py-2 text-sm"
                   rows={2}
                 />
               </div>
@@ -919,17 +847,13 @@ export default function TailoredCompanyPage({
                   variant="primary"
                   className="flex-1"
                 >
-                  {isLogging && !logSuccess
-                    ? "Logging..."
-                    : logSuccess
-                      ? "✓ Logged!"
-                      : "Log Only"}
+                  {isLogging && !logSuccess ? "Logging..." : logSuccess ? "✓ Logged!" : "Log Only"}
                 </Button>
                 {jobId && (
                   <Button
                     onClick={() => handleLogAndDelete()}
                     disabled={isLogging}
-                    className="flex-1 !bg-red-600 !text-white !border-red-600 hover:!bg-red-700 hover:!border-red-700"
+                    className="flex-1 !border-red-600 !bg-red-600 !text-white hover:!border-red-700 hover:!bg-red-700"
                   >
                     {isLogging && !logSuccess
                       ? "Processing..."
@@ -945,11 +869,11 @@ export default function TailoredCompanyPage({
       )}
       {/* Cover Letter Preview Modal */}
       {showCoverLetterPreview && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 sm:p-8">
-          <div className="bg-white rounded-2xl shadow-2xl w-full h-full max-w-6xl flex flex-col overflow-hidden relative">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 sm:p-8">
+          <div className="relative flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
             <button
               onClick={() => setShowCoverLetterPreview(false)}
-              className="absolute top-4 right-4 z-[70] p-2 bg-white/80 hover:bg-white rounded-full shadow-md text-gray-500 hover:text-gray-800 transition-all border border-gray-100"
+              className="absolute top-4 right-4 z-[70] rounded-full border border-gray-100 bg-white/80 p-2 text-gray-500 shadow-md transition-all hover:bg-white hover:text-gray-800"
               title="Close Preview"
             >
               <svg
@@ -964,7 +888,7 @@ export default function TailoredCompanyPage({
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
-            <div className="flex-1 min-h-0">
+            <div className="min-h-0 flex-1">
               <LaTeXEditor
                 title="Cover Letter Preview"
                 code={tailoredCoverLetter}
