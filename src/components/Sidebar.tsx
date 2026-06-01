@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Button from "./Button";
 import ModelSelector from "./ModelSelector";
+import { hasAdminKey } from "@/lib/client-admin";
 
 interface SidebarProps {
   title: string;
@@ -25,7 +26,7 @@ export default function Sidebar({
   const [isMobile, setIsMobile] = useState(false);
   const [isAdmin] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("code") === "26012002";
+      return hasAdminKey();
     }
     return false;
   });

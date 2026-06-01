@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
+import { getAdminHeaders } from "@/lib/client-admin";
 import LaTeXEditor from "@/components/LaTeXEditor";
 import Sidebar from "@/components/Sidebar";
 import Button from "@/components/Button";
@@ -143,7 +144,7 @@ export default function TailoredPage() {
     try {
       const response = await fetch("/api/sheets", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify({
           companyName: finalCompanyName,
           positionTitle: finalPositionTitle,

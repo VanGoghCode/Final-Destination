@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import LaTeXEditor from "@/components/LaTeXEditor";
 import Sidebar from "@/components/Sidebar";
 import Button from "@/components/Button";
+import { getAdminHeaders } from "@/lib/client-admin";
 
 interface BatchJobData {
   tailoredResume?: string;
@@ -195,7 +196,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
     try {
       const response = await fetch("/api/sheets", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify({
           companyName: editableCompanyName || companyName,
           positionTitle: editablePositionTitle || positionTitle,
@@ -240,7 +241,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
     try {
       const response = await fetch("/api/sheets", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify({
           companyName: editableCompanyName || companyName,
           positionTitle: editablePositionTitle || positionTitle,
@@ -278,7 +279,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
     try {
       const response = await fetch("/api/regenerate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify({
           type: "resume",
           currentContent: tailoredResume,
@@ -303,7 +304,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
     try {
       const response = await fetch("/api/regenerate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
         body: JSON.stringify({
           type: "coverLetter",
           currentContent: tailoredCoverLetter,
@@ -657,7 +658,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                 try {
                   const response = await fetch("/api/ask", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { "Content-Type": "application/json", ...getAdminHeaders() },
                     body: JSON.stringify({
                       question: generalQuestion,
                       tailoredResume,

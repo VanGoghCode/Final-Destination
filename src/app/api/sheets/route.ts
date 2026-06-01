@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
+import { validateAdminRequest, adminUnauthorizedResponse } from "@/lib/admin-auth";
 
 const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID || "";
 const SHEET_NAME = "tracker";
@@ -22,6 +23,8 @@ function getAuth() {
 }
 
 export async function POST(request: Request) {
+  if (!validateAdminRequest(request)) return adminUnauthorizedResponse();
+
   const clientId = getClientIdentifier(request);
   const rl = checkRateLimit(`sheets_${clientId}`, RATE_LIMITS.GENERAL);
   if (!rl.success) {
