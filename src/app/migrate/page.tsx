@@ -2,20 +2,15 @@
 
 import { useState, useEffect } from "react";
 import Button from "@/components/Button";
-import {
-  migrateFromLocalStorage,
-  isCloudStorageConfigured,
-} from "@/lib/cloudStorage";
+import { migrateFromLocalStorage, isCloudStorageConfigured } from "@/lib/cloudStorage";
 
 export default function MigratePage() {
-  const [status, setStatus] = useState<
-    "checking" | "ready" | "migrating" | "done" | "error"
-  >("checking");
+  const [status, setStatus] = useState<"checking" | "ready" | "migrating" | "done" | "error">(
+    "checking",
+  );
   const [message, setMessage] = useState("");
   const [migratedKeys, setMigratedKeys] = useState<string[]>([]);
-  const [localStorageData, setLocalStorageData] = useState<
-    Record<string, string>
-  >({});
+  const [localStorageData, setLocalStorageData] = useState<Record<string, string>>({});
 
   useEffect(() => {
     // Check cloud storage status and gather localStorage data
@@ -70,9 +65,7 @@ export default function MigratePage() {
     if (result.success) {
       setStatus("done");
       setMigratedKeys(result.migratedKeys);
-      setMessage(
-        `Successfully migrated ${result.migratedKeys.length} items to cloud storage!`,
-      );
+      setMessage(`Successfully migrated ${result.migratedKeys.length} items to cloud storage!`);
     } else {
       setStatus("error");
       setMessage("Migration failed. Please try again.");
@@ -80,22 +73,21 @@ export default function MigratePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-white rounded-xl shadow-lg p-8">
-        <h1 className="text-2xl font-bold mb-2">Data Migration</h1>
-        <p className="text-gray-600 mb-6">
-          Migrate your localStorage data to cloud storage for reliable
-          persistence.
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+      <div className="w-full max-w-2xl rounded-xl bg-white p-8 shadow-lg">
+        <h1 className="mb-2 text-2xl font-bold">Data Migration</h1>
+        <p className="mb-6 text-gray-600">
+          Migrate your localStorage data to cloud storage for reliable persistence.
         </p>
 
         {/* Status */}
         <div
-          className={`p-4 rounded-lg mb-6 ${
+          className={`mb-6 rounded-lg p-4 ${
             status === "error"
-              ? "bg-red-50 border border-red-200"
+              ? "border border-red-200 bg-red-50"
               : status === "done"
-                ? "bg-green-50 border border-green-200"
-                : "bg-blue-50 border border-blue-200"
+                ? "border border-green-200 bg-green-50"
+                : "border border-blue-200 bg-blue-50"
           }`}
         >
           <p
@@ -114,8 +106,8 @@ export default function MigratePage() {
         {/* Data Preview */}
         {Object.keys(localStorageData).length > 0 && status !== "done" && (
           <div className="mb-6">
-            <h2 className="text-lg font-semibold mb-3">Data to Migrate</h2>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+            <h2 className="mb-3 text-lg font-semibold">Data to Migrate</h2>
+            <div className="max-h-64 space-y-2 overflow-y-auto">
               {Object.entries(localStorageData).map(([key, value]) => {
                 let preview = value;
                 try {
@@ -126,20 +118,15 @@ export default function MigratePage() {
                     preview = `Object with keys: ${Object.keys(parsed).join(", ")}`;
                   }
                 } catch {
-                  preview =
-                    value.substring(0, 50) + (value.length > 50 ? "..." : "");
+                  preview = value.substring(0, 50) + (value.length > 50 ? "..." : "");
                 }
                 return (
                   <div
                     key={key}
-                    className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between rounded-lg bg-gray-50 p-3"
                   >
-                    <span className="font-mono text-sm text-gray-700">
-                      {key}
-                    </span>
-                    <span className="text-xs text-gray-500 truncate max-w-xs">
-                      {preview}
-                    </span>
+                    <span className="font-mono text-sm text-gray-700">{key}</span>
+                    <span className="max-w-xs truncate text-xs text-gray-500">{preview}</span>
                   </div>
                 );
               })}
@@ -150,19 +137,11 @@ export default function MigratePage() {
         {/* Migrated Keys */}
         {migratedKeys.length > 0 && (
           <div className="mb-6">
-            <h2 className="text-lg font-semibold mb-3">Migrated Items</h2>
+            <h2 className="mb-3 text-lg font-semibold">Migrated Items</h2>
             <div className="space-y-1">
               {migratedKeys.map((key) => (
-                <div
-                  key={key}
-                  className="flex items-center gap-2 text-green-700"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
+                <div key={key} className="flex items-center gap-2 text-green-700">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -180,11 +159,7 @@ export default function MigratePage() {
         {/* Actions */}
         <div className="flex gap-3">
           {status === "ready" && Object.keys(localStorageData).length > 0 && (
-            <Button
-              onClick={handleMigrate}
-              variant="primary"
-              className="flex-1"
-            >
+            <Button onClick={handleMigrate} variant="primary" className="flex-1">
               Migrate to Cloud
             </Button>
           )}
@@ -207,17 +182,13 @@ export default function MigratePage() {
         </div>
 
         {/* Instructions */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <h3 className="font-semibold text-sm mb-2">Instructions</h3>
-          <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
+        <div className="mt-8 border-t border-gray-200 pt-6">
+          <h3 className="mb-2 text-sm font-semibold">Instructions</h3>
+          <ol className="list-inside list-decimal space-y-1 text-xs text-gray-600">
             <li>
-              Open this page on your <strong>production site</strong>{" "}
-              (final-destination-rose.vercel.app)
+              Open this page on your <strong>production site</strong>
             </li>
-            <li>
-              Click &quot;Migrate to Cloud&quot; to copy your localStorage to
-              Upstash Redis
-            </li>
+            <li>Click &quot;Migrate to Cloud&quot; to copy your localStorage to Upstash Redis</li>
             <li>Once done, your data will be synced across all environments</li>
           </ol>
         </div>

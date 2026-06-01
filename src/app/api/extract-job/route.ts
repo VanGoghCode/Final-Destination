@@ -31,11 +31,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const apiKey = process.env.DEEPSEEK_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "API key not configured" }, { status: 500, headers: h() });
-    }
-
     const prompt = `You are a job listing analyzer. Extract accurate information from this job page.
 
 ## PAGE INFORMATION:

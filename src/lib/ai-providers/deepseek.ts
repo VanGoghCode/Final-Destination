@@ -23,13 +23,11 @@ const RETRYABLE_ERRORS = [
 function isRetryableError(error: unknown): boolean {
   if (!error) return false;
   const errorString = String(error).toLowerCase();
-  const errorMessage =
-    error instanceof Error ? error.message.toLowerCase() : "";
+  const errorMessage = error instanceof Error ? error.message.toLowerCase() : "";
 
   return RETRYABLE_ERRORS.some(
     (pattern) =>
-      errorString.includes(pattern.toLowerCase()) ||
-      errorMessage.includes(pattern.toLowerCase()),
+      errorString.includes(pattern.toLowerCase()) || errorMessage.includes(pattern.toLowerCase()),
   );
 }
 
@@ -81,9 +79,12 @@ export class DeepSeekProvider implements AIProviderInterface {
       throw new Error("Invalid input detected");
     }
 
-    const apiKey = process.env.DEEPSEEK_API_KEY;
+    const { getDeepSeekApiKey } = await import("@/lib/api-key");
+    const apiKey = getDeepSeekApiKey();
     if (!apiKey) {
-      throw new Error("DEEPSEEK_API_KEY environment variable is required");
+      throw new Error(
+        "DeepSeek API key not configured. Set DEEPSEEK_API_KEY in environment or add your key in the app sidebar.",
+      );
     }
 
     let lastError: Error | null = null;
@@ -123,9 +124,7 @@ export class DeepSeekProvider implements AIProviderInterface {
 
         if (!response.ok) {
           const errorBody = await response.text();
-          throw new Error(
-            `DeepSeek API error (${response.status}): ${errorBody}`,
-          );
+          throw new Error(`DeepSeek API error (${response.status}): ${errorBody}`);
         }
 
         const data = await response.json();
@@ -134,10 +133,7 @@ export class DeepSeekProvider implements AIProviderInterface {
         return text;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        console.error(
-          `[DeepSeek] Error (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`,
-          error,
-        );
+        console.error(`[DeepSeek] Error (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`, error);
 
         if (isRetryableError(error) && attempt < MAX_RETRIES) {
           const delay = BASE_DELAY_MS * Math.pow(2, attempt);

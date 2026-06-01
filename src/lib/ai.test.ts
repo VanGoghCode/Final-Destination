@@ -221,7 +221,9 @@ describe("DeepSeekProvider", () => {
     it("throws on missing API key", async () => {
       delete process.env.DEEPSEEK_API_KEY;
       const provider = createProvider();
-      await expect(provider.generateContent("test")).rejects.toThrow("DEEPSEEK_API_KEY");
+      await expect(provider.generateContent("test")).rejects.toThrow(
+        "DeepSeek API key not configured",
+      );
     });
 
     it("throws on invalid input — excessive repetition", async () => {
