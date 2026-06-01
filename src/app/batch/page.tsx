@@ -293,6 +293,7 @@ export default function BatchProcessPage() {
   const [coverLetterTemplate, setCoverLetterTemplate] = useState<Template | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [extensionOpen, setExtensionOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<
     "all" | "pending" | "processing" | "completed" | "failed"
   >("all");
@@ -951,10 +952,23 @@ export default function BatchProcessPage() {
           </div>
 
           {/* Extension Guide */}
-          <div className="rounded-xl border border-blue-200 bg-blue-50 p-5">
-            <div className="mb-3 flex items-center gap-2">
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <button
+              type="button"
+              onClick={() => setExtensionOpen(!extensionOpen)}
+              className="flex w-full items-center gap-2 text-left"
+            >
               <svg
-                className="h-5 w-5 text-blue-600"
+                className={`h-3 w-3 text-blue-600 transition-transform ${extensionOpen ? "rotate-90" : ""}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="3"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+              <svg
+                className="h-4 w-4 shrink-0 text-blue-600"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -966,62 +980,70 @@ export default function BatchProcessPage() {
               <h2 className="text-sm font-bold text-blue-800">
                 Use the Chrome Extension for faster batch processing
               </h2>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-lg bg-white p-3">
-                <div className="mb-1 flex h-6 w-6 items-center justify-center rounded bg-blue-100 text-xs font-bold text-blue-700">
-                  1
+            </button>
+            {extensionOpen && (
+              <div className="mt-3">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="rounded-lg bg-white p-3">
+                    <div className="mb-1 flex h-6 w-6 items-center justify-center rounded bg-blue-100 text-xs font-bold text-blue-700">
+                      1
+                    </div>
+                    <p className="text-xs font-medium text-gray-800">Install the Extension</p>
+                    <p className="text-muted mt-0.5 text-[10px]">
+                      Go to{" "}
+                      <code className="rounded bg-gray-100 px-1 text-[10px]">
+                        chrome://extensions
+                      </code>
+                      , enable Developer mode, click Load unpacked, and select the{" "}
+                      <code className="rounded bg-gray-100 px-1 text-[10px]">extension/</code>{" "}
+                      folder
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-white p-3">
+                    <div className="mb-1 flex h-6 w-6 items-center justify-center rounded bg-blue-100 text-xs font-bold text-blue-700">
+                      2
+                    </div>
+                    <p className="text-xs font-medium text-gray-800">Set Your Server URL</p>
+                    <p className="text-muted mt-0.5 text-[10px]">
+                      In the extension popup, enter your server URL. For local dev use{" "}
+                      <code className="rounded bg-gray-100 px-1 text-[10px]">
+                        http://localhost:3000
+                      </code>
+                      . For production, use your deployed URL. A green dot means connected.
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-white p-3">
+                    <div className="mb-1 flex h-6 w-6 items-center justify-center rounded bg-blue-100 text-xs font-bold text-blue-700">
+                      3
+                    </div>
+                    <p className="text-xs font-medium text-gray-800">Scrape & Queue Jobs</p>
+                    <p className="text-muted mt-0.5 text-[10px]">
+                      Browse job listings on any site, click the extension icon, select a profile,
+                      fill in the details, and click Add to Queue. The job auto-processes here on
+                      this page.
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs font-medium text-gray-800">Install the Extension</p>
-                <p className="text-muted mt-0.5 text-[10px]">
-                  Go to{" "}
-                  <code className="rounded bg-gray-100 px-1 text-[10px]">chrome://extensions</code>,
-                  enable Developer mode, click Load unpacked, and select the{" "}
-                  <code className="rounded bg-gray-100 px-1 text-[10px]">extension/</code> folder
-                </p>
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-xs font-medium text-blue-700 hover:text-blue-800">
+                    Pro tips for developers
+                  </summary>
+                  <div className="mt-2 space-y-1 text-[10px] text-gray-600">
+                    <p>• The extension auto-detects company name and job title from the page URL</p>
+                    <p>
+                      • Select text on the job page before opening the extension — it auto-fills the
+                      description
+                    </p>
+                    <p>
+                      • Use Copy/Paste buttons in the extension header to transfer company data
+                      between tabs
+                    </p>
+                    <p>• The green dot shows connection status — red means check your server URL</p>
+                    <p>• Extension works with both local dev and deployed instances</p>
+                  </div>
+                </details>
               </div>
-              <div className="rounded-lg bg-white p-3">
-                <div className="mb-1 flex h-6 w-6 items-center justify-center rounded bg-blue-100 text-xs font-bold text-blue-700">
-                  2
-                </div>
-                <p className="text-xs font-medium text-gray-800">Set Your Server URL</p>
-                <p className="text-muted mt-0.5 text-[10px]">
-                  In the extension popup, enter your server URL. For local dev use{" "}
-                  <code className="rounded bg-gray-100 px-1 text-[10px]">
-                    http://localhost:3000
-                  </code>
-                  . For production, use your deployed URL. A green dot means connected.
-                </p>
-              </div>
-              <div className="rounded-lg bg-white p-3">
-                <div className="mb-1 flex h-6 w-6 items-center justify-center rounded bg-blue-100 text-xs font-bold text-blue-700">
-                  3
-                </div>
-                <p className="text-xs font-medium text-gray-800">Scrape & Queue Jobs</p>
-                <p className="text-muted mt-0.5 text-[10px]">
-                  Browse job listings on any site, click the extension icon, select a profile, fill
-                  in the details, and click Add to Queue. The job auto-processes here on this page.
-                </p>
-              </div>
-            </div>
-            <details className="mt-3">
-              <summary className="cursor-pointer text-xs font-medium text-blue-700 hover:text-blue-800">
-                Pro tips for developers
-              </summary>
-              <div className="mt-2 space-y-1 text-[10px] text-gray-600">
-                <p>• The extension auto-detects company name and job title from the page URL</p>
-                <p>
-                  • Select text on the job page before opening the extension — it auto-fills the
-                  description
-                </p>
-                <p>
-                  • Use Copy/Paste buttons in the extension header to transfer company data between
-                  tabs
-                </p>
-                <p>• The green dot shows connection status — red means check your server URL</p>
-                <p>• Extension works with both local dev and deployed instances</p>
-              </div>
-            </details>
+            )}
           </div>
 
           {/* Activity Feed */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 const STORAGE_KEY = "fd_deepseek_api_key";
 const COOKIE_NAME = "fd_api_key";
@@ -125,57 +126,59 @@ export default function ModelSelector() {
         </button>
       </div>
 
-      {showModal && (
-        <div className="model-selector__overlay" onClick={() => setShowModal(false)}>
-          <div className="model-selector__modal" onClick={(e) => e.stopPropagation()}>
-            <h3 className="model-selector__modal-title">DeepSeek API Key</h3>
-            <p className="model-selector__modal-desc">
-              Enter your DeepSeek API key. Get one at{" "}
-              <a href="https://api.deepseek.com" target="_blank" rel="noopener noreferrer">
-                api.deepseek.com
-              </a>
-              . Your key is stored locally in your browser and never sent to our servers.
-            </p>
+      {showModal &&
+        createPortal(
+          <div className="model-selector__overlay" onClick={() => setShowModal(false)}>
+            <div className="model-selector__modal" onClick={(e) => e.stopPropagation()}>
+              <h3 className="model-selector__modal-title">DeepSeek API Key</h3>
+              <p className="model-selector__modal-desc">
+                Enter your DeepSeek API key. Get one at{" "}
+                <a href="https://api.deepseek.com" target="_blank" rel="noopener noreferrer">
+                  api.deepseek.com
+                </a>
+                . Your key is stored locally in your browser and never sent to our servers.
+              </p>
 
-            <input
-              type="password"
-              className="model-selector__input"
-              placeholder="sk-your-api-key"
-              value={inputKey}
-              onChange={(e) => setInputKey(e.target.value)}
-              autoFocus
-              onKeyDown={(e) => e.key === "Enter" && handleSave()}
-            />
+              <input
+                type="password"
+                className="model-selector__input"
+                placeholder="sk-your-api-key"
+                value={inputKey}
+                onChange={(e) => setInputKey(e.target.value)}
+                autoFocus
+                onKeyDown={(e) => e.key === "Enter" && handleSave()}
+              />
 
-            <div className="model-selector__actions">
-              {hasKey && (
+              <div className="model-selector__actions">
+                {hasKey && (
+                  <button
+                    type="button"
+                    className="model-selector__btn model-selector__btn--danger"
+                    onClick={handleRemove}
+                  >
+                    Remove
+                  </button>
+                )}
                 <button
                   type="button"
-                  className="model-selector__btn model-selector__btn--danger"
-                  onClick={handleRemove}
+                  className="model-selector__btn model-selector__btn--secondary"
+                  onClick={() => setShowModal(false)}
                 >
-                  Remove
+                  Cancel
                 </button>
-              )}
-              <button
-                type="button"
-                className="model-selector__btn model-selector__btn--secondary"
-                onClick={() => setShowModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="model-selector__btn model-selector__btn--primary"
-                onClick={handleSave}
-                disabled={!inputKey.trim() || saving}
-              >
-                {saving ? "Saving..." : hasKey ? "Update" : "Save"}
-              </button>
+                <button
+                  type="button"
+                  className="model-selector__btn model-selector__btn--primary"
+                  onClick={handleSave}
+                  disabled={!inputKey.trim() || saving}
+                >
+                  {saving ? "Saving..." : hasKey ? "Update" : "Save"}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
 
       <style jsx>{`
         .model-selector {
