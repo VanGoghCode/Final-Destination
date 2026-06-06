@@ -42,6 +42,8 @@ export interface DeepSeekConfig {
   responseFormat?: { type: "text" | "json_object" };
   /** Inject custom fetch for testing. Defaults to globalThis.fetch. */
   _fetch?: typeof fetch;
+  /** Tag for cache hit/miss logging. */
+  callTag?: string;
 }
 
 const DEFAULT_CONFIG: DeepSeekConfig = {
@@ -70,8 +72,8 @@ export class DeepSeekProvider implements AIProviderInterface {
   }
 
   /** Create a fast instance (no thinking, low temp) for extraction tasks */
-  static createFast(): DeepSeekProvider {
-    return new DeepSeekProvider(FAST_CONFIG);
+  static createFast(callTag?: string): DeepSeekProvider {
+    return new DeepSeekProvider({ ...FAST_CONFIG, callTag });
   }
 
   async generateContent(prompt: string, systemPrompt?: string): Promise<string> {
@@ -129,6 +131,20 @@ export class DeepSeekProvider implements AIProviderInterface {
 
         const data = await response.json();
         const text = data.choices?.[0]?.message?.content || "";
+
+        // Log KV cache metrics (DeepSeek disk cache — always active, no opt-in needed)
+        if (data.usage) {
+          const hit = data.usage.prompt_cache_hit_tokens ?? 0;
+          const miss = data.usage.prompt_cache_miss_tokens ?? 0;
+          const totalPrompt = data.usage.prompt_tokens ?? 0;
+          const cacheRate = totalPrompt > 0 ? ((hit / totalPrompt) * 100).toFixed(0) : "0";
+          const tag = this.config.callTag || "unknown";
+          console.info(
+            `[DeepSeek Cache] tag=${tag} hit=${hit} miss=${miss} prompt_total=${totalPrompt} ` +
+              `cache_rate=${cacheRate}% ` +
+              (hit > 0 ? "REUSED" : "COLD"),
+          );
+        }
 
         return text;
       } catch (error) {

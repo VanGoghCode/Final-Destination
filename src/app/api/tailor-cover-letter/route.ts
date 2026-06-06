@@ -55,6 +55,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ tailoredCoverLetter });
   } catch (error) {
     console.error("Error tailoring cover letter:", error);
+
+    if (error instanceof Error) {
+      if (error.message.includes("429") || error.message.includes("rate")) {
+        return NextResponse.json(
+          { error: "AI service is busy. Please try again in a moment." },
+          { status: 429 },
+        );
+      }
+      if (error.message.includes("Invalid input")) {
+        return NextResponse.json(
+          { error: "The cover letter or job description contains invalid content." },
+          { status: 400 },
+        );
+      }
+      console.error("[CoverLetter] Full error:", error.message, error.stack);
+    }
+
     return NextResponse.json({ error: "Failed to tailor cover letter." }, { status: 500 });
   }
 }

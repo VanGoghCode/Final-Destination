@@ -55,24 +55,25 @@ function sleep(ms: number): Promise<void> {
 // PROVIDER INSTANCES
 // ========================================
 
-function getStandardProvider(): DeepSeekProvider {
+function getStandardProvider(callTag?: string): DeepSeekProvider {
   return new DeepSeekProvider({
     temperature: 0.7,
     maxTokens: 65535,
     thinking: { type: "enabled", reasoning_effort: "high" },
+    callTag,
   });
 }
 
-function getFastProvider(): DeepSeekProvider {
-  return DeepSeekProvider.createFast();
+function getFastProvider(callTag?: string): DeepSeekProvider {
+  return DeepSeekProvider.createFast(callTag);
 }
 
 // ========================================
 // CORE GENERATION
 // ========================================
 
-async function generate(prompt: string, systemPrompt?: string): Promise<string> {
-  const provider = getStandardProvider();
+async function generate(prompt: string, systemPrompt?: string, callTag?: string): Promise<string> {
+  const provider = getStandardProvider(callTag);
 
   if (!isValidInput(prompt)) {
     throw new Error("Invalid input detected");
@@ -119,7 +120,7 @@ export async function extractJobLocationInfo(
   const prompt = pair.system + "\n\n" + pair.user;
 
   try {
-    const fastProvider = getFastProvider();
+    const fastProvider = getFastProvider("extraction");
     const response = await fastProvider.generateContent(prompt);
 
     const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -156,7 +157,7 @@ export async function tailorResume(
     manualResearch,
   });
 
-  const result = await generate(pair.user, pair.system);
+  const result = await generate(pair.user, pair.system, "resume");
   return cleanLatex(result);
 }
 
@@ -181,7 +182,7 @@ export async function tailorCoverLetter(
     tailoredResume,
   });
 
-  const result = await generate(pair.user, pair.system);
+  const result = await generate(pair.user, pair.system, "cover-letter");
   return cleanLatex(result);
 }
 
@@ -204,7 +205,7 @@ export async function generateAnswers(
     jobDescription,
   });
 
-  return await generate(pair.user, pair.system);
+  return await generate(pair.user, pair.system, "answers");
 }
 
 // ========================================
@@ -228,7 +229,7 @@ export async function generateColdEmail(
     tailoredCoverLetter,
   });
 
-  return await generate(pair.user, pair.system);
+  return await generate(pair.user, pair.system, "cold-email");
 }
 
 export async function generateReferenceEmail(
@@ -248,7 +249,7 @@ export async function generateReferenceEmail(
     tailoredCoverLetter: _tailoredCoverLetter,
   });
 
-  return await generate(pair.user, pair.system);
+  return await generate(pair.user, pair.system, "reference-email");
 }
 
 // ========================================
@@ -272,7 +273,7 @@ export async function regenerateResume(
     masterContext,
   });
 
-  const result = await generate(pair.user, pair.system);
+  const result = await generate(pair.user, pair.system, "regenerate-resume");
   return cleanLatex(result);
 }
 
@@ -293,7 +294,7 @@ export async function regenerateCoverLetter(
     masterContext,
   });
 
-  const result = await generate(pair.user, pair.system);
+  const result = await generate(pair.user, pair.system, "regenerate-cover-letter");
   return cleanLatex(result);
 }
 
@@ -329,7 +330,7 @@ ${questions}
 ## INSTRUCTIONS:
 Apply the user's feedback to the Current Answers. Use Master Context for accurate details. Return the regenerated answers in Question/Answer format.`;
 
-  return await generate(userPrompt, systemPrompt);
+  return await generate(userPrompt, systemPrompt, "regenerate-answers");
 }
 
 export async function regenerateEmail(
@@ -368,7 +369,7 @@ ${currentContent}
 ## INSTRUCTIONS:
 Apply the feedback. Return the regenerated email.`;
 
-  return await generate(userPrompt, systemPrompt);
+  return await generate(userPrompt, systemPrompt, "regenerate-email");
 }
 
 // ========================================
@@ -398,7 +399,7 @@ export async function answerGeneralQuestion(
     limitValue,
   });
 
-  return await generate(pair.user, pair.system);
+  return await generate(pair.user, pair.system, "question");
 }
 
 export async function answerWithInternet(
@@ -424,7 +425,7 @@ export async function answerWithInternet(
     limitValue,
   });
 
-  return await generate(pair.user, pair.system);
+  return await generate(pair.user, pair.system, "question-internet");
 }
 
 export async function answerInternetOnly(
@@ -449,5 +450,5 @@ ${contextHint}
 ## INSTRUCTIONS:
 Provide a clear, accurate answer based on your training knowledge. Use natural tone. Do NOT use ** or em dashes.${limitInstruction}`;
 
-  return await generate(userPrompt, systemPrompt);
+  return await generate(userPrompt, systemPrompt, "question-internet-only");
 }
