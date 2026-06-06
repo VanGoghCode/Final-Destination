@@ -7,9 +7,10 @@ const STORAGE_KEY = "fd_deepseek_api_key";
 const COOKIE_NAME = "fd_api_key";
 
 function setCookie(value: string) {
-  // Set cookie with 1 year expiry, secure, same-site strict
+  // Set cookie with 1 year expiry. Lax (not Strict) so it's sent on top-level
+  // navigations from other sites. Secure required for Vercel HTTPS.
   const maxAge = 365 * 24 * 60 * 60;
-  document.cookie = `${COOKIE_NAME}=${encodeURIComponent(value)};path=/;max-age=${maxAge};SameSite=Strict`;
+  document.cookie = `${COOKIE_NAME}=${encodeURIComponent(value)};path=/;max-age=${maxAge};SameSite=Lax;Secure`;
 }
 
 function clearCookie() {

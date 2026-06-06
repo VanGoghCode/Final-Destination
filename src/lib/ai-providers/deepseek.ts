@@ -82,7 +82,7 @@ export class DeepSeekProvider implements AIProviderInterface {
     }
 
     const { getDeepSeekApiKey } = await import("@/lib/api-key");
-    const apiKey = getDeepSeekApiKey();
+    const apiKey = await getDeepSeekApiKey();
     if (!apiKey) {
       throw new Error(
         "DeepSeek API key not configured. Set DEEPSEEK_API_KEY in environment or add your key in the app sidebar.",
