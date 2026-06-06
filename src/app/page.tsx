@@ -33,6 +33,8 @@ import {
   getActiveProfileId,
   setActiveProfileId,
   getNextProfileColor,
+  getMasterContext,
+  saveMasterContext,
 } from "@/lib/storage";
 
 // Reusable status dot component for field indicators
@@ -309,9 +311,16 @@ export default function Home() {
             setSelectedCoverLetterTemplateId(defaultCoverLetter.id);
           }
         }
+      }
 
-        // Load saved master context from localStorage
-        if (!masterContext) {
+      // Load saved master context
+      if (!masterContext) {
+        if (activeProfile) {
+          const profileContext = await getMasterContext(activeProfile.id);
+          if (profileContext) {
+            setMasterContext(profileContext);
+          }
+        } else {
           const savedContext = localStorage.getItem("fd_master_context");
           if (savedContext) {
             setMasterContext(savedContext);
@@ -1462,8 +1471,12 @@ export default function Home() {
                   <button
                     onClick={async () => {
                       try {
-                        localStorage.setItem("fd_master_context", masterContext);
-                        showNotification("Master Context saved locally!");
+                        if (activeProfileId) {
+                          await saveMasterContext(activeProfileId, masterContext);
+                        } else {
+                          localStorage.setItem("fd_master_context", masterContext);
+                        }
+                        showNotification("Master Context saved!");
                       } catch {
                         showNotification("Failed to save — content too large?");
                       }
