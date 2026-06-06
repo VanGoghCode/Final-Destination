@@ -399,6 +399,18 @@ export default function BatchProcessPage() {
           // Non-critical — proceed without master context if fetch fails
         }
       }
+      // Fallback: legacy localStorage key (no profile) — matches single-job page behavior
+      if (!jobMasterContext) {
+        try {
+          const saved = localStorage.getItem("fd_master_context");
+          if (saved) {
+            jobMasterContext = saved;
+            addActivity(`[Context] Loaded master context from legacy storage`);
+          }
+        } catch {
+          // Non-critical
+        }
+      }
 
       try {
         // Step 1: Tailor resume
@@ -607,6 +619,15 @@ export default function BatchProcessPage() {
       try {
         const ctx = await getMasterContext(job.profileId);
         if (ctx) jobMasterContext = ctx;
+      } catch {
+        // Non-critical
+      }
+    }
+    // Fallback: legacy localStorage key
+    if (!jobMasterContext) {
+      try {
+        const saved = localStorage.getItem("fd_master_context");
+        if (saved) jobMasterContext = saved;
       } catch {
         // Non-critical
       }
