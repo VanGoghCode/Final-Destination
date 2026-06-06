@@ -1,6 +1,5 @@
-// Cloud Storage Management Utility
-// Uses Upstash Redis via API - replaces localStorage
-// No authentication required — open to everyone.
+// Hybrid Storage: localStorage (primary) + cloud sync (background)
+// localStorage is always the source of truth. Cloud sync is fire-and-forget.
 
 // Storage Keys
 const STORAGE_KEYS = {
@@ -46,11 +45,7 @@ export const generateId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// ============ Cloud Storage Helpers ============
-// Try cloud first, fall back to localStorage for offline/local dev
-// ======================================================
-
-const HEADERS = { "Content-Type": "application/json" };
+// ============ Storage Helpers ============
 
 function localGet<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
@@ -64,46 +59,44 @@ function localGet<T>(key: string): T | null {
 
 function localSet<T>(key: string, value: T): void {
   if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // Storage full or unavailable
-  }
+  localStorage.setItem(key, JSON.stringify(value));
 }
 
 function localRemove(key: string): void {
   if (typeof window === "undefined") return;
-  try {
-    localStorage.removeItem(key);
-  } catch {
-    // Ignore
-  }
+  localStorage.removeItem(key);
 }
 
+// Try cloud GET. If cloud has data, sync to localStorage and return it.
+// If cloud fails or returns null/empty, stick with localStorage.
 async function cloudGet<T>(key: string): Promise<T | null> {
+  const local = localGet<T>(key);
   try {
     const response = await fetch(`/api/storage?key=${encodeURIComponent(key)}`);
-    if (!response.ok) return localGet<T>(key);
+    if (!response.ok) return local;
     const { data } = await response.json();
-    // Sync to localStorage for offline access
-    if (data != null) localSet(key, data);
-    return data as T | null;
+    // Only use cloud data if it's meaningful (not null, not empty array)
+    if (data != null && !(Array.isArray(data) && data.length === 0)) {
+      localSet(key, data);
+      return data as T | null;
+    }
   } catch {
-    return localGet<T>(key);
+    // Cloud unreachable — local is fine
   }
+  return local;
 }
 
+// Save locally first (always), then sync to cloud in background
 async function cloudSet<T>(key: string, value: T): Promise<void> {
-  // Always save locally first
   localSet(key, value);
   try {
     await fetch("/api/storage", {
       method: "POST",
-      headers: HEADERS,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key, value }),
     });
-  } catch (error) {
-    console.error("Failed to sync to cloud:", error);
+  } catch {
+    // Cloud sync failed — local already saved, no problem
   }
 }
 
@@ -113,8 +106,8 @@ async function cloudRemove(key: string): Promise<void> {
     await fetch(`/api/storage?key=${encodeURIComponent(key)}`, {
       method: "DELETE",
     });
-  } catch (error) {
-    console.error("Failed to remove from cloud:", error);
+  } catch {
+    // Cloud sync failed — local already removed
   }
 }
 
