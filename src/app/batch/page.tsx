@@ -13,6 +13,7 @@ import {
   getResumeTemplates,
   getCoverLetterTemplates,
   getProfiles,
+  getMasterContext,
   Template,
   Profile,
 } from "@/lib/storage";
@@ -385,8 +386,22 @@ export default function BatchProcessPage() {
         return;
       }
 
+      // Load master context for this job's profile
+      let jobMasterContext = "";
+      if (job.profileId) {
+        try {
+          const profileContext = await getMasterContext(job.profileId);
+          if (profileContext) {
+            jobMasterContext = profileContext;
+            addActivity(`[Context] Loaded master context for profile`);
+          }
+        } catch {
+          // Non-critical — proceed without master context if fetch fails
+        }
+      }
+
       try {
-        // Step 1: Tailor resume (research removed — use masterContext if available)
+        // Step 1: Tailor resume
         updateJobStatus(job.id, "tailoring-resume", 30);
         addActivity(`[Tailor] Tailoring resume for ${job.positionTitle}...`);
 
@@ -397,7 +412,7 @@ export default function BatchProcessPage() {
             resumeLatex: jobResumeTemplate.content,
             jobDescription: job.jobDescription,
             personalDetails: job.personalDetails || globalPersonalDetails,
-            masterContext: "",
+            masterContext: jobMasterContext,
             companyName: job.companyName,
           }),
           signal,
@@ -431,7 +446,7 @@ export default function BatchProcessPage() {
               coverLetterLatex: jobCoverLetterTemplate.content,
               jobDescription: job.jobDescription,
               personalDetails: job.personalDetails || globalPersonalDetails,
-              masterContext: "",
+              masterContext: jobMasterContext,
             }),
             signal,
           });
@@ -578,15 +593,22 @@ export default function BatchProcessPage() {
   };
 
   // Handle view results - open in new tab
-  const handleViewResults = (job: QueuedJob) => {
+  const handleViewResults = async (job: QueuedJob) => {
     // Get profile firstName and lastName if available
     let profileFirstName = "";
     let profileLastName = "";
+    let jobMasterContext = "";
     if (job.profileId) {
       const profile = profiles.find((p) => p.id === job.profileId);
       if (profile) {
         profileFirstName = profile.firstName;
         profileLastName = profile.lastName;
+      }
+      try {
+        const ctx = await getMasterContext(job.profileId);
+        if (ctx) jobMasterContext = ctx;
+      } catch {
+        // Non-critical
       }
     }
 
@@ -603,6 +625,7 @@ export default function BatchProcessPage() {
         companyUrl: job.companyUrl,
         positionTitle: job.positionTitle,
         jobDescription: job.jobDescription,
+        masterContext: jobMasterContext,
         jobCountry: job.jobCountry,
         jobWorkMode: job.jobWorkMode,
         profileFirstName,

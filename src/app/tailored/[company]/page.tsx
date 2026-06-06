@@ -17,6 +17,7 @@ interface BatchJobData {
   positionTitle: string;
   jobDescription: string;
   companyResearch?: string;
+  masterContext?: string;
   jobCountry?: string;
   jobWorkMode?: "" | "Remote" | "Hybrid" | "On-site";
   profileFirstName?: string;
@@ -286,7 +287,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
           comment,
           resumeLatex: jobData?.resumeLatex,
           jobDescription: jobData?.jobDescription,
-          masterContext: "",
+          masterContext: jobData?.masterContext || "",
         }),
       });
       const data = await response.json();
@@ -311,7 +312,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
           comment,
           coverLetterLatex: jobData?.coverLetterLatex,
           jobDescription: jobData?.jobDescription,
-          masterContext: "",
+          masterContext: jobData?.masterContext || "",
         }),
       });
       const data = await response.json();
@@ -664,7 +665,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                       tailoredResume,
                       tailoredCoverLetter,
                       jobDescription: jobData?.jobDescription,
-                      masterContext: "",
+                      masterContext: jobData?.masterContext || "",
                       limitType: limitType !== "none" ? limitType : undefined,
                       limitValue: limitType !== "none" ? limitValue : undefined,
                     }),

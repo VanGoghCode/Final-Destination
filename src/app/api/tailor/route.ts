@@ -67,6 +67,24 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Error tailoring resume:", error);
+
+    if (error instanceof Error) {
+      if (error.message.includes("429") || error.message.includes("rate")) {
+        return NextResponse.json(
+          { error: "AI service is busy. Please try again in a moment." },
+          { status: 429 },
+        );
+      }
+      if (error.message.includes("Invalid input")) {
+        return NextResponse.json(
+          { error: "The resume or job description contains invalid content." },
+          { status: 400 },
+        );
+      }
+      // Log full error server-side for debugging
+      console.error("[Tailor] Full error:", error.message, error.stack);
+    }
+
     return NextResponse.json(
       { error: "Failed to tailor resume. Please try again." },
       { status: 500 },

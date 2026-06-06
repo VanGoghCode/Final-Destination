@@ -228,13 +228,13 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setJobError = useCallback((id: string, error: string) => {
-    setQueue((prev) =>
-      prev.map((job) =>
-        job.id === id
-          ? { ...job, status: "failed" as JobStatus, error, completedAt: Date.now() }
-          : job,
-      ),
-    );
+    const updates = { status: "failed" as JobStatus, error, completedAt: Date.now() };
+    setQueue((prev) => prev.map((job) => (job.id === id ? { ...job, ...updates } : job)));
+    fetch("/api/queue", {
+      method: "PATCH",
+      headers: HEADERS,
+      body: JSON.stringify({ id, updates }),
+    }).catch(console.error);
   }, []);
 
   const startProcessing = useCallback(() => setIsProcessing(true), []);
