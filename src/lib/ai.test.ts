@@ -992,7 +992,7 @@ describe("Prompt Templates", () => {
       expect(prompt).toContain("REQUIREMENTS COVERAGE");
       expect(prompt).toContain("PROOF OF WORK RULE");
       expect(prompt).toContain("TRUTHFULNESS RULE");
-      expect(prompt).toContain("WORD COUNT CONSTRAINT");
+      expect(prompt).toContain("1-PAGE CONSTRAINT (CRITICAL)");
       expect(prompt).toContain("ONE PAGE");
     });
 

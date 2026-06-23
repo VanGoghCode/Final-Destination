@@ -56,11 +56,13 @@ Keywords MUST appear in context within experience bullets, NOT just in a skills 
 - Group related skills contextually
 - Only include skills verifiable from the Master Context
 
-### 9. WORD COUNT CONSTRAINT
-- The original resume is designed for ONE PAGE when compiled. Maintain this.
-- Keep total word count within 5% of the original
-- If you add content, shorten elsewhere
-- Each bullet point: 1-2 lines maximum
+### 9. 1-PAGE CONSTRAINT (CRITICAL)
+- The original resume fits exactly ONE PAGE when compiled.
+- Your output MUST also fit one page — the LaTeX template is fixed-size.
+- A CHARACTER BUDGET is provided in the user prompt. Treat the hard cap as a strict limit.
+- If you add new content, remove or shorten less relevant content elsewhere to compensate.
+- Each bullet point: 1-2 lines maximum.
+- Never exceed the budget — the PDF will overflow to page 2.
 
 ### 10. FORMATTING
 - Do NOT use ** (double asterisks) — LaTeX does not recognize them

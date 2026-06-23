@@ -279,6 +279,7 @@ export default function BatchProcessPage() {
     completedCount,
     failedCount,
     pendingCount,
+    cancelledCount,
     totalCount,
     setPollingEnabled,
     setProcessingPaused,
@@ -302,6 +303,7 @@ export default function BatchProcessPage() {
   const processingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const queueRef = useRef<QueuedJob[]>([]);
+  const intentionalCancelRef = useRef(false);
 
   // Keep queueRef in sync
   useEffect(() => {
@@ -413,6 +415,10 @@ export default function BatchProcessPage() {
       }
 
       try {
+        // Step 0: Research phase
+        updateJobStatus(job.id, "researching", 5);
+        addActivity(`[Research] Analyzing job for ${job.companyName}...`);
+
         // Step 1: Tailor resume
         updateJobStatus(job.id, "tailoring-resume", 30);
         addActivity(`[Tailor] Tailoring resume for ${job.positionTitle}...`);
@@ -426,6 +432,7 @@ export default function BatchProcessPage() {
             personalDetails: job.personalDetails || globalPersonalDetails,
             masterContext: jobMasterContext,
             companyName: job.companyName,
+            companyWebsite: job.companyWebsite,
           }),
           signal,
         });
@@ -459,6 +466,7 @@ export default function BatchProcessPage() {
               jobDescription: job.jobDescription,
               personalDetails: job.personalDetails || globalPersonalDetails,
               masterContext: jobMasterContext,
+              companyName: job.companyName,
             }),
             signal,
           });
@@ -482,8 +490,14 @@ export default function BatchProcessPage() {
         addActivity(`[Complete] ${job.companyName} - ${job.positionTitle}`);
       } catch (error) {
         if ((error as Error).name === "AbortError") {
-          addActivity(`[Paused] Cancelled: ${job.companyName}`);
-          updateJobStatus(job.id, "pending", 0);
+          if (intentionalCancelRef.current) {
+            // Cancel was intentional — cancelJob already set status to cancelled
+            addActivity(`[Cancelled] Stopped: ${job.companyName}`);
+          } else {
+            // Unintentional abort (page nav, effect re-run) — revert to pending
+            addActivity(`[Paused] Interrupted: ${job.companyName}`);
+            updateJobStatus(job.id, "pending", 0);
+          }
         } else {
           const message = error instanceof Error ? error.message : "Unknown error";
           setJobError(job.id, message);
@@ -507,6 +521,12 @@ export default function BatchProcessPage() {
   useEffect(() => {
     if (!isProcessing || processingRef.current) return;
 
+    // Don't start processing until templates are loaded
+    if (!resumeTemplate) {
+      addActivity("[Error] Resume template not loaded yet. Waiting...");
+      return;
+    }
+
     const processQueue = async () => {
       processingRef.current = true;
       abortControllerRef.current = new AbortController();
@@ -522,7 +542,8 @@ export default function BatchProcessPage() {
         if (pendingJobs.length === 0) {
           idleCount++;
           if (idleCount >= maxIdleCount) {
-            // Stop processing after being idle
+            // Loop finished naturally — re-enable auto-processing for new jobs
+            setProcessingPaused(false);
             stopProcessing();
             break;
           }
@@ -549,14 +570,21 @@ export default function BatchProcessPage() {
       abortControllerRef.current?.abort();
       processingRef.current = false;
     };
-  }, [isProcessing, processJob, stopProcessing]);
+  }, [isProcessing, processJob, stopProcessing, resumeTemplate, addActivity, setProcessingPaused]);
 
   // Handle stop processing
   const handleStopProcessing = () => {
+    // Mark as intentional cancel so processJob abort handler doesn't revert to pending
+    intentionalCancelRef.current = true;
+
     // Set processing paused flag to prevent auto-restart
     setProcessingPaused(true);
 
-    // Cancel any currently processing jobs (sets to 'cancelled' status)
+    // Abort the current fetch request first
+    abortControllerRef.current?.abort();
+
+    // Then cancel all processing jobs to 'cancelled' status
+    // (intentionalCancelRef prevents the abort handler from reverting to pending)
     const processingJobs = queue.filter(
       (j) =>
         j.status === "researching" ||
@@ -567,7 +595,6 @@ export default function BatchProcessPage() {
       cancelJob(job.id);
     });
 
-    abortControllerRef.current?.abort();
     stopProcessing();
     processingRef.current = false;
     addActivity(`[Cancelled] Processing stopped by user`);
@@ -690,18 +717,12 @@ export default function BatchProcessPage() {
     ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(j.status),
   );
 
-  // Track current job start time for stable display
+  // Track current job start time — reset on job change
   const currentJobId = currentJob?.id;
-  const hasCurrentJob = !!currentJob;
   useEffect(() => {
-    if (currentJob) {
-      if (!currentJobStartTime) {
-        setCurrentJobStartTime(Date.now());
-      }
-    } else {
-      setCurrentJobStartTime(null);
-    }
-  }, [currentJobId, hasCurrentJob, currentJob, currentJobStartTime]);
+    setCurrentJobStartTime(currentJob ? Date.now() : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentJobId]);
 
   // Filter jobs by status
   const getProcessingCount = () =>
@@ -842,6 +863,7 @@ export default function BatchProcessPage() {
                   completed={completedCount}
                   failed={failedCount}
                   pending={pendingCount}
+                  cancelled={cancelledCount}
                   isProcessing={isProcessing}
                 />
               </div>
@@ -919,7 +941,10 @@ export default function BatchProcessPage() {
                   </Button>
                 ) : pendingCount > 0 && resumeTemplate ? (
                   <Button
-                    onClick={startProcessing}
+                    onClick={() => {
+                      setProcessingPaused(false);
+                      startProcessing();
+                    }}
                     variant="secondary"
                     className="w-full justify-center"
                   >

@@ -17,11 +17,26 @@ export interface ResumeTailoringData {
   jobDescription: string;
   personalDetails: string;
   manualResearch?: string;
+  /** Character budget for visible text content (excl. LaTeX markup). */
+  contentCharBudget?: { target: number; limit: number };
 }
 
 export function buildResumeUserPrompt(data: ResumeTailoringData): string {
   const researchBlock = data.manualResearch
     ? `\n## MANUAL RESEARCH NOTES:\n${data.manualResearch}\n`
+    : "";
+
+  const budgetBlock = data.contentCharBudget
+    ? `## CHARACTER BUDGET (visible text only — excludes LaTeX commands/markup):
+Target: ${data.contentCharBudget.target.toLocaleString()} characters
+Hard cap: ${data.contentCharBudget.limit.toLocaleString()} characters (${data.contentCharBudget.limit - data.contentCharBudget.target} over target)
+
+The Original Resume has ${data.contentCharBudget.target.toLocaleString()} visible characters (all text minus LaTeX commands).
+Your tailored version MUST stay within ${data.contentCharBudget.limit.toLocaleString()} characters.
+This is a HARD limit — the compiled PDF fits 1 page at this size.
+If you add content, shorten or remove less relevant content elsewhere to stay under budget.
+
+`
     : "";
 
   return `## CANDIDATE MASTER CONTEXT (authoritative source — use for skills, experience, achievements):
@@ -35,8 +50,7 @@ ${data.jobDescription}
 
 ## PERSONAL DETAILS:
 ${data.personalDetails}
-${researchBlock}
-## INSTRUCTIONS:
+${researchBlock}${budgetBlock}## INSTRUCTIONS:
 Use the Master Context as the AUTHORITATIVE source for the candidate's real skills, experiences, and achievements. The Original Resume provides the LaTeX formatting and structure to preserve. Tailor the content in the LaTeX template using information from the Master Context to best match the Job Description.
 
 CRITICAL: Do NOT invent skills, experiences, metrics, or achievements not present in the Master Context. If the JD asks for something the candidate doesn't have, do NOT add it. The candidate will address gaps themselves.
