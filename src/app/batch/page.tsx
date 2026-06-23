@@ -686,7 +686,7 @@ export default function BatchProcessPage() {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
-    window.open(`/tailored/${companySlug}?jobId=${job.id}`, "_blank");
+    window.location.href = `/tailored/${companySlug}?jobId=${job.id}`;
   };
 
   // Handle edit job - updates job and restarts from beginning
