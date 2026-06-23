@@ -12,7 +12,17 @@
       "Bash(npm install:*)",
       "Bash(git branch:*)",
       "Bash(git push:*)",
-      "Bash(npx prettier:*)"
+      "Bash(npx prettier:*)",
+      "Bash(gh pr create --title 'fix: localStorage ignored when Redis returns empty, storage writes fail without ADMIN_API_KEY' --body ':*)",
+      "Bash(gh pr:*)",
+      "Bash(gh api:*)",
+      "Bash(npm run *)",
+      "Bash(git checkout *)",
+      "Bash(git pull *)",
+      "Read(//d/Code/Final-Destination/**)",
+      "Bash(ls .husky/)",
+      "Bash(cat .husky/pre-commit)",
+      "Bash(cat .husky/pre-push)"
     ]
   }
 }
