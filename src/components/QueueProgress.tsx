@@ -5,6 +5,7 @@ interface QueueProgressProps {
   completed: number;
   failed: number;
   pending: number;
+  cancelled: number;
   isProcessing: boolean;
 }
 
@@ -13,9 +14,10 @@ export default function QueueProgress({
   completed,
   failed,
   pending,
+  cancelled,
   isProcessing,
 }: QueueProgressProps) {
-  const inProgress = total - completed - failed - pending;
+  const inProgress = total - completed - failed - pending - cancelled;
 
   // Calculate segment widths
   const completedWidth = total > 0 ? (completed / total) * 100 : 0;

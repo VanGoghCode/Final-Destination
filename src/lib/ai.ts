@@ -6,6 +6,7 @@
 // ========================================
 
 import { isValidInput } from "./sanitize";
+import { getLatexCharBudget } from "./latex-count";
 import { DeepSeekProvider } from "./ai-providers/deepseek";
 import {
   buildResumePrompt,
@@ -149,12 +150,16 @@ export async function tailorResume(
   masterContext: string,
   manualResearch?: string,
 ): Promise<string> {
+  // Compute character budget from the original template
+  const contentCharBudget = getLatexCharBudget(resumeLatex);
+
   const pair = buildResumePrompt({
     masterContext,
     resumeLatex,
     jobDescription,
     personalDetails,
     manualResearch,
+    contentCharBudget,
   });
 
   const result = await generate(pair.user, pair.system, "resume");

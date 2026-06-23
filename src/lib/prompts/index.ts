@@ -47,7 +47,9 @@ export interface PromptPair {
 }
 
 /** Resume tailoring: system persona + resume rules, user data */
-export function buildResumePrompt(data: ResumeTailoringData): PromptPair {
+export function buildResumePrompt(
+  data: ResumeTailoringData & { contentCharBudget?: { target: number; limit: number } },
+): PromptPair {
   return {
     system: [SYSTEM_BASE_PERSONA, SYSTEM_RESUME_RULES].join("\n\n"),
     user: buildResumeUserPrompt(data),

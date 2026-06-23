@@ -1,60 +1,57 @@
 import { describe, it, expect } from "bun:test";
-import {
-  getJobLocationPrompt,
-  getCompanyResearchPrompt,
-  getResumeTailoringPrompt,
-  getGeneralQuestionPrompt,
-  getInternetOnlyAnswerPrompt,
-} from "./prompts";
+import { buildResumePrompt, buildCoverLetterPrompt, buildExtractionPrompt } from "./prompts/index";
 
 describe("Prompts", () => {
-  it("getJobLocationPrompt should return correct prompt", () => {
-    const prompt = getJobLocationPrompt("Software Engineer", "Acme Corp");
-    expect(prompt).toContain("## JOB DESCRIPTION:\nSoftware Engineer");
-    expect(prompt).toContain("## COMPANY: Acme Corp");
+  it("buildResumePrompt should include resume latex and character budget", () => {
+    const pair = buildResumePrompt({
+      masterContext: "Experienced dev",
+      resumeLatex: "\\documentclass{article}",
+      jobDescription: "Job Desc",
+      personalDetails: "John Doe",
+      contentCharBudget: { target: 500, limit: 575 },
+    });
+
+    expect(pair.user).toContain("\\documentclass{article}");
+    expect(pair.user).toContain("ORIGINAL RESUME");
+    expect(pair.user).toContain("CHARACTER BUDGET");
+    expect(pair.user).toContain("500");
+    expect(pair.user).toContain("575");
+    expect(pair.system).toContain("resume writer");
   });
 
-  it("getCompanyResearchPrompt should return empty (research step removed)", () => {
-    const prompt = getCompanyResearchPrompt();
-    // Research step was removed — function now returns empty string
-    expect(prompt).toBe("");
+  it("buildResumePrompt should omit budget block when not provided", () => {
+    const pair = buildResumePrompt({
+      masterContext: "",
+      resumeLatex: "\\section{test}",
+      jobDescription: "JD",
+      personalDetails: "",
+    });
+
+    expect(pair.user).not.toContain("CHARACTER BUDGET");
   });
 
-  it("getCompanyResearchPrompt should return empty regardless of args", () => {
-    const prompt = getCompanyResearchPrompt();
-    expect(prompt).toBe("");
+  it("buildCoverLetterPrompt should include cover letter data", () => {
+    const pair = buildCoverLetterPrompt({
+      masterContext: "Dev",
+      coverLetterLatex: "\\begin{document}Cover\\end{document}",
+      jobDescription: "JD",
+      personalDetails: "Name",
+    });
+
+    expect(pair.user).toContain("\\begin{document}Cover\\end{document}");
+    expect(pair.user).toContain("ORIGINAL COVER LETTER");
+    expect(pair.system).toContain("COVER LETTER");
   });
 
-  it("getResumeTailoringPrompt should include resume latex", () => {
-    const prompt = getResumeTailoringPrompt(
-      "\\documentclass{article}",
-      "Job Desc",
-      "John Doe",
-      "Company Info",
-    );
-    expect(prompt).toContain("\\documentclass{article}");
-    expect(prompt).toContain("ORIGINAL RESUME");
-  });
+  it("buildExtractionPrompt should include extraction instructions", () => {
+    const pair = buildExtractionPrompt({
+      jobDescription: "Software Eng at Acme",
+      companyName: "Acme Corp",
+    });
 
-  it("getGeneralQuestionPrompt should include limit instruction", () => {
-    const prompt = getGeneralQuestionPrompt(
-      "Question",
-      "Resume",
-      "Cover Letter",
-      "Position",
-      "Company",
-      "Job",
-      "Company Info",
-      "words",
-      100,
-    );
-    expect(prompt).toContain("Answer MUST be within 100 words");
-  });
-
-  it("getInternetOnlyAnswerPrompt should include context hint", () => {
-    const prompt = getInternetOnlyAnswerPrompt("Question", "Company", "Position");
-    expect(prompt).toContain("## CONTEXT HINT:");
-    expect(prompt).toContain("Position");
-    expect(prompt).toContain("Company");
+    expect(pair.user).toContain("Acme Corp");
+    expect(pair.user).toContain("country");
+    expect(pair.user).toContain("workMode");
+    expect(pair.system).toContain("job listing analyzer");
   });
 });

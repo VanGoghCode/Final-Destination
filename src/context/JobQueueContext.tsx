@@ -74,6 +74,7 @@ interface JobQueueContextType {
   completedCount: number;
   failedCount: number;
   pendingCount: number;
+  cancelledCount: number;
   totalCount: number;
   pollingEnabled: boolean;
   setPollingEnabled: (enabled: boolean) => void;
@@ -139,6 +140,13 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
         addedAt: Date.now(),
       }));
       setQueue((prev) => [...prev, ...newJobs]);
+      newJobs.forEach((job) => {
+        fetch("/api/queue", {
+          method: "POST",
+          headers: HEADERS,
+          body: JSON.stringify(job),
+        }).catch((err) => console.error("Failed to sync addJobs:", err));
+      });
       return newJobs.map((j) => j.id);
     },
     [],
@@ -200,21 +208,35 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateJobStatus = useCallback((id: string, status: JobStatus, progress?: number) => {
-    const updates: Partial<QueuedJob> = { status };
-    if (progress !== undefined) updates.progress = progress;
-    if (status === "completed" || status === "failed") updates.completedAt = Date.now();
+    const baseUpdates: Partial<QueuedJob> = { status };
+    if (progress !== undefined) baseUpdates.progress = progress;
+
+    const serverUpdates: Partial<QueuedJob> = { ...baseUpdates };
 
     setQueue((prev) =>
       prev.map((job) => {
         if (job.id !== id) return job;
-        return { ...job, ...updates, startedAt: updates.startedAt || job.startedAt };
+        const updates: Partial<QueuedJob> = { ...baseUpdates };
+        if (["researching", "tailoring-resume", "tailoring-cover-letter"].includes(status)) {
+          if (!job.startedAt) {
+            const now = Date.now();
+            updates.startedAt = now;
+            serverUpdates.startedAt = now;
+          }
+        }
+        if (status === "completed" || status === "failed") {
+          const now = Date.now();
+          updates.completedAt = now;
+          serverUpdates.completedAt = now;
+        }
+        return { ...job, ...updates };
       }),
     );
 
     fetch("/api/queue", {
       method: "PATCH",
       headers: HEADERS,
-      body: JSON.stringify({ id, updates }),
+      body: JSON.stringify({ id, updates: serverUpdates }),
     }).catch(console.error);
   }, []);
 
@@ -254,24 +276,43 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const retryJob = useCallback((id: string) => {
-    const updates = {
-      status: "pending" as JobStatus,
-      progress: 0,
-      error: undefined,
-      startedAt: undefined,
-      completedAt: undefined,
-    };
-    setQueue((prev) => prev.map((job) => (job.id === id ? { ...job, ...updates } : job)));
+    let newRetryCount = 0;
+    setQueue((prev) => {
+      const job = prev.find((j) => j.id === id);
+      newRetryCount = (job?.retryCount || 0) + 1;
+      return prev.map((job) =>
+        job.id === id
+          ? {
+              ...job,
+              status: "pending" as JobStatus,
+              progress: 0,
+              error: undefined,
+              startedAt: undefined,
+              completedAt: undefined,
+              retryCount: newRetryCount,
+            }
+          : job,
+      );
+    });
     fetch("/api/queue", {
       method: "PATCH",
       headers: HEADERS,
-      body: JSON.stringify({ id, updates }),
+      body: JSON.stringify({
+        id,
+        updates: {
+          status: "pending",
+          progress: 0,
+          error: undefined,
+          retryCount: newRetryCount,
+        },
+      }),
     }).catch(console.error);
   }, []);
 
   const completedCount = queue.filter((j) => j.status === "completed").length;
   const failedCount = queue.filter((j) => j.status === "failed").length;
   const pendingCount = queue.filter((j) => j.status === "pending").length;
+  const cancelledCount = queue.filter((j) => j.status === "cancelled").length;
   const totalCount = queue.length;
 
   return (
@@ -296,6 +337,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
         completedCount,
         failedCount,
         pendingCount,
+        cancelledCount,
         totalCount,
         pollingEnabled,
         setPollingEnabled,
