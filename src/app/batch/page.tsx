@@ -394,30 +394,16 @@ export default function BatchProcessPage() {
         return;
       }
 
-      // Load master context for this job's profile
+      // Load master context
       let jobMasterContext = "";
-      if (job.profileId) {
-        try {
-          const profileContext = await getMasterContext(job.profileId);
-          if (profileContext) {
-            jobMasterContext = profileContext;
-            addActivity(`[Context] Loaded master context for profile`);
-          }
-        } catch {
-          // Non-critical — proceed without master context if fetch fails
+      try {
+        const saved = await getMasterContext();
+        if (saved) {
+          jobMasterContext = saved;
+          addActivity(`[Context] Loaded master context`);
         }
-      }
-      // Fallback: legacy localStorage key (no profile) — matches single-job page behavior
-      if (!jobMasterContext) {
-        try {
-          const saved = localStorage.getItem("fd_master_context");
-          if (saved) {
-            jobMasterContext = saved;
-            addActivity(`[Context] Loaded master context from legacy storage`);
-          }
-        } catch {
-          // Non-critical
-        }
+      } catch {
+        // Non-critical — proceed without master context if fetch fails
       }
 
       try {
@@ -666,21 +652,12 @@ export default function BatchProcessPage() {
         profileFirstName = profile.firstName;
         profileLastName = profile.lastName;
       }
-      try {
-        const ctx = await getMasterContext(job.profileId);
-        if (ctx) jobMasterContext = ctx;
-      } catch {
-        // Non-critical
-      }
     }
-    // Fallback: legacy localStorage key
-    if (!jobMasterContext) {
-      try {
-        const saved = localStorage.getItem("fd_master_context");
-        if (saved) jobMasterContext = saved;
-      } catch {
-        // Non-critical
-      }
+    try {
+      const ctx = await getMasterContext();
+      if (ctx) jobMasterContext = ctx;
+    } catch {
+      // Non-critical
     }
 
     // Save job data to sessionStorage for the new tab to read

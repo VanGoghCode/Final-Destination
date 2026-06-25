@@ -11,20 +11,10 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: h() });
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const profileId = searchParams.get("profileId");
-
-    if (!profileId) {
-      return NextResponse.json(
-        { error: "profileId query parameter required" },
-        { status: 400, headers: h() },
-      );
-    }
-
-    const content = await getMasterContext(profileId);
-    return NextResponse.json({ profileId, content }, { headers: h() });
+    const content = await getMasterContext();
+    return NextResponse.json({ content }, { headers: h() });
   } catch (error) {
     console.error("Master context GET error:", error);
     return NextResponse.json(
@@ -45,11 +35,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { profileId, content } = await request.json();
+    const { content } = await request.json();
 
-    if (!profileId || typeof content !== "string") {
+    if (typeof content !== "string") {
       return NextResponse.json(
-        { error: "profileId and content (string) required" },
+        { error: "content (string) required" },
         { status: 400, headers: h() },
       );
     }
@@ -61,7 +51,7 @@ export async function POST(request: Request) {
       );
     }
 
-    await saveMasterContext(profileId, content);
+    await saveMasterContext(content);
     return NextResponse.json({ success: true }, { headers: h() });
   } catch (error) {
     console.error("Master context POST error:", error);
@@ -83,17 +73,7 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    const { searchParams } = new URL(request.url);
-    const profileId = searchParams.get("profileId");
-
-    if (!profileId) {
-      return NextResponse.json(
-        { error: "profileId query parameter required" },
-        { status: 400, headers: h() },
-      );
-    }
-
-    await deleteMasterContext(profileId);
+    await deleteMasterContext();
     return NextResponse.json({ success: true }, { headers: h() });
   } catch (error) {
     console.error("Master context DELETE error:", error);
