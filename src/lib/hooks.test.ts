@@ -96,7 +96,7 @@ describe("Retry Logic Pattern", () => {
 });
 
 // ========================================
-// NOTE: Full React hook tests (useCache, useRetryWithBackoff, useDebouncedCallback,
+// NOTE: Full React hook tests (useRetryWithBackoff, useDebouncedCallback,
 // useAutoSave, useLocalStorageLoad) require jsdom + @testing-library/react.
 //
 // The hooks themselves are well-structured — add these tests when

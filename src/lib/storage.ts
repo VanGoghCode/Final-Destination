@@ -419,12 +419,21 @@ export const deleteMasterContext = async (): Promise<void> => {
 
 /** Remove stale profile-scoped master context keys from localStorage. */
 export const cleanupStaleMasterContextKeys = (): void => {
+  cleanupKeysWithPrefix(`${MC_KEY}:`);
+};
+
+/** Remove leftover research cache entries from localStorage. */
+export const cleanupResearchCache = (): void => {
+  cleanupKeysWithPrefix("fd_research_cache_");
+};
+
+/** Remove all localStorage keys starting with the given prefix. */
+function cleanupKeysWithPrefix(prefix: string): void {
   if (typeof window === "undefined") return;
-  const prefix = `${MC_KEY}:`;
   for (let i = localStorage.length - 1; i >= 0; i--) {
     const key = localStorage.key(i);
-    if (key && key.startsWith(prefix) && key !== MC_KEY) {
+    if (key?.startsWith(prefix)) {
       localStorage.removeItem(key);
     }
   }
-};
+}
