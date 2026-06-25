@@ -314,6 +314,59 @@ export async function deleteJob(jobId: string): Promise<boolean> {
 
 // ============== QUEUE ==============
 
+const QUEUE_LOCK_KEY = "lock:queue";
+const QUEUE_LOCK_TTL = 10; // seconds — max time a queue operation can hold the lock
+
+/**
+ * Acquire a distributed mutex lock around queue operations.
+ * Uses Redis SETNX with TTL to prevent deadlocks.
+ * Retries with exponential backoff up to maxWaitMs.
+ */
+async function withQueueLock<T>(fn: () => Promise<T>, maxWaitMs = 5000): Promise<T> {
+  const redis = getRedis();
+  const lockValue = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const start = Date.now();
+  let attempts = 0;
+
+  while (true) {
+    attempts++;
+    // Try to acquire lock
+    const acquired = await redis.set(QUEUE_LOCK_KEY, lockValue, {
+      nx: true,
+      ex: QUEUE_LOCK_TTL,
+    });
+
+    if (acquired === "OK") {
+      try {
+        return await fn();
+      } finally {
+        // Release lock only if we still hold it (compare value)
+        const luaScript = `
+          if redis.call("get", KEYS[1]) == ARGV[1] then
+            return redis.call("del", KEYS[1])
+          else
+            return 0
+          end
+        `;
+        try {
+          await redis.eval(luaScript, [QUEUE_LOCK_KEY], [lockValue]);
+        } catch {
+          // Lock will expire on its own — safe to ignore
+        }
+      }
+    }
+
+    // Check timeout
+    if (Date.now() - start > maxWaitMs) {
+      throw new Error(`Queue lock timeout after ${attempts} attempts (${maxWaitMs}ms)`);
+    }
+
+    // Exponential backoff: 50ms, 100ms, 200ms, 400ms, ...
+    const delay = Math.min(50 * Math.pow(2, attempts - 1), 1000);
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+}
+
 export async function getQueue(): Promise<QueuedJob[]> {
   const redis = getRedis();
   try {
@@ -338,38 +391,87 @@ export async function setQueue(queue: QueuedJob[]): Promise<boolean> {
   }
 }
 
+/**
+ * Atomically add a single job to the queue.
+ * Uses a distributed lock to prevent race conditions when
+ * multiple requests (e.g., from Chrome extension) add jobs concurrently.
+ */
 export async function addJobToQueue(job: QueuedJob): Promise<boolean> {
-  const queue = await getQueue();
-  // Check for duplicates
-  if (queue.some((j) => j.id === job.id)) return false;
+  return withQueueLock(async () => {
+    const queue = await getQueue();
+    // Check for duplicates
+    if (queue.some((j) => j.id === job.id)) return false;
 
-  queue.push(job);
-  return setQueue(queue);
+    queue.push(job);
+    return setQueue(queue);
+  });
+}
+
+/**
+ * Atomically add multiple jobs to the queue in a single transaction.
+ * Extension batch mode should use this to avoid race conditions
+ * from individual concurrent POSTs.
+ */
+export async function addJobsToQueue(jobs: QueuedJob[]): Promise<{
+  success: boolean;
+  added: number;
+  duplicates: number;
+}> {
+  return withQueueLock(async () => {
+    const queue = await getQueue();
+    let added = 0;
+    let duplicates = 0;
+
+    for (const job of jobs) {
+      if (queue.some((j) => j.id === job.id)) {
+        duplicates++;
+        continue;
+      }
+      queue.push(job);
+      added++;
+    }
+
+    const ok = await setQueue(queue);
+    return { success: ok, added, duplicates };
+  });
 }
 
 export async function updateJobInQueue(
   jobId: string,
   updates: Partial<QueuedJob>,
 ): Promise<QueuedJob | null> {
-  const queue = await getQueue();
-  const index = queue.findIndex((j) => j.id === jobId);
+  return withQueueLock(async () => {
+    const queue = await getQueue();
+    const index = queue.findIndex((j) => j.id === jobId);
 
-  if (index === -1) return null;
+    if (index === -1) return null;
 
-  const updatedJob = { ...queue[index], ...updates } as QueuedJob;
-  queue[index] = updatedJob;
+    const updatedJob = { ...queue[index], ...updates } as QueuedJob;
+    queue[index] = updatedJob;
 
-  await setQueue(queue);
-  return updatedJob;
+    await setQueue(queue);
+    return updatedJob;
+  });
 }
 
 export async function removeJobFromQueue(jobId: string): Promise<boolean> {
-  const queue = await getQueue();
-  const newQueue = queue.filter((j) => j.id !== jobId);
+  return withQueueLock(async () => {
+    const queue = await getQueue();
+    const newQueue = queue.filter((j) => j.id !== jobId);
 
-  if (newQueue.length === queue.length) return false;
+    if (newQueue.length === queue.length) return false;
 
-  return setQueue(newQueue);
+    return setQueue(newQueue);
+  });
+}
+
+/**
+ * Atomically clear the entire queue.
+ */
+export async function clearQueue(): Promise<boolean> {
+  return withQueueLock(async () => {
+    return setQueue([]);
+  });
 }
 
 // ============== PROFILES ==============
