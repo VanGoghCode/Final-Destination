@@ -33,6 +33,7 @@ export function getLatexContentCharCount(latex: string): number {
 
 /**
  * Compute character budget: floor = target - tolerance%, target = original count, limit = target + tolerance%.
+ * Enforces a minimum range of 20 chars so the AI has room to work even on short templates.
  * Returns { floor, target, limit } where all are character counts.
  * AI must stay between floor and limit to preserve the template's original length.
  */
@@ -41,7 +42,14 @@ export function getLatexCharBudget(
   tolerancePercent = 5,
 ): { floor: number; target: number; limit: number } {
   const target = getLatexContentCharCount(latex);
-  const floor = Math.max(0, Math.round(target * (1 - tolerancePercent / 100)));
-  const limit = Math.round(target * (1 + tolerancePercent / 100));
+  let floor = Math.max(0, Math.round(target * (1 - tolerancePercent / 100)));
+  let limit = Math.round(target * (1 + tolerancePercent / 100));
+  // Ensure at least 20 char range so short templates don't produce zero-width budgets
+  const MIN_RANGE = 20;
+  if (target > 0 && limit - floor < MIN_RANGE) {
+    const mid = Math.round((floor + limit) / 2);
+    floor = Math.max(0, mid - Math.floor(MIN_RANGE / 2));
+    limit = mid + Math.ceil(MIN_RANGE / 2);
+  }
   return { floor, target, limit };
 }

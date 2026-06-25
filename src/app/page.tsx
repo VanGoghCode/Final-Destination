@@ -36,6 +36,7 @@ import {
   getMasterContext,
   saveMasterContext,
   cleanupStaleMasterContextKeys,
+  cleanupResearchCache,
 } from "@/lib/storage";
 
 // Reusable status dot component for field indicators
@@ -316,8 +317,14 @@ export default function Home() {
 
       // Load saved master context
       if (!masterContext) {
+        // Cleanup separately — must not block context load if localStorage throws
         try {
           cleanupStaleMasterContextKeys();
+          cleanupResearchCache();
+        } catch {
+          // Non-critical
+        }
+        try {
           const savedContext = await getMasterContext();
           if (savedContext) {
             setMasterContext(savedContext);

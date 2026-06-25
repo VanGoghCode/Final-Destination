@@ -111,26 +111,27 @@ describe("getLatexCharBudget", () => {
     const latex = `\\textbf{Hello World}`;
     const budget = getLatexCharBudget(latex);
     expect(budget.target).toBe(11); // "Hello World" is 11 chars
-    expect(budget.floor).toBe(10); // 11 * 0.95 = 10.45 → 10
-    expect(budget.limit).toBe(12); // 11 * 1.05 = 11.55 → 12
+    // 5% → floor=10, limit=12, range=2 < 20 → expanded: mid=11, floor=1, limit=21
+    expect(budget.floor).toBe(1);
+    expect(budget.limit).toBe(21);
   });
 
   it("should use default tolerance of 5%", () => {
     const latex = `\\textbf{Hello}`;
     const budget = getLatexCharBudget(latex);
-    // target = 5, floor = 5 * (1 - 0.05) = 4.75 → 5, limit = 5 * (1 + 0.05) = 5.25 → 5
+    // target=5, floor=5, limit=5, range=0 < 20 → expanded: mid=5, floor=0, limit=15
     expect(budget.target).toBe(5);
-    expect(budget.floor).toBe(5);
-    expect(budget.limit).toBe(5);
+    expect(budget.floor).toBe(0);
+    expect(budget.limit).toBe(15);
   });
 
   it("should accept custom tolerance", () => {
     const latex = `\\textbf{Hello}`;
     const budget = getLatexCharBudget(latex, 50);
-    // target = 5, floor = 5 * (1 - 0.5) = 2.5 → 3, limit = 5 * (1 + 0.5) = 7.5 → 8
+    // target=5, floor=3, limit=8, range=5 < 20 → expanded: mid=6, floor=0, limit=16
     expect(budget.target).toBe(5);
-    expect(budget.floor).toBe(3);
-    expect(budget.limit).toBe(8);
+    expect(budget.floor).toBe(0);
+    expect(budget.limit).toBe(16);
   });
 
   it("should handle empty input", () => {
@@ -140,11 +141,12 @@ describe("getLatexCharBudget", () => {
     expect(budget.limit).toBe(0);
   });
 
-  it("should not produce negative floor", () => {
+  it("should expand range for small templates", () => {
     const latex = `\\textbf{Hi}`;
     const budget = getLatexCharBudget(latex, 200);
-    // target = 2, floor would be 2 * (1 - 2.0) = -2, clamped to 0
+    // target=2, floor=0 (clamped), limit=6, range=6 < 20 → expanded: mid=3, floor=0, limit=13
     expect(budget.target).toBe(2);
     expect(budget.floor).toBe(0);
+    expect(budget.limit).toBe(13);
   });
 });
