@@ -8,12 +8,15 @@ describe("Prompts", () => {
       resumeLatex: "\\documentclass{article}",
       jobDescription: "Job Desc",
       personalDetails: "John Doe",
-      contentCharBudget: { target: 500, limit: 575 },
+      contentCharBudget: { floor: 425, target: 500, limit: 575 },
     });
 
     expect(pair.user).toContain("\\documentclass{article}");
     expect(pair.user).toContain("ORIGINAL RESUME");
     expect(pair.user).toContain("CHARACTER BUDGET");
+    expect(pair.user).toContain("Floor:");
+    expect(pair.user).toContain("MUST stay between");
+    expect(pair.user).toContain("425");
     expect(pair.user).toContain("500");
     expect(pair.user).toContain("575");
     expect(pair.system).toContain("resume writer");

@@ -32,14 +32,16 @@ export function getLatexContentCharCount(latex: string): number {
 }
 
 /**
- * Compute character budget: target = original count, limit = +15%.
- * Returns { target, limit } where both are character counts.
+ * Compute character budget: floor = target - tolerance%, target = original count, limit = target + tolerance%.
+ * Returns { floor, target, limit } where all are character counts.
+ * AI must stay between floor and limit to preserve the template's original length.
  */
 export function getLatexCharBudget(
   latex: string,
-  tolerancePercent = 15,
-): { target: number; limit: number } {
+  tolerancePercent = 5,
+): { floor: number; target: number; limit: number } {
   const target = getLatexContentCharCount(latex);
+  const floor = Math.max(0, Math.round(target * (1 - tolerancePercent / 100)));
   const limit = Math.round(target * (1 + tolerancePercent / 100));
-  return { target, limit };
+  return { floor, target, limit };
 }

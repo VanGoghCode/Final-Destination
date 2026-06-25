@@ -18,7 +18,7 @@ export interface ResumeTailoringData {
   personalDetails: string;
   manualResearch?: string;
   /** Character budget for visible text content (excl. LaTeX markup). */
-  contentCharBudget?: { target: number; limit: number };
+  contentCharBudget?: { floor: number; target: number; limit: number };
 }
 
 export function buildResumeUserPrompt(data: ResumeTailoringData): string {
@@ -28,13 +28,15 @@ export function buildResumeUserPrompt(data: ResumeTailoringData): string {
 
   const budgetBlock = data.contentCharBudget
     ? `## CHARACTER BUDGET (visible text only — excludes LaTeX commands/markup):
+Floor: ${data.contentCharBudget.floor.toLocaleString()} characters
 Target: ${data.contentCharBudget.target.toLocaleString()} characters
 Hard cap: ${data.contentCharBudget.limit.toLocaleString()} characters (${data.contentCharBudget.limit - data.contentCharBudget.target} over target)
 
 The Original Resume has ${data.contentCharBudget.target.toLocaleString()} visible characters (all text minus LaTeX commands).
-Your tailored version MUST stay within ${data.contentCharBudget.limit.toLocaleString()} characters.
+Your tailored version MUST stay between ${data.contentCharBudget.floor.toLocaleString()} and ${data.contentCharBudget.limit.toLocaleString()} characters.
+Staying near the Target preserves the original resume's length and density.
+If output is below the Floor, expand relevant content to match the original resume's length.
 This is a HARD limit — the compiled PDF fits 1 page at this size.
-If you add content, shorten or remove less relevant content elsewhere to stay under budget.
 
 `
     : "";
