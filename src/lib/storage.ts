@@ -401,17 +401,30 @@ export const getNextProfileColor = async (): Promise<string> => {
 
 // ============ Master Context ============
 
-const buildMasterContextKey = (profileId: string): string =>
-  `${STORAGE_KEYS.MASTER_CONTEXT}:${profileId}`;
+// Single flat key — no profile-scoping. Old fd_master_context:<profileId> keys
+// are cleaned up on first load (see cleanupStaleMasterContextKeys).
+const MC_KEY = STORAGE_KEYS.MASTER_CONTEXT;
 
-export const getMasterContext = async (profileId: string): Promise<string | null> => {
-  return cloudGet<string>(buildMasterContextKey(profileId));
+export const getMasterContext = async (): Promise<string | null> => {
+  return cloudGet<string>(MC_KEY);
 };
 
-export const saveMasterContext = async (profileId: string, content: string): Promise<void> => {
-  await cloudSet(buildMasterContextKey(profileId), content);
+export const saveMasterContext = async (content: string): Promise<void> => {
+  await cloudSet(MC_KEY, content);
 };
 
-export const deleteMasterContext = async (profileId: string): Promise<void> => {
-  await cloudRemove(buildMasterContextKey(profileId));
+export const deleteMasterContext = async (): Promise<void> => {
+  await cloudRemove(MC_KEY);
+};
+
+/** Remove stale profile-scoped master context keys from localStorage. */
+export const cleanupStaleMasterContextKeys = (): void => {
+  if (typeof window === "undefined") return;
+  const prefix = `${MC_KEY}:`;
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(prefix) && key !== MC_KEY) {
+      localStorage.removeItem(key);
+    }
+  }
 };
