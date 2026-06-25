@@ -66,7 +66,6 @@ class BatchProcessor {
   };
 
   private processingRef = false;
-  private abortController: { aborted: boolean } | null = null;
   private intentionalCancel = false;
   private resumeTemplate: string | null = "mock-template"; // simulate loaded template
 
@@ -140,7 +139,6 @@ class BatchProcessor {
     if (!this.state.isProcessing) return null;
 
     this.processingRef = true; // claim processing slot immediately
-    this.abortController = { aborted: false };
 
     try {
       const pendingJobs = this.state.queue.filter((j) => j.status === "pending");
@@ -582,7 +580,7 @@ describe("BatchProcessor — sequential processing", () => {
       bp.startProcessing();
 
       // Simulate that the job failed
-      const job = bp.getQueue()[0];
+      const job = bp.getQueue()[0]!;
       bp.state.queue = bp.state.queue.map((j) =>
         j.id === job.id
           ? { ...j, status: "failed" as JobStatus, error: "API timeout", completedAt: Date.now() }
@@ -608,7 +606,7 @@ describe("BatchProcessor — sequential processing", () => {
         positionTitle: "Dev",
         jobDescription: "A",
       });
-      const job = bp.getQueue()[0];
+      const job = bp.getQueue()[0]!;
 
       bp.retryJob(job.id);
       expect(bp.getQueue().find((j) => j.id === job.id)?.retryCount).toBe(1);
@@ -674,7 +672,7 @@ describe("BatchProcessor — sequential processing", () => {
       bp.startProcessing();
 
       // Simulate mid-processing state
-      const job = bp.getQueue()[0];
+      const job = bp.getQueue()[0]!;
       bp.state.currentJobId = job.id;
       expect(bp.getActiveJobCount()).toBe(1);
 
@@ -773,7 +771,7 @@ describe("BatchProcessor — sequential processing", () => {
       // Cancel job 4 (but we can't do this via processNext, so just set it manually)
       const remaining = bp.getQueue().filter((j) => j.status === "pending");
       if (remaining.length > 0) {
-        const toCancel = remaining[0];
+        const toCancel = remaining[0]!;
         bp.state.queue = bp.state.queue.map((j) =>
           j.id === toCancel.id ? { ...j, status: "cancelled" as JobStatus } : j,
         );
@@ -863,7 +861,7 @@ describe("BatchProcessor — sequential processing", () => {
 
       const queue = bp.getQueue();
       for (let i = 1; i < queue.length; i++) {
-        expect(queue[i].addedAt).toBeGreaterThanOrEqual(queue[i - 1].addedAt);
+        expect(queue[i]!.addedAt).toBeGreaterThanOrEqual(queue[i - 1]!.addedAt);
       }
     });
   });

@@ -336,7 +336,7 @@ async function withQueueLock<T>(fn: () => Promise<T>, maxWaitMs = 5000): Promise
       ex: QUEUE_LOCK_TTL,
     });
 
-    if (acquired === "OK" || acquired === true) {
+    if (acquired === "OK") {
       try {
         return await fn();
       } finally {

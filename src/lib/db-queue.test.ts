@@ -67,7 +67,6 @@ function makeJob(overrides: Partial<QueuedJob> = {}): QueuedJob {
 class QueueStore {
   private queue: QueuedJob[] = [];
   private locked = false;
-  private lockQueue: Array<() => void> = [];
   lockAttempts = 0;
 
   private async acquireLock(maxWaitMs = 5000): Promise<void> {
@@ -143,7 +142,7 @@ class QueueStore {
       if (index === -1) return null;
 
       const claimed: QueuedJob = {
-        ...this.queue[index],
+        ...this.queue[index]!,
         status: "researching",
         progress: 0,
         startedAt: Date.now(),

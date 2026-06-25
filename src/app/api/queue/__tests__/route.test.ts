@@ -345,10 +345,10 @@ describe("Queue API POST /api/queue", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.job.companyName).toBe("Google");
-      expect(res.body.job.status).toBe("pending");
-      expect(res.body.job.companyWebsite).toBe("https://google.com");
-      expect(res.body.job.includeCoverLetter).toBe(true);
+      expect(res.body.job!.companyName).toBe("Google");
+      expect(res.body.job!.status).toBe("pending");
+      expect(res.body.job!.companyWebsite).toBe("https://google.com");
+      expect(res.body.job!.includeCoverLetter).toBe(true);
       expect(store.length).toBe(1);
     });
 
@@ -360,8 +360,8 @@ describe("Queue API POST /api/queue", () => {
         jobDescription: "Test",
       });
 
-      expect(res.body.job.id).toBeTruthy();
-      expect(typeof res.body.job.id).toBe("string");
+      expect(res.body.job!.id).toBeTruthy();
+      expect(typeof res.body.job!.id).toBe("string");
     });
 
     it("should use provided ID if given", async () => {
@@ -373,7 +373,7 @@ describe("Queue API POST /api/queue", () => {
         jobDescription: "Test",
       });
 
-      expect(res.body.job.id).toBe("custom-job-id");
+      expect(res.body.job!.id).toBe("custom-job-id");
     });
 
     it("should reject duplicate job IDs", async () => {
@@ -496,8 +496,8 @@ describe("Queue API PUT /api/queue (batch)", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.added).toBe(2);
-    expect(res.body.errors).toHaveLength(1);
-    expect(res.body.errors[0].index).toBe(1);
+    expect(res.body.errors!).toHaveLength(1);
+    expect(res.body.errors![0]!.index).toBe(1);
   });
 
   it("should reject batch where ALL jobs are invalid", async () => {
@@ -655,8 +655,8 @@ describe("Queue API PATCH /api/queue", () => {
     });
 
     expect(res.status).toBe(200);
-    expect(res.body.job.status).toBe("researching");
-    expect(res.body.job.progress).toBe(5);
+    expect(res.body.job!.status).toBe("researching");
+    expect(res.body.job!.progress).toBe(5);
   });
 
   it("should return 404 for non-existent job", async () => {
