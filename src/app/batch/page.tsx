@@ -264,6 +264,8 @@ export default function BatchProcessPage() {
   const {
     queue,
     isProcessing,
+    currentJobId,
+    setCurrentJobId,
     addJob,
     removeJob,
     updateJob,
@@ -355,6 +357,9 @@ export default function BatchProcessPage() {
   // Process a single job
   const processJob = useCallback(
     async (job: QueuedJob, signal: AbortSignal) => {
+      // Mark this job as the current one being processed
+      setCurrentJobId(job.id);
+
       // Resolve the correct template based on job's profile
       let jobResumeTemplate: Template | null = resumeTemplate;
       let jobCoverLetterTemplate: Template | null = coverLetterTemplate;
@@ -385,6 +390,7 @@ export default function BatchProcessPage() {
 
       if (!jobResumeTemplate) {
         setJobError(job.id, "No resume template found for this job's profile");
+        setCurrentJobId(null);
         return;
       }
 
@@ -503,6 +509,9 @@ export default function BatchProcessPage() {
           setJobError(job.id, message);
           addActivity(`[Error] Failed: ${job.companyName} - ${message}`);
         }
+      } finally {
+        // Clear current job tracking after completion/error/cancel
+        setCurrentJobId(null);
       }
     },
     [
@@ -513,11 +522,15 @@ export default function BatchProcessPage() {
       updateJobStatus,
       updateJobResults,
       setJobError,
+      setCurrentJobId,
       addActivity,
     ],
   );
 
   // Main processing loop - continuous auto processing
+  // Processes jobs one at a time, strictly sequential.
+  // Only starts when isProcessing is true and no other loop is running.
+  // Uses a ref guard (processingRef) to prevent concurrent loops.
   useEffect(() => {
     if (!isProcessing || processingRef.current) return;
 
@@ -527,50 +540,67 @@ export default function BatchProcessPage() {
       return;
     }
 
+    const myController = new AbortController();
+    abortControllerRef.current = myController;
+
     const processQueue = async () => {
       processingRef.current = true;
-      abortControllerRef.current = new AbortController();
+      intentionalCancelRef.current = false;
 
-      let idleCount = 0;
-      const maxIdleCount = 30; // Stop after 30 seconds of no pending jobs
+      try {
+        while (!myController.signal.aborted) {
+          // Use ref to get current queue state (avoids stale closure)
+          const currentQueue = queueRef.current;
+          const pendingJobs = currentQueue.filter((j) => j.status === "pending");
 
-      while (!abortControllerRef.current?.signal.aborted) {
-        // Use ref to get current queue state
-        const currentQueue = queueRef.current;
-        const pendingJobs = currentQueue.filter((j) => j.status === "pending");
-
-        if (pendingJobs.length === 0) {
-          idleCount++;
-          if (idleCount >= maxIdleCount) {
-            // Loop finished naturally — re-enable auto-processing for new jobs
-            setProcessingPaused(false);
-            stopProcessing();
+          if (pendingJobs.length === 0) {
+            addActivity("[Done] Queue empty — processing complete");
             break;
           }
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          continue;
+
+          // FIFO: take the first pending job
+          const job = pendingJobs[0];
+          if (!job) break;
+
+          await processJob(job, myController.signal);
+
+          // Stop conditions
+          if (myController.signal.aborted) break;
+          if (intentionalCancelRef.current) break;
+
+          // Delay between jobs to avoid rate limits
+          await new Promise((resolve) => setTimeout(resolve, 2000));
         }
-
-        // Reset idle counter when we find a job
-        idleCount = 0;
-        const job = pendingJobs[0];
-        if (!job) continue;
-
-        await processJob(job, abortControllerRef.current.signal);
-        // Delay between jobs to avoid rate limits
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+      } finally {
+        // Only clear our own ref — another loop may have started
+        if (abortControllerRef.current === myController) {
+          processingRef.current = false;
+        }
+        // On natural drain (not intentional cancel), clear pause so new jobs auto-start
+        if (!intentionalCancelRef.current && !myController.signal.aborted) {
+          setProcessingPaused(false);
+        }
       }
-
-      processingRef.current = false;
     };
 
     processQueue();
 
     return () => {
-      abortControllerRef.current?.abort();
-      processingRef.current = false;
+      // Only abort if we're still the active controller
+      if (abortControllerRef.current === myController) {
+        myController.abort();
+        processingRef.current = false;
+      }
     };
-  }, [isProcessing, processJob, stopProcessing, resumeTemplate, addActivity, setProcessingPaused]);
+  }, [
+    isProcessing,
+    processJob,
+    resumeTemplate,
+    addActivity,
+    setProcessingPaused,
+    startProcessing,
+    stopProcessing,
+  ]);
 
   // Handle stop processing
   const handleStopProcessing = () => {
@@ -583,17 +613,10 @@ export default function BatchProcessPage() {
     // Abort the current fetch request first
     abortControllerRef.current?.abort();
 
-    // Then cancel all processing jobs to 'cancelled' status
-    // (intentionalCancelRef prevents the abort handler from reverting to pending)
-    const processingJobs = queue.filter(
-      (j) =>
-        j.status === "researching" ||
-        j.status === "tailoring-resume" ||
-        j.status === "tailoring-cover-letter",
-    );
-    processingJobs.forEach((job) => {
-      cancelJob(job.id);
-    });
+    // Cancel the currently processing job (only one processes at a time)
+    if (currentJobId) {
+      cancelJob(currentJobId);
+    }
 
     stopProcessing();
     processingRef.current = false;
@@ -713,22 +736,19 @@ export default function BatchProcessPage() {
     }
   };
 
-  const currentJob = queue.find((j) =>
-    ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(j.status),
-  );
+  // Derive current processing job from context's currentJobId
+  // This is the single source of truth — only one job processes at a time
+  const currentJob = currentJobId ? queue.find((j) => j.id === currentJobId) : null;
 
   // Track current job start time — reset on job change
-  const currentJobId = currentJob?.id;
   useEffect(() => {
     setCurrentJobStartTime(currentJob ? Date.now() : null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentJobId]);
+  }, [currentJob?.id]);
 
   // Filter jobs by status
-  const getProcessingCount = () =>
-    queue.filter((j) =>
-      ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(j.status),
-    ).length;
+  // Only show 1 active job — only one job processes at a time
+  const getProcessingCount = () => (currentJobId ? 1 : 0);
 
   const filteredQueue = () => {
     switch (statusFilter) {

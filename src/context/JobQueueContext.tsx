@@ -43,6 +43,7 @@ interface JobQueueContextType {
   queue: QueuedJob[];
   isProcessing: boolean;
   currentJobId: string | null;
+  setCurrentJobId: (id: string | null) => void;
   addJob: (job: Omit<QueuedJob, "id" | "status" | "progress" | "addedAt">) => string;
   addJobs: (jobs: Omit<QueuedJob, "id" | "status" | "progress" | "addedAt">[]) => string[];
   removeJob: (id: string) => void;
@@ -109,12 +110,22 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
   }, [pollingEnabled]);
 
   useEffect(() => {
+    // Only auto-start if processing was not intentionally paused
     if (processingPaused) return;
+    // Only auto-start if there are pending jobs AND nothing is currently processing
+    const hasProcessing = queue.some((j) =>
+      ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(j.status),
+    );
     const hasPending = queue.some((j) => j.status === "pending");
-    if (hasPending && !isProcessing && !currentJobId) {
+    // Start if pending jobs exist AND nothing is currently processing AND not already started
+    if (hasPending && !hasProcessing && !isProcessing) {
       Promise.resolve().then(() => setIsProcessing(true));
     }
-  }, [queue, isProcessing, currentJobId, processingPaused]);
+    // If nothing is processing and no pending, ensure isProcessing is false
+    if (!hasPending && !hasProcessing && isProcessing) {
+      Promise.resolve().then(() => setIsProcessing(false));
+    }
+  }, [queue, isProcessing, processingPaused]);
 
   const generateId = () => `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -126,7 +137,12 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
       method: "POST",
       headers: HEADERS,
       body: JSON.stringify(newJob),
-    }).catch((err) => console.error("Failed to sync addJob:", err));
+    }).catch((err) => {
+      console.error("Failed to sync addJob:", err);
+      // Rollback on failure — remove phantom job from local state so polling
+      // doesn't need to correct it. Next poll will restore if server DID persist it.
+      setQueue((prev) => prev.filter((j) => j.id !== id));
+    });
     return id;
   }, []);
 
@@ -140,12 +156,16 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
         addedAt: Date.now(),
       }));
       setQueue((prev) => [...prev, ...newJobs]);
-      newJobs.forEach((job) => {
-        fetch("/api/queue", {
-          method: "POST",
-          headers: HEADERS,
-          body: JSON.stringify(job),
-        }).catch((err) => console.error("Failed to sync addJobs:", err));
+      // Use batch PUT endpoint for atomic server-side add (no race conditions)
+      fetch("/api/queue", {
+        method: "PUT",
+        headers: HEADERS,
+        body: JSON.stringify({ jobs: newJobs }),
+      }).catch((err) => {
+        console.error("Failed to sync addJobs batch:", err);
+        // Rollback all phantom jobs on failure
+        const phantomIds = new Set(newJobs.map((j) => j.id));
+        setQueue((prev) => prev.filter((j) => !phantomIds.has(j.id)));
       });
       return newJobs.map((j) => j.id);
     },
@@ -198,12 +218,18 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const clearCompleted = useCallback(() => {
+    const completedIds: string[] = [];
     setQueue((prev) => {
-      const completedIds = prev.filter((j) => j.status === "completed").map((j) => j.id);
-      completedIds.forEach((id) => {
-        fetch(`/api/queue?id=${id}`, { method: "DELETE" }).catch(console.error);
-      });
+      // Just filter local state in the updater (pure)
+      completedIds.length = 0;
+      for (const job of prev) {
+        if (job.status === "completed") completedIds.push(job.id);
+      }
       return prev.filter((j) => j.status !== "completed");
+    });
+    // Fire server deletions outside the updater (side-effect)
+    completedIds.forEach((id) => {
+      fetch(`/api/queue?id=${id}`, { method: "DELETE" }).catch(console.error);
     });
   }, []);
 
@@ -259,7 +285,9 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
     }).catch(console.error);
   }, []);
 
-  const startProcessing = useCallback(() => setIsProcessing(true), []);
+  const startProcessing = useCallback(() => {
+    setIsProcessing(true);
+  }, []);
   const stopProcessing = useCallback(() => {
     setIsProcessing(false);
     setCurrentJobId(null);
@@ -321,6 +349,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
         queue,
         isProcessing,
         currentJobId,
+        setCurrentJobId,
         addJob,
         addJobs,
         removeJob,
