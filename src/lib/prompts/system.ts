@@ -59,10 +59,12 @@ Keywords MUST appear in context within experience bullets, NOT just in a skills 
 ### 9. 1-PAGE CONSTRAINT (CRITICAL)
 - The original resume fits exactly ONE PAGE when compiled.
 - Your output MUST also fit one page — the LaTeX template is fixed-size.
-- A CHARACTER BUDGET is provided in the user prompt. Treat the hard cap as a strict limit.
-- If you add new content, remove or shorten less relevant content elsewhere to compensate.
+- A CHARACTER BUDGET is provided in the user prompt (Floor / Target / Hard cap). Stay between Floor and Hard cap.
+- Stay NEAR the Target — the output should be roughly the same length and density as the original resume.
+- If output would be below the Floor, expand relevant content to match the original resume's length.
+- If adding new content, shorten or remove less relevant content elsewhere to compensate.
 - Each bullet point: 1-2 lines maximum.
-- Never exceed the budget — the PDF will overflow to page 2.
+- Never exceed the Hard cap — the PDF will overflow to page 2.
 
 ### 10. FORMATTING
 - Do NOT use ** (double asterisks) — LaTeX does not recognize them

@@ -107,32 +107,44 @@ describe("getLatexContentCharCount", () => {
 });
 
 describe("getLatexCharBudget", () => {
-  it("should compute target and limit from LaTeX content", () => {
+  it("should compute floor, target and limit from LaTeX content", () => {
     const latex = `\\textbf{Hello World}`;
     const budget = getLatexCharBudget(latex);
     expect(budget.target).toBe(11); // "Hello World" is 11 chars
-    expect(budget.limit).toBeGreaterThan(budget.target);
+    expect(budget.floor).toBe(10); // 11 * 0.95 = 10.45 → 10
+    expect(budget.limit).toBe(12); // 11 * 1.05 = 11.55 → 12
   });
 
-  it("should use default tolerance of 15%", () => {
+  it("should use default tolerance of 5%", () => {
     const latex = `\\textbf{Hello}`;
     const budget = getLatexCharBudget(latex);
-    // target = 5, limit = 5 * (1 + 0.15) = 5.75 → 6
+    // target = 5, floor = 5 * (1 - 0.05) = 4.75 → 5, limit = 5 * (1 + 0.05) = 5.25 → 5
     expect(budget.target).toBe(5);
-    expect(budget.limit).toBe(6);
+    expect(budget.floor).toBe(5);
+    expect(budget.limit).toBe(5);
   });
 
   it("should accept custom tolerance", () => {
     const latex = `\\textbf{Hello}`;
     const budget = getLatexCharBudget(latex, 50);
-    // target = 5, limit = 5 * (1 + 0.5) = 7.5 → 8
+    // target = 5, floor = 5 * (1 - 0.5) = 2.5 → 3, limit = 5 * (1 + 0.5) = 7.5 → 8
     expect(budget.target).toBe(5);
+    expect(budget.floor).toBe(3);
     expect(budget.limit).toBe(8);
   });
 
   it("should handle empty input", () => {
     const budget = getLatexCharBudget("");
     expect(budget.target).toBe(0);
+    expect(budget.floor).toBe(0);
     expect(budget.limit).toBe(0);
+  });
+
+  it("should not produce negative floor", () => {
+    const latex = `\\textbf{Hi}`;
+    const budget = getLatexCharBudget(latex, 200);
+    // target = 2, floor would be 2 * (1 - 2.0) = -2, clamped to 0
+    expect(budget.target).toBe(2);
+    expect(budget.floor).toBe(0);
   });
 });
