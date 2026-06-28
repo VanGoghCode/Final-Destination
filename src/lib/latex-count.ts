@@ -45,11 +45,11 @@ export function getLatexCharBudget(
   let floor = Math.max(0, Math.round(target * (1 - tolerancePercent / 100)));
   let limit = Math.round(target * (1 + tolerancePercent / 100));
   // Ensure at least 20 char range so short templates don't produce zero-width budgets
+  // When target < 10, floor is clamped to 0 and limit extends further to preserve range.
   const MIN_RANGE = 20;
   if (target > 0 && limit - floor < MIN_RANGE) {
-    const mid = Math.round((floor + limit) / 2);
-    floor = Math.max(0, mid - Math.floor(MIN_RANGE / 2));
-    limit = mid + Math.ceil(MIN_RANGE / 2);
+    floor = Math.max(0, target - Math.floor(MIN_RANGE / 2));
+    limit = floor + MIN_RANGE;
   }
   return { floor, target, limit };
 }

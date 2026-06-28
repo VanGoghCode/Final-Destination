@@ -1005,7 +1005,7 @@ describe("Prompt Templates", () => {
 
     it("forbids ** double asterisks for bold", () => {
       const prompt = getResumeTailoringPrompt(SAMPLE_LATEX, "JD", "John", "Info");
-      expect(prompt).toContain("Do NOT use **");
+      expect(prompt).toContain("Do not use **double asterisks**");
     });
   });
 

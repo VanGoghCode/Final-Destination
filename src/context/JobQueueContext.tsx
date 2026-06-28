@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  ReactNode,
+} from "react";
 
 export type JobStatus =
   | "pending"
@@ -337,11 +345,25 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
     }).catch(console.error);
   }, []);
 
-  const completedCount = queue.filter((j) => j.status === "completed").length;
-  const failedCount = queue.filter((j) => j.status === "failed").length;
-  const pendingCount = queue.filter((j) => j.status === "pending").length;
-  const cancelledCount = queue.filter((j) => j.status === "cancelled").length;
-  const totalCount = queue.length;
+  const counts = useMemo(() => {
+    let completed = 0,
+      failed = 0,
+      pending = 0,
+      cancelled = 0;
+    for (const job of queue) {
+      if (job.status === "completed") completed++;
+      else if (job.status === "failed") failed++;
+      else if (job.status === "pending") pending++;
+      else if (job.status === "cancelled") cancelled++;
+    }
+    return { completed, failed, pending, cancelled, total: queue.length };
+  }, [queue]);
+
+  const completedCount = counts.completed;
+  const failedCount = counts.failed;
+  const pendingCount = counts.pending;
+  const cancelledCount = counts.cancelled;
+  const totalCount = counts.total;
 
   return (
     <JobQueueContext.Provider

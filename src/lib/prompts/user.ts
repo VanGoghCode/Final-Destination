@@ -29,22 +29,16 @@ export function buildResumeUserPrompt(data: ResumeTailoringData): string {
   const budgetBlock = data.contentCharBudget
     ? `## CHARACTER BUDGET (visible text only — excludes LaTeX commands/markup):
 Floor: ${data.contentCharBudget.floor.toLocaleString()} characters
-Target: ${data.contentCharBudget.target.toLocaleString()} characters
-Hard cap: ${data.contentCharBudget.limit.toLocaleString()} characters (${data.contentCharBudget.limit - data.contentCharBudget.target} over target)
-
-The Original Resume has ${data.contentCharBudget.target.toLocaleString()} visible characters (all text minus LaTeX commands).
-Your tailored version MUST stay between ${data.contentCharBudget.floor.toLocaleString()} and ${data.contentCharBudget.limit.toLocaleString()} characters.
-Staying near the Target preserves the original resume's length and density.
-If output is below the Floor, expand relevant content to match the original resume's length.
-This is a HARD limit — the compiled PDF fits 1 page at this size.
+Target: ${data.contentCharBudget.target.toLocaleString()} characters (original resume length)
+Hard cap: ${data.contentCharBudget.limit.toLocaleString()} characters
 
 `
     : "";
 
-  return `## CANDIDATE MASTER CONTEXT (authoritative source — use for skills, experience, achievements):
+  return `## CANDIDATE MASTER CONTEXT (authoritative source):
 ${data.masterContext}
 
-## ORIGINAL RESUME (LaTeX — formatting shell, preserve structure):
+## ORIGINAL RESUME (LaTeX):
 ${data.resumeLatex}
 
 ## JOB DESCRIPTION:

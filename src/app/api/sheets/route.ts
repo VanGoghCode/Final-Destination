@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { companyName, positionTitle, applicationLink, notes, other } = body;
+    const { companyName, positionTitle, applicationLink, notes, other, skipDuplicateCheck } = body;
 
     if (!companyName || !positionTitle || !applicationLink) {
       return NextResponse.json(
@@ -44,6 +44,31 @@ export async function POST(request: Request) {
 
     const auth = getAuth();
     const sheets = google.sheets({ version: "v4", auth });
+
+    // Check for duplicates: same company + position + link (unless explicitly skipped)
+    if (!skipDuplicateCheck) {
+      const existing = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `${SHEET_NAME}!A:D`,
+      });
+      const rows = existing.data.values || [];
+      // Skip header row, check remaining
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row) continue;
+        if (
+          row[0]?.toLowerCase() === companyName.toLowerCase() &&
+          row[1]?.toLowerCase() === positionTitle.toLowerCase() &&
+          row[3]?.toLowerCase() === applicationLink.toLowerCase()
+        ) {
+          return NextResponse.json({
+            success: true,
+            message: "Duplicate — skipped (already logged)",
+            data: { companyName, positionTitle, status: "duplicate" },
+          });
+        }
+      }
+    }
 
     // Get today's date in DD/MM/YYYY format (using Arizona timezone)
     const today = new Date();

@@ -15,7 +15,7 @@ describe("Prompts", () => {
     expect(pair.user).toContain("ORIGINAL RESUME");
     expect(pair.user).toContain("CHARACTER BUDGET");
     expect(pair.user).toContain("Floor:");
-    expect(pair.user).toContain("MUST stay between");
+    expect(pair.user).toContain("Hard cap:");
     expect(pair.user).toContain("425");
     expect(pair.user).toContain("500");
     expect(pair.user).toContain("575");
