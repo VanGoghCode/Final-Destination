@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { corsHeaders } from "@/lib/cors";
+import { corsHeaders, handleOptions } from "@/lib/cors";
 
 export const runtime = "nodejs";
 
@@ -7,8 +7,8 @@ function h() {
   return corsHeaders("GET, OPTIONS");
 }
 
-export async function OPTIONS() {
-  return NextResponse.json({}, { headers: h() });
+export function OPTIONS() {
+  return handleOptions("GET, OPTIONS");
 }
 
 export async function GET() {

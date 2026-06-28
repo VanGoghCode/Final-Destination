@@ -39,11 +39,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const res = await fetch(`${base}/api/health`);
       if (res.ok) {
-        connectionDot.className = "connected online";
+        connectionDot.className = "dot online";
         return true;
       }
     } catch {}
-    connectionDot.className = "connected offline";
+    connectionDot.className = "dot offline";
     return false;
   }
 

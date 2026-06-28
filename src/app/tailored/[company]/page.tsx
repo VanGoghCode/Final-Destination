@@ -283,7 +283,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
     } catch (err) {
       setLogError(err instanceof Error ? err.message : "An error occurred");
     } finally {
-      if (!shouldDelete) setIsLogging(false);
+      setIsLogging(false);
     }
   };
 

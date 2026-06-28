@@ -278,7 +278,6 @@ export default function BatchProcessPage() {
     clearCompleted,
     startProcessing,
     stopProcessing,
-    cancelJob,
     retryJob,
     updateJobStatus,
     updateJobResults,
@@ -611,13 +610,9 @@ export default function BatchProcessPage() {
     // Set processing paused flag to prevent auto-restart
     setProcessingPaused(true);
 
-    // Abort the current fetch request first
+    // Abort the current fetch request first — this triggers processJob's catch
+    // which respects intentionalCancelRef and sets the job to cancelled.
     abortControllerRef.current?.abort();
-
-    // Cancel the currently processing job (only one processes at a time)
-    if (currentJobId) {
-      cancelJob(currentJobId);
-    }
 
     stopProcessing();
     processingRef.current = false;

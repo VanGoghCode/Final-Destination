@@ -12,7 +12,6 @@ import {
 
 export type JobStatus =
   | "pending"
-  | "researching"
   | "tailoring-resume"
   | "tailoring-cover-letter"
   | "completed"
@@ -122,7 +121,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
     if (processingPaused) return;
     // Only auto-start if there are pending jobs AND nothing is currently processing
     const hasProcessing = queue.some((j) =>
-      ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(j.status),
+      ["tailoring-resume", "tailoring-cover-letter"].includes(j.status),
     );
     const hasPending = queue.some((j) => j.status === "pending");
     // Start if pending jobs exist AND nothing is currently processing AND not already started
@@ -251,7 +250,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
       prev.map((job) => {
         if (job.id !== id) return job;
         const updates: Partial<QueuedJob> = { ...baseUpdates };
-        if (["researching", "tailoring-resume", "tailoring-cover-letter"].includes(status)) {
+        if (["tailoring-resume", "tailoring-cover-letter"].includes(status)) {
           if (!job.startedAt) {
             const now = Date.now();
             updates.startedAt = now;
