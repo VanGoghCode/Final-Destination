@@ -94,6 +94,20 @@ On the `/tailored` page sidebar, under **Email Generation**:
 
 ---
 
+### Batch Processing with the Chrome Extension
+
+Process jobs at scale using the **batch page** (`/batch`) and the **Final Destination Chrome extension**.
+
+1. Install the extension: open `chrome://extensions`, enable Developer mode, click **Load unpacked**, select the `extension/` folder
+2. Pin the extension to your toolbar
+3. Browse job listings on any site (LinkedIn, Indeed, Greenhouse, etc.)
+4. Click the extension icon — it auto-extracts company name, position title, and job description from the page
+5. Select a **Profile** (created in the app), confirm the details, click **Add to Queue**
+6. The job appears in `/batch` within seconds — processing starts automatically
+7. View results, apply, and log to Google Sheets — all from the tailored results page
+
+The extension works with both `localhost` and deployed Vercel URLs — set the server URL in the popup's config bar. A green dot confirms the connection.
+
 ## Google Sheets Integration
 
 Track your job applications automatically in a personal Google Sheet.
@@ -154,6 +168,14 @@ Features:
 ## Project Structure
 
 ```
+extension/                    # Chrome extension — scrape & queue jobs
+├── manifest.json
+├── popup.html
+├── popup.js
+└── icons/
+    ├── icon16.png
+    ├── icon48.png
+    └── icon128.png
 src/
 ├── app/
 │   ├── page.tsx               # Homepage — resume input & tailoring
@@ -240,6 +262,7 @@ ADMIN_API_KEY=
 | `GOOGLE_SPREADSHEET_ID` | Optional | Google Sheet ID for tracking |
 | `GOOGLE_SERVICE_ACCOUNT_KEY` | Optional | Google service account JSON (single line) |
 | `ADMIN_API_KEY` | Optional | Protects admin/sheets/storage routes |
+| `ALLOWED_ORIGINS` | Optional | Comma-separated allowed CORS origins (defaults to `*` for extension)
 
 All other variables (scraping config, roles, keywords) have sensible defaults in `src/lib/config.ts` and don't need to be set.
 

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#0a0a0a"/>
+  <!-- Simple FD lettermark using paths (not text, so sharp renders correctly at any size) -->
+  <g fill="white">
+    <!-- F -->
+    <rect x="22" y="30" width="10" height="68" rx="3"/>
+    <rect x="22" y="30" width="44" height="10" rx="3"/>
+    <rect x="22" y="54" width="32" height="10" rx="3"/>
+    <!-- D -->
+    <rect x="70" y="30" width="10" height="68" rx="3"/>
+    <path d="M80 30h14c16 0 22 10 22 34s-6 34-22 34H80V30zm14 8c8 0 12 6 12 26s-4 26-12 26h-4V38h4z"/>
+  </g>
+</svg>

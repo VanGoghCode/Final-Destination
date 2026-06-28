@@ -4,15 +4,23 @@
     <meta charset="UTF-8" />
     <style>
       :root {
-        --bg: #faf9f6;
+        --bg: #f5f5f0;
         --surface: #ffffff;
-        --primary: #000000;
+        --primary: #0a0a0a;
+        --primary-hover: #1a1a1a;
         --border: #e5e5e5;
-        --text: #000000;
-        --muted: #666666;
-        --success: #10b981;
-        --error: #ef4444;
-        --warning: #f59e0b;
+        --border-light: #f0f0f0;
+        --text: #0a0a0a;
+        --muted: #6b6b6b;
+        --muted-light: #8a8a8a;
+        --success: #059669;
+        --error: #dc2626;
+        --warning: #d97706;
+        --radius: 10px;
+        --radius-sm: 8px;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.1);
+        --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
       }
 
       * {
@@ -22,23 +30,53 @@
       }
 
       body {
-        width: 340px;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        width: 360px;
+        font-family: var(--font);
         background: var(--bg);
         color: var(--text);
+        -webkit-font-smoothing: antialiased;
       }
 
+      /* ── Header ── */
       .header {
         display: flex;
         align-items: center;
         gap: 10px;
         padding: 12px 14px;
-        border-bottom: 1px solid var(--border);
         background: var(--surface);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .logo-wrap {
+        width: 28px;
+        height: 28px;
+        flex-shrink: 0;
+        position: relative;
+      }
+      .logo-wrap img {
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+      }
+
+      .brand {
+        flex: 1;
+        min-width: 0;
+      }
+      .brand h1 {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+      }
+      .brand span {
+        font-size: 9.5px;
+        color: var(--muted);
+        font-weight: 450;
+        letter-spacing: 0.01em;
       }
 
       .header-actions {
-        margin-left: auto;
         display: flex;
         gap: 4px;
       }
@@ -47,7 +85,7 @@
         width: 28px;
         height: 28px;
         border: 1px solid var(--border);
-        border-radius: 6px;
+        border-radius: var(--radius-sm);
         background: var(--surface);
         cursor: pointer;
         display: flex;
@@ -56,48 +94,62 @@
         transition: all 0.15s;
         color: var(--muted);
       }
-
       .header-btn:hover {
         border-color: var(--primary);
         color: var(--primary);
         background: #f5f5f5;
       }
-
       .header-btn:active {
         transform: scale(0.95);
       }
-
       .header-btn.success {
         border-color: var(--success);
         color: var(--success);
         background: #ecfdf5;
       }
-
       .header-btn svg {
         width: 14px;
         height: 14px;
       }
 
-      .logo {
-        width: 28px;
-        height: 28px;
-        background: var(--primary);
-        border-radius: 8px;
+      /* ── Server Config ── */
+      .server-config {
         display: flex;
+        gap: 5px;
         align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: 700;
-        font-size: 11px;
+        padding: 6px 14px 0;
+      }
+      .server-config input {
+        flex: 1;
+        padding: 5px 8px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 10px;
+        font-family: var(--font);
+        background: var(--surface);
+        color: var(--text);
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      .server-config input:focus {
+        border-color: var(--primary);
+      }
+      .server-config .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .server-config .dot.online {
+        background: var(--success);
+      }
+      .server-config .dot.offline {
+        background: var(--error);
       }
 
-      .header h1 {
-        font-size: 14px;
-        font-weight: 600;
-      }
-
+      /* ── Form ── */
       .form {
-        padding: 14px;
+        padding: 12px 14px;
         display: flex;
         flex-direction: column;
         gap: 10px;
@@ -108,41 +160,41 @@
         flex-direction: column;
         gap: 4px;
       }
-
       .field label {
-        font-size: 10px;
+        font-size: 9.5px;
         font-weight: 600;
         color: var(--muted);
         text-transform: uppercase;
-        letter-spacing: 0.03em;
+        letter-spacing: 0.04em;
       }
-
       .field input,
-      .field textarea,
-      .field select {
+      .field textarea {
         width: 100%;
-        padding: 8px 10px;
+        padding: 7px 9px;
         border: 1px solid var(--border);
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
         font-size: 12px;
+        font-family: var(--font);
         background: var(--surface);
         transition:
           border-color 0.15s,
           box-shadow 0.15s;
+        color: var(--text);
       }
-
       .field input:focus,
-      .field textarea:focus,
-      .field select:focus {
+      .field textarea:focus {
         outline: none;
         border-color: var(--primary);
-        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05);
       }
-
       .field textarea {
         resize: none;
-        height: 60px;
+        height: 56px;
         line-height: 1.4;
+      }
+      .field input::placeholder,
+      .field textarea::placeholder {
+        color: #bbb;
       }
 
       .row {
@@ -153,13 +205,14 @@
         flex: 1;
       }
 
+      /* ── Profiles ── */
       .profiles {
         display: flex;
-        gap: 6px;
+        gap: 5px;
         overflow-x: auto;
         scrollbar-width: none;
         padding: 2px 0;
-        min-height: 28px;
+        min-height: 30px;
         align-items: center;
       }
       .profiles::-webkit-scrollbar {
@@ -172,14 +225,14 @@
         gap: 5px;
         padding: 5px 8px;
         border-radius: 20px;
-        border: 1px solid var(--border);
+        border: 1.5px solid var(--border);
         background: var(--surface);
         cursor: pointer;
-        transition: all 0.15s;
+        transition: all 0.12s;
         flex-shrink: 0;
       }
       .profile:hover {
-        border-color: #ccc;
+        border-color: #bbb;
       }
       .profile.selected {
         border-color: var(--primary);
@@ -190,12 +243,13 @@
         width: 14px;
         height: 14px;
         border-radius: 50%;
-        font-size: 8px;
+        font-size: 7.5px;
         font-weight: 600;
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
+        flex-shrink: 0;
       }
       .profile.selected .dot {
         background: white !important;
@@ -204,119 +258,95 @@
       .profile span {
         font-size: 11px;
         font-weight: 500;
+        white-space: nowrap;
       }
 
-      button#addBtn {
-        width: 100%;
-        padding: 10px;
-        background: var(--primary);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.15s;
-        margin-top: 4px;
-      }
-      button#addBtn:hover {
-        background: #1a1a1a;
-      }
-      button#addBtn:disabled {
-        background: #ccc;
-        cursor: not-allowed;
-      }
-
-      #status {
-        font-size: 11px;
-        font-weight: 500;
-        text-align: center;
-        padding: 0 14px 12px;
-        min-height: 18px;
-      }
-
-      .error {
-        color: var(--error);
-      }
-      .success {
-        color: var(--success);
-      }
-      .loading {
-        color: var(--muted);
-      }
-      .warning {
-        color: var(--warning);
-      }
-
-      input::placeholder,
-      textarea::placeholder {
-        color: #999;
-      }
-      input[type="hidden"] {
-        display: none;
-      }
-
-      .server-config {
-        display: flex;
-        gap: 4px;
-        align-items: center;
-        padding: 0 14px 4px;
-        font-size: 10px;
-      }
-      .server-config input {
-        flex: 1;
-        padding: 4px 8px;
-        border: 1px solid var(--border);
-        border-radius: 6px;
-        font-size: 10px;
-        background: var(--surface);
-      }
-      .server-config .connected {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        flex-shrink: 0;
-      }
-      .server-config .connected.online {
-        background: var(--success);
-      }
-      .server-config .connected.offline {
-        background: var(--error);
-      }
-
+      /* ── Checkbox ── */
       .checkbox-field {
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin: 4px 0;
+        gap: 7px;
         cursor: pointer;
         user-select: none;
+        padding: 2px 0;
       }
       .checkbox-field input {
         width: 14px !important;
         height: 14px !important;
         cursor: pointer;
+        accent-color: var(--primary);
       }
       .checkbox-field label {
         font-size: 11px !important;
         font-weight: 500 !important;
-        color: var(--text) !important;
+        color: var(--text);
         text-transform: none !important;
         letter-spacing: normal !important;
         cursor: pointer;
       }
 
+      /* ── Submit ── */
+      #addBtn {
+        width: 100%;
+        padding: 10px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s;
+        margin-top: 2px;
+        font-family: var(--font);
+        letter-spacing: -0.01em;
+      }
+      #addBtn:hover {
+        background: var(--primary-hover);
+      }
+      #addBtn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+
+      /* ── Status ── */
+      #status {
+        font-size: 11px;
+        font-weight: 500;
+        text-align: center;
+        padding: 0 14px 10px;
+        min-height: 20px;
+      }
+      #status.error {
+        color: var(--error);
+      }
+      #status.success {
+        color: var(--success);
+      }
+      #status.warning {
+        color: var(--warning);
+      }
+
+      /* ── Footer ── */
+      .footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 14px 12px;
+        border-top: 1px solid var(--border-light);
+      }
       .open-batch {
-        display: block;
-        width: calc(100% - 28px);
-        margin: 0 14px 8px;
-        padding: 6px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 10px;
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 6px;
-        font-size: 11px;
+        font-size: 10.5px;
+        font-weight: 500;
+        font-family: var(--font);
         cursor: pointer;
-        text-align: center;
         color: var(--muted);
         transition: all 0.15s;
       }
@@ -324,12 +354,23 @@
         border-color: var(--primary);
         color: var(--primary);
       }
+
+      .version {
+        font-size: 9px;
+        color: var(--muted-light);
+      }
     </style>
   </head>
   <body>
+    <!-- Header -->
     <div class="header">
-      <div class="logo">RT</div>
-      <h1>Resume Tailor</h1>
+      <div class="logo-wrap">
+        <img src="icons/icon48.png" alt="" width="28" height="28" />
+      </div>
+      <div class="brand">
+        <h1>Final Destination</h1>
+        <span>Job Queue</span>
+      </div>
       <div class="header-actions">
         <button id="copyBtn" class="header-btn" title="Copy Company & Website">
           <svg
@@ -360,11 +401,13 @@
       </div>
     </div>
 
+    <!-- Server Config -->
     <div class="server-config">
-      <div id="connectionDot" class="connected offline"></div>
+      <div id="connectionDot" class="dot offline"></div>
       <input type="text" id="serverUrl" placeholder="Server URL (e.g. http://localhost:3000)" />
     </div>
 
+    <!-- Form -->
     <div class="form">
       <div class="field">
         <label>Profile</label>
@@ -391,7 +434,10 @@
       </div>
 
       <div class="field">
-        <label>Company Website (for research)</label>
+        <label
+          >Company Website
+          <span style="font-weight: 400; color: var(--muted-light)">(for research)</span></label
+        >
         <input type="text" id="companyUrl" placeholder="https://company.com" />
       </div>
 
@@ -410,9 +456,26 @@
       <button id="addBtn">Add to Queue</button>
     </div>
 
-    <button id="openBatchBtn" class="open-batch">Open Batch Mode →</button>
-
     <div id="status"></div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <span class="version">v1.2.0</span>
+      <button id="openBatchBtn" class="open-batch">
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+        Open Batch Mode
+      </button>
+    </div>
+
     <script src="popup.js"></script>
   </body>
 </html>

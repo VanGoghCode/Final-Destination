@@ -15,19 +15,12 @@ interface JobQueueCardProps {
 
 // Progress ranges for each phase
 const PROGRESS_RANGES = {
-  researching: { start: 1, end: 30 },
-  "tailoring-resume": { start: 31, end: 65 },
+  "tailoring-resume": { start: 1, end: 65 },
   "tailoring-cover-letter": { start: 66, end: 95 },
 } as const;
 
 // Live status messages for processing jobs
 const PROCESSING_MESSAGES: Record<string, string[]> = {
-  researching: [
-    "Analyzing company...",
-    "Gathering insights...",
-    "Researching role...",
-    "Finding key info...",
-  ],
   "tailoring-resume": [
     "Tailoring resume...",
     "Optimizing content...",
@@ -54,22 +47,6 @@ const STATUS_CONFIG: Record<
       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <circle cx="12" cy="12" r="10" strokeWidth="2" />
         <path strokeWidth="2" d="M12 6v6l4 2" />
-      </svg>
-    ),
-  },
-  researching: {
-    label: "Researching",
-    color: "text-blue-700",
-    bgColor: "bg-blue-50",
-    icon: (
-      <svg
-        className="h-3.5 w-3.5 animate-pulse"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <circle cx="11" cy="11" r="8" strokeWidth="2" />
-        <path strokeWidth="2" d="M21 21l-4.35-4.35" />
       </svg>
     ),
   },

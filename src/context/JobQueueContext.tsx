@@ -1,10 +1,17 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  ReactNode,
+} from "react";
 
 export type JobStatus =
   | "pending"
-  | "researching"
   | "tailoring-resume"
   | "tailoring-cover-letter"
   | "completed"
@@ -114,7 +121,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
     if (processingPaused) return;
     // Only auto-start if there are pending jobs AND nothing is currently processing
     const hasProcessing = queue.some((j) =>
-      ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(j.status),
+      ["tailoring-resume", "tailoring-cover-letter"].includes(j.status),
     );
     const hasPending = queue.some((j) => j.status === "pending");
     // Start if pending jobs exist AND nothing is currently processing AND not already started
@@ -243,7 +250,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
       prev.map((job) => {
         if (job.id !== id) return job;
         const updates: Partial<QueuedJob> = { ...baseUpdates };
-        if (["researching", "tailoring-resume", "tailoring-cover-letter"].includes(status)) {
+        if (["tailoring-resume", "tailoring-cover-letter"].includes(status)) {
           if (!job.startedAt) {
             const now = Date.now();
             updates.startedAt = now;
@@ -337,11 +344,25 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
     }).catch(console.error);
   }, []);
 
-  const completedCount = queue.filter((j) => j.status === "completed").length;
-  const failedCount = queue.filter((j) => j.status === "failed").length;
-  const pendingCount = queue.filter((j) => j.status === "pending").length;
-  const cancelledCount = queue.filter((j) => j.status === "cancelled").length;
-  const totalCount = queue.length;
+  const counts = useMemo(() => {
+    let completed = 0,
+      failed = 0,
+      pending = 0,
+      cancelled = 0;
+    for (const job of queue) {
+      if (job.status === "completed") completed++;
+      else if (job.status === "failed") failed++;
+      else if (job.status === "pending") pending++;
+      else if (job.status === "cancelled") cancelled++;
+    }
+    return { completed, failed, pending, cancelled, total: queue.length };
+  }, [queue]);
+
+  const completedCount = counts.completed;
+  const failedCount = counts.failed;
+  const pendingCount = counts.pending;
+  const cancelledCount = counts.cancelled;
+  const totalCount = counts.total;
 
   return (
     <JobQueueContext.Provider

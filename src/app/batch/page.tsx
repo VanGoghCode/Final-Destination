@@ -14,6 +14,8 @@ import {
   getCoverLetterTemplates,
   getProfiles,
   getMasterContext,
+  cleanupStaleMasterContextKeys,
+  cleanupResearchCache,
   Template,
   Profile,
 } from "@/lib/storage";
@@ -201,6 +203,9 @@ function getActivityColor(activity: string): { border: string; text: string } {
   if (activity.startsWith("[Added]")) return { border: "border-l-gray-400", text: "text-gray-600" };
   if (activity.startsWith("[Started]") || activity.startsWith("[Profile]"))
     return { border: "border-l-gray-500", text: "text-gray-600" };
+  if (activity.startsWith("[Context]"))
+    return { border: "border-l-blue-400", text: "text-blue-600" };
+  if (activity.startsWith("[Skip]")) return { border: "border-l-gray-400", text: "text-gray-500" };
   return { border: "border-l-gray-300", text: "text-gray-500" };
 }
 
@@ -273,7 +278,6 @@ export default function BatchProcessPage() {
     clearCompleted,
     startProcessing,
     stopProcessing,
-    cancelJob,
     retryJob,
     updateJobStatus,
     updateJobResults,
@@ -301,6 +305,7 @@ export default function BatchProcessPage() {
   const [statusFilter, setStatusFilter] = useState<
     "all" | "pending" | "processing" | "completed" | "failed"
   >("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const processingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -321,6 +326,14 @@ export default function BatchProcessPage() {
   // Load templates and profiles on mount
   useEffect(() => {
     const loadData = async () => {
+      // Clean up stale per-profile keys from prior schema version
+      try {
+        cleanupStaleMasterContextKeys();
+        cleanupResearchCache();
+      } catch {
+        // Non-critical
+      }
+
       const defaultResume = await getDefaultResumeTemplate();
       const defaultCoverLetter = await getDefaultCoverLetterTemplate();
       if (defaultResume) setResumeTemplate(defaultResume);
@@ -407,12 +420,8 @@ export default function BatchProcessPage() {
       }
 
       try {
-        // Step 0: Research phase
-        updateJobStatus(job.id, "researching", 5);
-        addActivity(`[Research] Analyzing job for ${job.companyName}...`);
-
         // Step 1: Tailor resume
-        updateJobStatus(job.id, "tailoring-resume", 30);
+        updateJobStatus(job.id, "tailoring-resume", 5);
         addActivity(`[Tailor] Tailoring resume for ${job.positionTitle}...`);
 
         const tailorResponse = await fetch("/api/tailor", {
@@ -473,6 +482,11 @@ export default function BatchProcessPage() {
             tailoredCoverLetter: coverLetterData.tailoredCoverLetter,
           });
           addActivity(`[Done] Cover letter generated for ${job.companyName}`);
+        } else if (job.includeCoverLetter && !jobCoverLetterTemplate) {
+          addActivity(
+            "[Error] Cover letter requested but no cover letter template found for " +
+              job.companyName,
+          );
         } else if (jobCoverLetterTemplate) {
           addActivity(`[Skip] Cover letter skipped for ${job.companyName} (default)`);
         }
@@ -596,13 +610,9 @@ export default function BatchProcessPage() {
     // Set processing paused flag to prevent auto-restart
     setProcessingPaused(true);
 
-    // Abort the current fetch request first
+    // Abort the current fetch request first — this triggers processJob's catch
+    // which respects intentionalCancelRef and sets the job to cancelled.
     abortControllerRef.current?.abort();
-
-    // Cancel the currently processing job (only one processes at a time)
-    if (currentJobId) {
-      cancelJob(currentJobId);
-    }
 
     stopProcessing();
     processingRef.current = false;
@@ -686,7 +696,7 @@ export default function BatchProcessPage() {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
-    window.location.href = `/tailored/${companySlug}?jobId=${job.id}`;
+    window.open(`/tailored/${companySlug}?jobId=${job.id}`, "_blank");
   };
 
   // Handle edit job - updates job and restarts from beginning
@@ -713,6 +723,30 @@ export default function BatchProcessPage() {
     }
   };
 
+  // Handle export all completed jobs as CSV
+  const handleExportAll = useCallback(() => {
+    const completed = queue.filter((j) => j.status === "completed");
+    if (completed.length === 0) return;
+    const csv = [
+      ["Company", "Position", "Country", "Work Mode"],
+      ...completed.map((j) => [
+        j.companyName,
+        j.positionTitle,
+        j.jobCountry || "",
+        j.jobWorkMode || "",
+      ]),
+    ]
+      .map((row) => row.map((c) => `"${c.replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `batch-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [queue]);
+
   // Derive current processing job from context's currentJobId
   // This is the single source of truth — only one job processes at a time
   const currentJob = currentJobId ? queue.find((j) => j.id === currentJobId) : null;
@@ -728,19 +762,31 @@ export default function BatchProcessPage() {
   const getProcessingCount = () => (currentJobId ? 1 : 0);
 
   const filteredQueue = () => {
+    let filtered = queue;
+
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (j) =>
+          j.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          j.positionTitle.toLowerCase().includes(searchQuery.toLowerCase()),
+      );
+    }
+
+    // Apply status filter
     switch (statusFilter) {
       case "pending":
-        return queue.filter((j) => j.status === "pending");
+        return filtered.filter((j) => j.status === "pending");
       case "processing":
-        return queue.filter((j) =>
+        return filtered.filter((j) =>
           ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(j.status),
         );
       case "completed":
-        return queue.filter((j) => j.status === "completed");
+        return filtered.filter((j) => j.status === "completed");
       case "failed":
-        return queue.filter((j) => j.status === "failed");
+        return filtered.filter((j) => j.status === "failed");
       default:
-        return queue;
+        return filtered;
     }
   };
 
@@ -962,23 +1008,45 @@ export default function BatchProcessPage() {
                 ) : null}
 
                 {/* Quick Actions */}
-                <div className="flex gap-2 pt-2">
-                  {completedCount > 0 && (
-                    <button
-                      onClick={clearCompleted}
-                      className="text-muted hover:text-foreground flex-1 rounded-lg py-2 text-xs transition-colors hover:bg-gray-50"
-                    >
-                      Clear done ({completedCount})
-                    </button>
-                  )}
-                  {totalCount > 0 && !isProcessing && (
-                    <button
-                      onClick={clearQueue}
-                      className="flex-1 rounded-lg py-2 text-xs text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
-                    >
-                      Clear all
-                    </button>
-                  )}
+                <div className="flex flex-col gap-2 pt-2">
+                  <div className="flex gap-2">
+                    {completedCount > 0 && (
+                      <button
+                        onClick={clearCompleted}
+                        className="text-muted hover:text-foreground flex-1 rounded-lg py-2 text-xs transition-colors hover:bg-gray-50"
+                      >
+                        Clear done ({completedCount})
+                      </button>
+                    )}
+                    {completedCount > 0 && (
+                      <button
+                        onClick={handleExportAll}
+                        className="text-muted hover:text-foreground flex-1 rounded-lg py-2 text-xs transition-colors hover:bg-gray-50"
+                      >
+                        Export all ({completedCount})
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {failedCount > 0 && (
+                      <button
+                        onClick={() =>
+                          queue.filter((j) => j.status === "failed").forEach((j) => retryJob(j.id))
+                        }
+                        className="flex-1 rounded-lg py-2 text-xs text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
+                      >
+                        Retry all failed ({failedCount})
+                      </button>
+                    )}
+                    {totalCount > 0 && !isProcessing && (
+                      <button
+                        onClick={clearQueue}
+                        className="flex-1 rounded-lg py-2 text-xs text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Processing Status */}
@@ -1161,6 +1229,16 @@ export default function BatchProcessPage() {
                 </button>
               ))}
             </div>
+
+            {queue.length > 0 && (
+              <input
+                type="text"
+                placeholder="Search jobs by company or position..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="mb-4 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+              />
+            )}
 
             {queue.length === 0 ? (
               <div className="rounded-xl border border-gray-200 bg-white py-12 text-center">

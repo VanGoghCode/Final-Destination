@@ -59,7 +59,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
   const [notes, setNotes] = useState("");
   const [other, setOther] = useState("");
   const [isLogging, setIsLogging] = useState(false);
-  const [logSuccess, setLogSuccess] = useState(false);
+  const [logSuccess, setLogSuccess] = useState<false | "ok" | "duplicate">(false);
   const [logError, setLogError] = useState("");
   const [country, setCountry] = useState("");
   const [workMode, setWorkMode] = useState<"" | "Remote" | "Hybrid" | "On-site">("");
@@ -75,6 +75,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
 
   // Load job data from sessionStorage
   useEffect(() => {
+    let ignore = false;
     if (jobId) {
       const jobKey = `batch_job_${jobId}`;
       const stored = sessionStorage.getItem(jobKey);
@@ -91,17 +92,56 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
         } catch {
           console.error("Failed to parse job data");
         }
+      } else {
+        // Fallback: fetch from /api/queue and find job by jobId
+        fetch("/api/queue", { signal: AbortSignal.timeout(10000) })
+          .then((res) => res.json())
+          .then((queue: unknown[]) => {
+            if (ignore) return;
+            const job = (queue as Record<string, unknown>[]).find((j) => j.id === jobId);
+            if (job) {
+              const data: BatchJobData = {
+                tailoredResume: (job.tailoredResume as string) || "",
+                tailoredCoverLetter: (job.tailoredCoverLetter as string) || "",
+                resumeLatex: (job.resumeLatex as string) || "",
+                coverLetterLatex: (job.coverLetterLatex as string) || "",
+                companyName: (job.companyName as string) || "",
+                companyUrl: (job.companyUrl as string) || "",
+                positionTitle: (job.positionTitle as string) || "",
+                jobDescription: (job.jobDescription as string) || "",
+                masterContext: (job.masterContext as string) || "",
+                jobCountry: (job.jobCountry as string) || "",
+                jobWorkMode: (job.jobWorkMode as "" | "Remote" | "Hybrid" | "On-site") || "",
+              };
+              setJobData(data);
+              setTailoredResume(data.tailoredResume || "");
+              setTailoredCoverLetter(data.tailoredCoverLetter || "");
+              setCountry(data.jobCountry || "");
+              setWorkMode(data.jobWorkMode || "");
+              setEditableCompanyName(data.companyName);
+              setEditablePositionTitle(data.positionTitle);
+            }
+          })
+          .catch((err) => console.error("Failed to fetch job from queue:", err));
       }
     }
+    return () => {
+      ignore = true;
+    };
   }, [jobId]);
 
   // Focus on application link field after modal opens
   useEffect(() => {
     if (showLogModal) {
+      // Auto-fill from the job's URL if not already set
+      if (!applicationLink && jobData?.companyUrl) {
+        setApplicationLink(jobData.companyUrl);
+      }
       setTimeout(() => {
         applicationLinkRef.current?.focus();
       }, 100);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showLogModal]);
 
   // Beforeunload listener - remind user to log job before closing
@@ -184,9 +224,14 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
     }
   };
 
-  const handleLogToSheet = async (skipDuplicateCheck = false) => {
+  const handleLogToSheet = async (shouldDelete = false) => {
     setLogError("");
     setIsLogging(true);
+    if (!applicationLink.trim()) {
+      setLogError("Application link is required — paste the URL where you applied");
+      setIsLogging(false);
+      return;
+    }
 
     const noteParts: string[] = [];
     if (country) noteParts.push(`Country: ${country}`);
@@ -201,76 +246,43 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
         body: JSON.stringify({
           companyName: editableCompanyName || companyName,
           positionTitle: editablePositionTitle || positionTitle,
-          applicationLink: applicationLink.trim() || "N/A",
+          applicationLink: applicationLink.trim(),
           notes: composedNotes,
           other: other.trim() || "",
-          skipDuplicateCheck,
         }),
       });
 
       const data = await response.json();
-
       if (!response.ok) throw new Error(data.error || "Failed to log application");
 
-      setLogSuccess(true);
+      setLogSuccess(data.data?.status === "duplicate" ? "duplicate" : "ok");
 
-      setTimeout(() => {
-        setShowLogModal(false);
-        setLogSuccess(false);
-        setApplicationLink("");
-        setNotes("");
-        setOther("");
-      }, 2000);
+      if (shouldDelete) {
+        // Delete from batch after logging
+        try {
+          await fetch(`/api/queue?id=${jobId}`, { method: "DELETE" });
+          sessionStorage.removeItem(`batch_job_${jobId}`);
+        } catch {
+          // Log succeeded — non-critical if delete fails, job stays in queue
+          console.warn("Logged to sheet but failed to delete from queue");
+        }
+        setTimeout(() => {
+          setIsLogging(false);
+          setShowLogModal(false);
+          router.push("/batch");
+        }, 1500);
+      } else {
+        setTimeout(() => {
+          setShowLogModal(false);
+          setLogSuccess(false);
+          setApplicationLink("");
+          setNotes("");
+          setOther("");
+        }, 2000);
+      }
     } catch (err) {
       setLogError(err instanceof Error ? err.message : "An error occurred");
     } finally {
-      setIsLogging(false);
-    }
-  };
-
-  const handleLogAndDelete = async () => {
-    // First log to sheet
-    setLogError("");
-    setIsLogging(true);
-
-    const noteParts: string[] = [];
-    if (country) noteParts.push(`Country: ${country}`);
-    if (workMode) noteParts.push(`Work Mode: ${workMode}`);
-    if (notes.trim()) noteParts.push(notes.trim());
-    const composedNotes = noteParts.join(" | ");
-
-    try {
-      const response = await fetch("/api/sheets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
-        body: JSON.stringify({
-          companyName: editableCompanyName || companyName,
-          positionTitle: editablePositionTitle || positionTitle,
-          applicationLink: applicationLink.trim() || "N/A",
-          notes: composedNotes,
-          other: other.trim() || "",
-          skipDuplicateCheck: true,
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to log application");
-
-      setLogSuccess(true);
-
-      // Then delete from batch (no confirm needed as it's a "Log & Delete" action)
-      await fetch(`/api/queue?id=${jobId}`, {
-        method: "DELETE",
-      });
-      sessionStorage.removeItem(`batch_job_${jobId}`);
-
-      setTimeout(() => {
-        setIsLogging(false);
-        setShowLogModal(false);
-        router.push("/batch");
-      }, 1500);
-    } catch (err) {
-      setLogError(err instanceof Error ? err.message : "An error occurred");
       setIsLogging(false);
     }
   };
@@ -849,19 +861,27 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                   variant="primary"
                   className="flex-1"
                 >
-                  {isLogging && !logSuccess ? "Logging..." : logSuccess ? "✓ Logged!" : "Log Only"}
+                  {isLogging && !logSuccess
+                    ? "Logging..."
+                    : logSuccess === "duplicate"
+                      ? "Already Logged"
+                      : logSuccess
+                        ? "✓ Logged!"
+                        : "Log Only"}
                 </Button>
                 {jobId && (
                   <Button
-                    onClick={() => handleLogAndDelete()}
+                    onClick={() => handleLogToSheet(true)}
                     disabled={isLogging}
                     className="flex-1 !border-red-600 !bg-red-600 !text-white hover:!border-red-700 hover:!bg-red-700"
                   >
                     {isLogging && !logSuccess
                       ? "Processing..."
-                      : logSuccess
-                        ? "✓ Success!"
-                        : "Log & Delete"}
+                      : logSuccess === "duplicate"
+                        ? "Already Logged"
+                        : logSuccess
+                          ? "✓ Success!"
+                          : "Log & Delete"}
                   </Button>
                 )}
               </div>

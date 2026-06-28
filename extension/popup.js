@@ -14,6 +14,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const copyBtn = document.getElementById("copyBtn");
   const pasteBtn = document.getElementById("pasteBtn");
 
+  let statusTimeout = null;
+
   if (!container || !addBtn) {
     console.error("Required elements not found");
     return;
@@ -37,11 +39,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const res = await fetch(`${base}/api/health`);
       if (res.ok) {
-        connectionDot.className = "connected online";
+        connectionDot.className = "dot online";
         return true;
       }
     } catch {}
-    connectionDot.className = "connected offline";
+    connectionDot.className = "dot offline";
     return false;
   }
 
@@ -79,7 +81,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!data.companyName && !data.companyUrl) {
         statusEl.textContent = "Nothing to copy";
         statusEl.className = "error";
-        setTimeout(() => {
+        clearTimeout(statusTimeout);
+        statusTimeout = setTimeout(() => {
           statusEl.textContent = "";
           statusEl.className = "";
         }, 1500);
@@ -91,7 +94,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           copyBtn.classList.add("success");
           statusEl.textContent = "✓ Copied!";
           statusEl.className = "success";
-          setTimeout(() => {
+          clearTimeout(statusTimeout);
+          statusTimeout = setTimeout(() => {
             copyBtn.classList.remove("success");
             statusEl.textContent = "";
             statusEl.className = "";
@@ -117,7 +121,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             pasteBtn.classList.add("success");
             statusEl.textContent = "✓ Pasted!";
             statusEl.className = "success";
-            setTimeout(() => {
+            clearTimeout(statusTimeout);
+            statusTimeout = setTimeout(() => {
               pasteBtn.classList.remove("success");
               statusEl.textContent = "";
               statusEl.className = "";
@@ -125,7 +130,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           } else {
             statusEl.textContent = "Nothing to paste";
             statusEl.className = "warning";
-            setTimeout(() => {
+            clearTimeout(statusTimeout);
+            statusTimeout = setTimeout(() => {
               statusEl.textContent = "";
               statusEl.className = "";
             }, 1500);
@@ -149,7 +155,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   } catch {}
 
   const tabUrl = tab?.url || "default";
-  const storageKey = `form_data_${btoa(tabUrl).slice(0, 50)}`;
+  const storageKey = `form_data_${btoa(unescape(encodeURIComponent(tabUrl))).slice(0, 50)}`;
 
   // ======== Restore Saved Form Data ========
 
@@ -347,6 +353,46 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ======== Auto-extract from URL ========
 
+  const isInternalUrl = (url) => {
+    if (!url) return true;
+    return (
+      url.startsWith("chrome://") ||
+      url.startsWith("chrome-extension://") ||
+      url.startsWith("edge://") ||
+      url.startsWith("extension://") ||
+      url.startsWith("about:")
+    );
+  };
+
+  const hasScripting = typeof chrome !== "undefined" && chrome.scripting;
+
+  // Try to extract company from page content first
+  if (!companyNameInput.value && tab?.id && tab?.url && !isInternalUrl(tab.url) && hasScripting) {
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function: () => {
+          const meta =
+            document.querySelector('meta[property="og:site_name"]') ||
+            document.querySelector('meta[name="application-name"]');
+          const ld = document.querySelector('script[type="application/ld+json"]');
+          if (ld) {
+            try {
+              const p = JSON.parse(ld.textContent);
+              if (p.name) return p.name;
+              if (p.publisher?.name) return p.publisher.name;
+            } catch {}
+          }
+          return meta?.content || "";
+        },
+      });
+      if (results && results[0]?.result) {
+        companyNameInput.value = results[0].result;
+        saveFormData();
+      }
+    } catch {}
+  }
+
   if (!companyNameInput.value || !companyUrlInput.value) {
     try {
       const jobUrl = tab?.url || "";
@@ -372,19 +418,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ======== Extract text selection from page ========
-
-  const isInternalUrl = (url) => {
-    if (!url) return true;
-    return (
-      url.startsWith("chrome://") ||
-      url.startsWith("chrome-extension://") ||
-      url.startsWith("edge://") ||
-      url.startsWith("extension://") ||
-      url.startsWith("about:")
-    );
-  };
-
-  const hasScripting = typeof chrome !== "undefined" && chrome.scripting;
 
   if (
     !jobDescriptionInput.value &&
@@ -492,9 +525,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (hasStorage) {
           await chrome.storage.local.remove(storageKey);
         }
-        statusEl.textContent = "✓ Added!";
+        statusEl.textContent = "✓ Added to queue!";
         statusEl.className = "success";
-        setTimeout(() => window.close(), 1000);
+        clearTimeout(statusTimeout);
+        setTimeout(() => window.close(), 1200);
       } else {
         const err = await response.json();
         throw new Error(err.error || "Server error");

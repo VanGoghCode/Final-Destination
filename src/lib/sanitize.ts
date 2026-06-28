@@ -28,6 +28,11 @@ export function sanitizeForAI(input: string): string {
     /pretend\s+you\s+are/gi,
     /act\s+as\s+if\s+you/gi,
     /roleplay\s+as/gi,
+    // AI honeypot traps — "add X as a skill" commands hidden in JDs
+    /(?:add|include|list|mention)\s+(?:\w+\s+)*?(?:as\s+a\s+skill|to\s+(?:my\s+)?(?:resume|application)|as\s+(?:my\s+)?experience)/gi,
+    /(?:candidate\s+should\s+(?:be\s+able\s+to\s+)?)?(?:mention|include|add)\s+(?:\w+\s+)*?(?:on\s+(?:their\s+)?resume|in\s+(?:their\s+)?(?:application|cover\s+letter))/gi,
+    /(?:this\s+is\s+a\s+test|we\s+are\s+testing|hidden\s+requirement|honesty\s+(?:test|check)|check\s+if\s+(?:you\s+)?(?:read|notice|catch))/gi,
+    /(?:only\s+(?:apply|candidates)\s+who\s+(?:mention|include|list|add)\s+\w+)/gi,
   ];
 
   for (const pattern of injectionPatterns) {

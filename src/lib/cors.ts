@@ -19,8 +19,13 @@ export function setCorsDefaults(methods: string, headers: string) {
 }
 
 export function corsHeaders(methods?: string, origin?: string): CorsHeaders {
+  // Chrome extension origin (chrome-extension://<random-id>) is never known ahead of time.
+  // Default to "*" so the extension works everywhere — localhost and deployed.
+  // Set ALLOWED_ORIGINS env var to restrict to specific domains when frontend is served
+  // from a different origin than the API. Multiple origins can be comma-separated.
+  // Match request origin against allowed list, default to "*" for extension
   const firstOrigin = ALLOWED_ORIGINS[0];
-  const allowedOrigin = origin ?? firstOrigin ?? "same-origin";
+  const allowedOrigin = origin && ALLOWED_ORIGINS.includes(origin) ? origin : firstOrigin || "*";
 
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
