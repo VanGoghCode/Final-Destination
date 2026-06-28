@@ -988,12 +988,12 @@ describe("Prompt Templates", () => {
 
     it("includes critical rules", () => {
       const prompt = getResumeTailoringPrompt(SAMPLE_LATEX, "JD", "John", "Info");
-      expect(prompt).toContain("PRESERVE STRUCTURE");
-      expect(prompt).toContain("REQUIREMENTS COVERAGE");
-      expect(prompt).toContain("PROOF OF WORK RULE");
-      expect(prompt).toContain("TRUTHFULNESS RULE");
-      expect(prompt).toContain("1-PAGE CONSTRAINT (CRITICAL)");
-      expect(prompt).toContain("ONE PAGE");
+      expect(prompt).toContain("STRUCTURE RULES");
+      expect(prompt).toContain("COVERAGE REQUIREMENTS");
+      expect(prompt).toContain("REWRITE RULES");
+      expect(prompt).toContain("TRUTHFULNESS");
+      expect(prompt).toContain("ONE-PAGE CONSTRAINT");
+      expect(prompt).toContain("exactly one page");
     });
 
     it("includes velocity signal verbs", () => {
