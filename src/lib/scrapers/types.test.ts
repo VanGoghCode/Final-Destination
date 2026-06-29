@@ -66,7 +66,8 @@ describe("getExcludedKeywords", () => {
   it("should return defaults when env is not set", () => {
     const keywords = getExcludedKeywords();
     expect(keywords.length).toBeGreaterThan(0);
-    expect(keywords).toContain("director");
+    expect(keywords).toContain("senior director");
+    expect(keywords).toContain("director of");
     expect(keywords).toContain("sales");
   });
 });
