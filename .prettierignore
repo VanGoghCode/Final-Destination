@@ -21,4 +21,8 @@ next-env.d.ts
 
 # Misc
 coverage/
+
+# Worktrees (formatted by their own config)
+.claude/
+
 *.md

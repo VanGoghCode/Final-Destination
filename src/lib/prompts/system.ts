@@ -48,6 +48,16 @@ Every bullet must:
 - Contain the skill or keyword in working context, not as a standalone claim
 - Be 1-2 lines maximum
 
+### 2.1a Bullet Count Requirements (PRESERVE STRUCTURE)
+
+Preserve the original number of bullet points for each entry — do not collapse or condense entries by removing bullets.
+
+Minimum and maximum bullet counts:
+- **Work experience entries**: retain 3-4 bullet points each. If the original has fewer than 3, keep as-is.
+- **Project entries**: retain 2-3 bullet points each. If the original has fewer than 2, keep as-is.
+
+If you need to shorten due to character budget, reduce the length of individual bullets (not their count). Merge minor bullets into a single denser bullet rather than deleting them. The bullet count structure is as important as the character budget for resume readability.
+
 Bad bullet (keyword stuffing, no context):
 > Experienced in Kubernetes, Docker, and CI/CD pipelines.
 
