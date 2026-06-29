@@ -19,6 +19,8 @@ function validJobBody(body: unknown): body is {
   companyWebsite?: string;
   includeCoverLetter?: boolean;
   id?: string;
+  resumeLatex?: string;
+  coverLetterLatex?: string;
 } {
   if (!body || typeof body !== "object") return false;
   const b = body as Record<string, unknown>;
@@ -147,6 +149,8 @@ export async function PUT(request: Request) {
         profileColor: jobData.profileColor,
         companyWebsite: jobData.companyWebsite,
         includeCoverLetter: jobData.includeCoverLetter || false,
+        resumeLatex: jobData.resumeLatex,
+        coverLetterLatex: jobData.coverLetterLatex,
       });
     }
 

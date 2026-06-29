@@ -1,0 +1,224 @@
+import { NextResponse } from "next/server";
+import { getQueue, updateJobInQueue } from "@/lib/db";
+import { tailorResume, tailorCoverLetter, extractJobLocationInfo } from "@/lib/ai";
+import { Redis } from "@upstash/redis";
+
+const PROCESSING_TIMEOUT_MS = 5 * 60 * 1000; // 5 min — reset stuck jobs
+
+function getRedis(): Redis | null {
+  if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) return null;
+  return new Redis({
+    url: process.env.KV_REST_API_URL,
+    token: process.env.KV_REST_API_TOKEN,
+  });
+}
+
+interface StoredTemplate {
+  id: string;
+  name: string;
+  content: string;
+}
+
+async function getDefaultTemplate(
+  templatesKey: string,
+  defaultIdKey: string,
+): Promise<string | null> {
+  const redis = getRedis();
+  if (!redis) return null;
+
+  try {
+    const templates = await redis.get<StoredTemplate[]>(templatesKey);
+    if (!templates || templates.length === 0) return null;
+
+    const defaultId = await redis.get<string>(defaultIdKey);
+    if (defaultId) {
+      const t = templates.find((t) => t.id === defaultId);
+      if (t?.content) return t.content;
+    }
+
+    return templates[0]?.content || null;
+  } catch {
+    return null;
+  }
+}
+
+async function getMasterContext(): Promise<string> {
+  const redis = getRedis();
+  if (!redis) return "";
+
+  try {
+    const ctx = await redis.get<string>("fd:fd_master_context");
+    return ctx || "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * POST /api/process-queue
+ *
+ * Server-side queue processor. Processes ONE pending job per invocation.
+ * Reads templates from Redis (or uses job's baked-in resumeLatex/coverLetterLatex).
+ * Updates queue status after each step.
+ *
+ * Designed to be called by:
+ *   - Vercel Cron Job (/api/cron/process-queue)
+ *   - Client-side after batch import
+ *   - External cron services
+ */
+export async function POST() {
+  const queue = await getQueue().catch((error) => {
+    console.error("[process-queue] Failed to read queue:", error);
+    return null;
+  });
+
+  if (!queue || !Array.isArray(queue) || queue.length === 0) {
+    return NextResponse.json({ processed: false, reason: "empty_queue" });
+  }
+
+  // Reset jobs stuck in processing state beyond timeout
+  const now = Date.now();
+  for (const job of queue) {
+    if (
+      job.status !== "pending" &&
+      job.status !== "completed" &&
+      job.status !== "failed" &&
+      job.status !== "cancelled" &&
+      job.startedAt &&
+      now - job.startedAt > PROCESSING_TIMEOUT_MS
+    ) {
+      console.log(
+        `[process-queue] Resetting stuck job ${job.id} (${job.companyName}) from ${job.status}`,
+      );
+      await updateJobInQueue(job.id, {
+        status: "pending",
+        progress: 0,
+        error: undefined,
+        startedAt: undefined,
+      });
+    }
+  }
+
+  // Find first truly pending job (after possible reset above)
+  const pendingJob = queue.find((j) => j.status === "pending");
+  if (!pendingJob) {
+    return NextResponse.json({ processed: false, reason: "no_pending" });
+  }
+
+  // Resolve resume template
+  let resumeLatex = pendingJob.resumeLatex;
+  if (!resumeLatex) {
+    const tmpl = await getDefaultTemplate("fd:fd_resume_templates", "fd:fd_default_resume_id");
+    if (tmpl) resumeLatex = tmpl;
+  }
+
+  if (!resumeLatex) {
+    await updateJobInQueue(pendingJob.id, {
+      status: "failed",
+      error: "No resume template found. Save a resume template first.",
+      progress: 0,
+      completedAt: Date.now(),
+    });
+    return NextResponse.json({
+      processed: false,
+      reason: "no_template",
+      jobId: pendingJob.id,
+    });
+  }
+
+  const masterContext = await getMasterContext();
+
+  try {
+    // --- Step 1: Tailor Resume ---
+    await updateJobInQueue(pendingJob.id, {
+      status: "tailoring-resume",
+      progress: 5,
+      startedAt: Date.now(),
+    });
+
+    const [tailoredResume, locationInfo] = await Promise.all([
+      tailorResume(
+        resumeLatex,
+        pendingJob.jobDescription,
+        pendingJob.personalDetails || "",
+        masterContext,
+        undefined, // manualResearch — not available server-side
+      ),
+      extractJobLocationInfo(pendingJob.jobDescription, pendingJob.companyName),
+    ]);
+
+    await updateJobInQueue(pendingJob.id, {
+      progress: 60,
+      tailoredResume,
+      resumeLatex, // persist the template used
+      jobCountry: locationInfo.country || undefined,
+      jobWorkMode: (locationInfo.workMode as "" | "Remote" | "Hybrid" | "On-site") || undefined,
+    });
+
+    // --- Step 2: Cover Letter (optional) ---
+    if (pendingJob.includeCoverLetter) {
+      let coverLetterLatex = pendingJob.coverLetterLatex;
+      if (!coverLetterLatex) {
+        const tmpl = await getDefaultTemplate(
+          "fd:fd_cover_letter_templates",
+          "fd:fd_default_cover_letter_id",
+        );
+        if (tmpl) coverLetterLatex = tmpl;
+      }
+
+      if (coverLetterLatex) {
+        await updateJobInQueue(pendingJob.id, {
+          status: "tailoring-cover-letter",
+          progress: 70,
+        });
+
+        const tailoredCoverLetter = await tailorCoverLetter(
+          coverLetterLatex,
+          pendingJob.jobDescription,
+          pendingJob.personalDetails || "",
+          masterContext,
+          undefined, // manualResearch
+          tailoredResume,
+        );
+
+        await updateJobInQueue(pendingJob.id, {
+          tailoredCoverLetter,
+          coverLetterLatex,
+        });
+      }
+    }
+
+    // --- Done ---
+    await updateJobInQueue(pendingJob.id, {
+      status: "completed",
+      progress: 100,
+      completedAt: Date.now(),
+    });
+
+    // Check if more jobs remain
+    const remaining = (await getQueue()).filter((j) => j.status === "pending");
+
+    return NextResponse.json({
+      processed: true,
+      morePending: remaining.length > 0,
+      remainingCount: remaining.length,
+      jobId: pendingJob.id,
+      companyName: pendingJob.companyName,
+      positionTitle: pendingJob.positionTitle,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown processing error";
+    console.error(`[process-queue] Failed job ${pendingJob.id}:`, message);
+
+    await updateJobInQueue(pendingJob.id, {
+      status: "failed",
+      error: message,
+      completedAt: Date.now(),
+    });
+
+    return NextResponse.json(
+      { processed: false, error: message, jobId: pendingJob.id },
+      { status: 200 }, // 200 so cron doesn't retry — error is recorded on the job
+    );
+  }
+}
