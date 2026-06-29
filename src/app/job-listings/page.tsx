@@ -30,11 +30,15 @@ const PLATFORM_COLORS: Record<string, string> = {
   custom: "bg-gray-100 text-gray-700 border-gray-300",
 };
 
+const DAY_OPTIONS = [1, 2, 3, 4] as const;
+type DaysFilter = (typeof DAY_OPTIONS)[number];
+
 export default function JobListingsPage() {
   const [data, setData] = useState<JobsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [scraping, setScraping] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [daysFilter, setDaysFilter] = useState<DaysFilter>(4);
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -100,42 +104,41 @@ export default function JobListingsPage() {
     });
   };
 
-  const isFresh = (dateStr?: string) => {
+  const isWithinDays = (dateStr: string | undefined, days: DaysFilter): boolean => {
     if (!dateStr) return false;
     const date = new Date(dateStr);
-    const oneDayAgo = new Date();
-    oneDayAgo.setHours(oneDayAgo.getHours() - 24);
-    return date >= oneDayAgo;
+    const cutoff = new Date();
+    cutoff.setHours(cutoff.getHours() - days * 24);
+    return date >= cutoff;
   };
 
-  // Group jobs by company
-  const companyStats = useMemo(() => {
+  // Filter all jobs by selected days window
+  const filteredJobs = useMemo(() => {
     if (!data?.jobs) return [];
+    return data.jobs.filter((j) => isWithinDays(j.postedAt, daysFilter));
+  }, [data, daysFilter]);
 
+  // Group filtered jobs by company
+  const companyStats = useMemo(() => {
     const stats = new Map<
       string,
       {
         name: string;
         totalJobs: number;
-        freshJobs: number;
         latestJobDate: string | null;
         platform: string;
       }
     >();
 
-    data.jobs.forEach((job) => {
+    filteredJobs.forEach((job) => {
       const current = stats.get(job.companyName) || {
         name: job.companyName,
         totalJobs: 0,
-        freshJobs: 0,
         latestJobDate: null,
         platform: job.platform,
       };
 
       current.totalJobs += 1;
-      if (isFresh(job.postedAt)) {
-        current.freshJobs += 1;
-      }
 
       if (
         job.postedAt &&
@@ -148,24 +151,25 @@ export default function JobListingsPage() {
     });
 
     return Array.from(stats.values()).sort((a, b) => {
-      // Sort by fresh jobs count (desc), then total jobs (desc)
-      if (b.freshJobs !== a.freshJobs) return b.freshJobs - a.freshJobs;
-      return b.totalJobs - a.totalJobs;
+      if (b.totalJobs !== a.totalJobs) return b.totalJobs - a.totalJobs;
+      return a.name.localeCompare(b.name);
     });
-  }, [data]);
+  }, [filteredJobs]);
 
-  // Filter jobs for selected company
+  // Filter jobs for selected company within the days window, sorted newest first
   const companyJobs = useMemo(() => {
     if (!data?.jobs || !selectedCompany) return [];
 
-    const jobs = data.jobs.filter((j) => j.companyName === selectedCompany);
+    const jobs = data.jobs.filter(
+      (j) => j.companyName === selectedCompany && isWithinDays(j.postedAt, daysFilter),
+    );
 
     return jobs.sort((a, b) => {
       if (!a.postedAt) return 1;
       if (!b.postedAt) return -1;
       return new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime();
     });
-  }, [data, selectedCompany]);
+  }, [data, selectedCompany, daysFilter]);
 
   if (loading) {
     return (
@@ -195,7 +199,8 @@ export default function JobListingsPage() {
                   </>
                 ) : (
                   <>
-                    {data?.totalJobs || 0} jobs • {companyStats.length} companies
+                    {filteredJobs.length} new jobs in {daysFilter}d &middot; {companyStats.length}{" "}
+                    companies
                   </>
                 )}
                 {data?.lastScraped && (
@@ -212,7 +217,7 @@ export default function JobListingsPage() {
                   variant="ghost"
                   className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-gray-200 md:px-4 md:py-2 md:text-sm"
                 >
-                  ← Back
+                  &larr; Back
                 </Button>
               )}
               <Button
@@ -248,6 +253,26 @@ export default function JobListingsPage() {
               </Button>
             </div>
           </div>
+
+          {/* Days Filter Toggle */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm text-gray-500">Show:</span>
+            <div className="flex gap-1 rounded-lg bg-gray-100 p-0.5">
+              {DAY_OPTIONS.map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDaysFilter(d)}
+                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-all md:px-3 md:py-1.5 md:text-sm ${
+                    daysFilter === d
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {d}d
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {selectedCompany ? (
@@ -278,7 +303,7 @@ export default function JobListingsPage() {
                           <h3 className="group-hover:text-primary line-clamp-2 text-sm font-semibold transition-colors md:truncate md:text-lg">
                             {job.title}
                           </h3>
-                          {isFresh(job.postedAt) && (
+                          {isWithinDays(job.postedAt, 1) && (
                             <span className="shrink-0 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 md:px-2 md:text-xs">
                               New
                             </span>
@@ -288,11 +313,11 @@ export default function JobListingsPage() {
                           <span className="max-w-40 truncate font-medium text-gray-700 md:max-w-none">
                             {job.companyName}
                           </span>
-                          <span className="hidden sm:inline">•</span>
+                          <span className="hidden sm:inline">&bull;</span>
                           <span className="truncate">{job.location}</span>
                           {job.department && (
                             <>
-                              <span className="hidden md:inline">•</span>
+                              <span className="hidden md:inline">&bull;</span>
                               <span className="hidden md:inline">{job.department}</span>
                             </>
                           )}
@@ -320,64 +345,71 @@ export default function JobListingsPage() {
               </div>
             ) : (
               <div className="glass-card py-8 text-center md:py-12">
-                <p className="text-base text-gray-500 md:text-lg">No jobs found for this filter.</p>
+                <p className="text-base text-gray-500 md:text-lg">
+                  No jobs found for this time window.
+                </p>
               </div>
             )}
           </div>
         ) : (
           /* Companies Grid View */
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3">
-            {companyStats.map((stat) => (
-              <Button
-                key={stat.name}
-                onClick={() => setSelectedCompany(stat.name)}
-                variant="ghost"
-                className="glass-card group relative flex h-full flex-col justify-between overflow-hidden p-4 text-left transition-all hover:shadow-lg md:p-5"
-              >
-                <div className="absolute top-0 right-0 p-2 opacity-10 transition-opacity group-hover:opacity-20 md:p-4">
-                  <svg
-                    className="text-primary h-16 w-16 md:h-24 md:w-24"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm0 2v12h16V6H4zm2 2h12v2H6V8zm0 4h12v2H6v-2zm0 4h12v2H6v-2z" />
-                  </svg>
-                </div>
-
-                <div>
-                  <div className="mb-2 flex items-start justify-between gap-2">
-                    <h3 className="group-hover:text-primary line-clamp-2 text-base font-bold transition-colors md:text-xl">
-                      {stat.name}
-                    </h3>
-                    <span
-                      className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] md:px-2 md:py-1 md:text-xs ${PLATFORM_COLORS[stat.platform] || PLATFORM_COLORS.custom}`}
+            {companyStats.length > 0 ? (
+              companyStats.map((stat) => (
+                <Button
+                  key={stat.name}
+                  onClick={() => setSelectedCompany(stat.name)}
+                  variant="ghost"
+                  className="glass-card group relative flex h-full flex-col justify-between overflow-hidden p-4 text-left transition-all hover:shadow-lg md:p-5"
+                >
+                  <div className="absolute top-0 right-0 p-2 opacity-10 transition-opacity group-hover:opacity-20 md:p-4">
+                    <svg
+                      className="text-primary h-16 w-16 md:h-24 md:w-24"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      {stat.platform}
-                    </span>
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm0 2v12h16V6H4zm2 2h12v2H6V8zm0 4h12v2H6v-2zm0 4h12v2H6v-2z" />
+                    </svg>
                   </div>
-                  <div className="text-muted mb-3 text-xs md:mb-4 md:text-sm">
-                    Last active: {formatDate(stat.latestJobDate || undefined)}
-                  </div>
-                </div>
 
-                <div className="mt-auto grid grid-cols-2 gap-2 md:gap-4">
-                  <div className="rounded-lg bg-gray-50 p-2 md:p-3">
-                    <div className="text-lg font-bold text-gray-900 md:text-xl">
-                      {stat.freshJobs}
+                  <div>
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <h3 className="group-hover:text-primary line-clamp-2 text-base font-bold transition-colors md:text-xl">
+                        {stat.name}
+                      </h3>
+                      <span
+                        className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] md:px-2 md:py-1 md:text-xs ${PLATFORM_COLORS[stat.platform] || PLATFORM_COLORS.custom}`}
+                      >
+                        {stat.platform}
+                      </span>
                     </div>
-                    <div className="text-[10px] font-semibold text-blue-600 md:text-xs">
-                      New (24h)
+                    <div className="text-muted mb-3 text-xs md:mb-4 md:text-sm">
+                      Last active: {formatDate(stat.latestJobDate || undefined)}
                     </div>
                   </div>
-                  <div className="rounded-lg bg-gray-50 p-2 md:p-3">
-                    <div className="text-lg font-bold text-gray-900 md:text-xl">
-                      {stat.totalJobs}
+
+                  <div className="mt-auto">
+                    <div className="rounded-lg bg-gray-50 p-2 md:p-3">
+                      <div className="text-lg font-bold text-gray-900 md:text-xl">
+                        {stat.totalJobs}
+                      </div>
+                      <div className="text-[10px] font-semibold text-blue-600 md:text-xs">
+                        New ({daysFilter}d)
+                      </div>
                     </div>
-                    <div className="text-[10px] text-gray-500 md:text-xs">Total Jobs</div>
                   </div>
-                </div>
-              </Button>
-            ))}
+                </Button>
+              ))
+            ) : (
+              <div className="glass-card col-span-full py-12 text-center">
+                <p className="text-base text-gray-500 md:text-lg">
+                  No jobs found in the last {daysFilter} days.
+                </p>
+                <p className="mt-1 text-sm text-gray-400">
+                  Try a wider time window or refresh jobs.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
