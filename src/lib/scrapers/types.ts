@@ -57,7 +57,8 @@ export function filterJobs(jobs: Job[], targetRoles: string[], excludedKeywords:
 
 /**
  * Get target roles from env or defaults
- * Broadened for: Software Engineer, Cloud, DevOps, Platform, AI/ML roles
+ * Curated for: AI/Cloud/Infra engineer profile — MS IT grad, 4+ yrs experience,
+ * AI orchestration thesis, full-stack to infra ownership.
  */
 export function getTargetRoles(): string[] {
   const envRoles = process.env.TARGET_ROLES;
@@ -65,59 +66,82 @@ export function getTargetRoles(): string[] {
     return envRoles.split(",").map((r) => r.trim());
   }
   return [
-    // Core Software Engineering
-    "software engineer",
-    "software developer",
-    "engineer",
-    "developer",
-    "sde",
-    "swe",
+    // === AI / ML (primary target — matches his thesis) ===
+    "ai engineer",
+    "ai infrastructure",
+    "ai platform",
+    "ai orchestration",
+    "ai agent",
+    "ai product",
+    "ai software",
+    "ai systems",
+    "ai developer",
+    "ai full stack",
+    "ai backend",
+    "machine learning engineer",
+    "ml engineer",
+    "ml infrastructure",
+    "ml platform",
+    "ml ops",
+    "mlops",
+    "llm",
+    "llm engineer",
+    "llm ops",
+    "genai",
+    "generative ai",
+    "rag",
+    "prompt engineer",
+    "model serving",
+    "inference",
+    "ai reliability",
+    "ai evaluation",
+    "agent engineer",
+    "agentic",
 
-    // Backend & Systems
-    "backend",
-    "systems engineer",
-    "infrastructure",
-    "platform engineer",
+    // === AI-Adjacent SWE (current market pattern: "AI x SWE") ===
+    "ai software engineer",
+    "ai platform engineer",
+    "ai infrastructure engineer",
+    "ai systems engineer",
+    "ai full stack engineer",
+    "ai ml engineer",
 
-    // Cloud & DevOps
+    // === Cloud & Infrastructure ===
     "cloud engineer",
     "cloud architect",
     "solutions architect",
+    "solutions engineer",
+    "infrastructure",
+    "platform engineer",
     "devops",
     "sre",
     "site reliability",
-    "devsecops",
 
-    // AI/ML
-    "machine learning",
-    "ml engineer",
-    "ai engineer",
-    "data scientist",
-    "data engineer",
-    "genai",
-
-    // Full Stack & Frontend
+    // === Software Engineering (with AI/cloud angle) ===
+    "software engineer",
+    "sde",
+    "swe",
     "full stack",
     "fullstack",
-    "frontend",
-    "front end",
+    "backend",
 
-    // Specialized
-    "golang",
+    // === Specialized tech matches (catches roles listing these as primary) ===
+    "terraform",
+    "kubernetes",
+    "aws",
+    "gcp",
     "python",
     "typescript",
     "node.js",
-    "aws",
-    "gcp",
-    "azure",
-    "terraform",
-    "kubernetes",
+    "react",
+    "next.js",
   ];
 }
 
 /**
  * Get excluded keywords from env or defaults
- * Excluding: Leadership/Exec roles, Interns (too junior)
+ * Excluding: internships, junior roles, exec/management, non-technical,
+ * and data-science-only (pure stats/analytics, not ML engineering).
  */
 export function getExcludedKeywords(): string[] {
   const envExcluded = process.env.EXCLUDED_KEYWORDS;
@@ -125,15 +149,23 @@ export function getExcludedKeywords(): string[] {
     return envExcluded.split(",").map((k) => k.trim());
   }
   return [
-    // Executive/Leadership (too senior)
+    // Too senior (beyond IC/contributor level)
+    "principal",
+
+    // Executive/Leadership (too senior or management-only)
     "senior director",
-    "director",
-    "vp",
+    "director of",
+    "vp ",
     "vice president",
     "chief",
     "head of",
     "cto",
     "cio",
+
+    // Management-only (not IC)
+    "engineering manager",
+    "program manager",
+    "product manager",
 
     // Non-technical
     "recruiter",
@@ -141,5 +173,15 @@ export function getExcludedKeywords(): string[] {
     "sales",
     "marketing",
     "customer success",
+    "technical writer",
+    "account executive",
+    "account manager",
+
+    // Not a fit — pure analytic/domain mismatch
+    "data analyst",
+    "business analyst",
+    "embedded",
+    "hardware",
+    "firmware",
   ];
 }
