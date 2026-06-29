@@ -32,7 +32,7 @@ Floor: ${data.contentCharBudget.floor.toLocaleString()} characters
 Target: ${data.contentCharBudget.target.toLocaleString()} characters (original resume length)
 Hard cap: ${data.contentCharBudget.limit.toLocaleString()} characters
 
-IMPORTANT: Keep original bullet counts per entry — shorten bullet LENGTH, not bullet COUNT.
+IMPORTANT: Keep original bullet counts per entry — shorten bullet LENGTH only if needed, not bullet COUNT.
 
 `
     : "";
