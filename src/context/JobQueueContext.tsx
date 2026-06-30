@@ -66,7 +66,8 @@ interface JobQueueContextType {
         | "personalDetails"
         | "includeCoverLetter"
       >
-    >,
+    > & { profileId?: string; profileName?: string; profileColor?: string },
+    resetProcessing?: boolean,
   ) => void;
   clearQueue: () => void;
   clearCompleted: () => void;
@@ -190,29 +191,44 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
       updates: Partial<
         Pick<
           QueuedJob,
-          "companyName" | "companyUrl" | "positionTitle" | "jobDescription" | "personalDetails"
+          | "companyName"
+          | "companyUrl"
+          | "positionTitle"
+          | "jobDescription"
+          | "personalDetails"
+          | "includeCoverLetter"
         >
-      >,
+      > & { profileId?: string; profileName?: string; profileColor?: string },
+      resetProcessing = true,
     ) => {
-      const fullUpdates = {
-        ...updates,
-        status: "pending" as JobStatus,
-        progress: 0,
-        error: undefined,
-        startedAt: undefined,
-        completedAt: undefined,
-        companyResearch: undefined,
-        tailoredResume: undefined,
-        tailoredCoverLetter: undefined,
-        jobCountry: undefined,
-        jobWorkMode: undefined,
-      };
-      setQueue((prev) => prev.map((job) => (job.id === id ? { ...job, ...fullUpdates } : job)));
-      fetch("/api/queue", {
-        method: "PATCH",
-        headers: HEADERS,
-        body: JSON.stringify({ id, updates: fullUpdates }),
-      }).catch(console.error);
+      if (resetProcessing) {
+        const fullUpdates = {
+          ...updates,
+          status: "pending" as JobStatus,
+          progress: 0,
+          error: undefined,
+          startedAt: undefined,
+          completedAt: undefined,
+          companyResearch: undefined,
+          tailoredResume: undefined,
+          tailoredCoverLetter: undefined,
+          jobCountry: undefined,
+          jobWorkMode: undefined,
+        };
+        setQueue((prev) => prev.map((job) => (job.id === id ? { ...job, ...fullUpdates } : job)));
+        fetch("/api/queue", {
+          method: "PATCH",
+          headers: HEADERS,
+          body: JSON.stringify({ id, updates: fullUpdates }),
+        }).catch(console.error);
+      } else {
+        setQueue((prev) => prev.map((job) => (job.id === id ? { ...job, ...updates } : job)));
+        fetch("/api/queue", {
+          method: "PATCH",
+          headers: HEADERS,
+          body: JSON.stringify({ id, updates }),
+        }).catch(console.error);
+      }
     },
     [],
   );
