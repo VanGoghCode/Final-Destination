@@ -526,7 +526,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                 onClick={() => handleRegenerateCoverLetter("Improve it")}
                 disabled={isRegeneratingCoverLetter}
                 variant="ghost"
-                className="w-full cursor-pointer border border-green-200 bg-white py-2 text-xs text-green-700 shadow-none transition-all hover:bg-green-50"
+                className="w-full cursor-pointer rounded-xl border border-green-200 bg-white py-2 text-xs text-green-700 shadow-none transition-all hover:bg-green-50"
               >
                 {isRegeneratingCoverLetter ? "Regenerating..." : "Regenerate Content"}
               </Button>
