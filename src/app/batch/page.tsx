@@ -691,12 +691,12 @@ export default function BatchProcessPage() {
       }),
     );
 
-    // Open new tab with company name in URL
+    // Navigate to tailored view in same tab
     const companySlug = job.companyName
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
-    window.open(`/tailored/${companySlug}?jobId=${job.id}`, "_blank");
+    window.location.href = `/tailored/${companySlug}?jobId=${job.id}`;
   };
 
   // Handle edit job - updates job and restarts from beginning

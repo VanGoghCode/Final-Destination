@@ -33,12 +33,38 @@ const PLATFORM_COLORS: Record<string, string> = {
 const DAY_OPTIONS = [1, 2, 3, 4] as const;
 type DaysFilter = (typeof DAY_OPTIONS)[number];
 
+const EXCLUDED_TITLES = [
+  "senior",
+  "lead",
+  "principal",
+  "manager",
+  "director",
+  "vp",
+  "vice president",
+  "head of",
+  "chief",
+  "cto",
+  "cfo",
+  "ceo",
+  "founder",
+  "co-founder",
+];
+
+const isExcludedTitle = (title: string) =>
+  EXCLUDED_TITLES.some((kw) => title.toLowerCase().includes(kw));
+
 export default function JobListingsPage() {
   const [data, setData] = useState<JobsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [scraping, setScraping] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
-  const [daysFilter, setDaysFilter] = useState<DaysFilter>(4);
+  const [daysFilter, setDaysFilter] = useState<DaysFilter>(1);
+
+  useEffect(() => {
+    const handlePopState = () => setSelectedCompany(null);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -112,10 +138,12 @@ export default function JobListingsPage() {
     return date >= cutoff;
   };
 
-  // Filter all jobs by selected days window
+  // Filter all jobs by selected days window and exclude senior-level roles
   const filteredJobs = useMemo(() => {
     if (!data?.jobs) return [];
-    return data.jobs.filter((j) => isWithinDays(j.postedAt, daysFilter));
+    return data.jobs.filter(
+      (j) => isWithinDays(j.postedAt, daysFilter) && !isExcludedTitle(j.title),
+    );
   }, [data, daysFilter]);
 
   // Group filtered jobs by company
@@ -161,7 +189,10 @@ export default function JobListingsPage() {
     if (!data?.jobs || !selectedCompany) return [];
 
     const jobs = data.jobs.filter(
-      (j) => j.companyName === selectedCompany && isWithinDays(j.postedAt, daysFilter),
+      (j) =>
+        j.companyName === selectedCompany &&
+        isWithinDays(j.postedAt, daysFilter) &&
+        !isExcludedTitle(j.title),
     );
 
     return jobs.sort((a, b) => {
@@ -213,7 +244,7 @@ export default function JobListingsPage() {
             <div className="flex items-center gap-2 sm:gap-3">
               {selectedCompany && (
                 <Button
-                  onClick={() => setSelectedCompany(null)}
+                  onClick={() => window.history.back()}
                   variant="ghost"
                   className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-gray-200 md:px-4 md:py-2 md:text-sm"
                 >
@@ -289,14 +320,8 @@ export default function JobListingsPage() {
 
             {companyJobs.length > 0 ? (
               <div className="space-y-2 md:space-y-3">
-                {companyJobs.map((job) => (
-                  <a
-                    key={job.id}
-                    href={job.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="glass-card group hover:border-l-primary block border-l-4 border-l-transparent p-3 transition-all hover:shadow-lg md:p-4 lg:p-5"
-                  >
+                {companyJobs.map((job) => {
+                  const cardContent = (
                     <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="mb-1 flex flex-wrap items-start gap-2 sm:items-center">
@@ -340,8 +365,31 @@ export default function JobListingsPage() {
                         </div>
                       </div>
                     </div>
-                  </a>
-                ))}
+                  );
+
+                  if (job.url) {
+                    return (
+                      <a
+                        key={job.id}
+                        href={job.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="glass-card group hover:border-l-primary block border-l-4 border-l-transparent p-3 transition-all hover:shadow-lg md:p-4 lg:p-5"
+                      >
+                        {cardContent}
+                      </a>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={job.id}
+                      className="glass-card block border-l-4 border-l-transparent p-3 opacity-70 md:p-4 lg:p-5"
+                    >
+                      {cardContent}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="glass-card py-8 text-center md:py-12">
@@ -358,7 +406,14 @@ export default function JobListingsPage() {
               companyStats.map((stat) => (
                 <Button
                   key={stat.name}
-                  onClick={() => setSelectedCompany(stat.name)}
+                  onClick={() => {
+                    if (selectedCompany) {
+                      window.history.replaceState(null, "");
+                    } else {
+                      window.history.pushState(null, "");
+                    }
+                    setSelectedCompany(stat.name);
+                  }}
                   variant="ghost"
                   className="glass-card group relative flex h-full flex-col justify-between overflow-hidden p-4 text-left transition-all hover:shadow-lg md:p-5"
                 >

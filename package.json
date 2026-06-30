@@ -26,6 +26,15 @@
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": [
+      "prettier --write",
+      "eslint --fix"
+    ],
+    "*.{json,md,css,html,yaml,yml}": [
+      "prettier --write"
+    ]
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
