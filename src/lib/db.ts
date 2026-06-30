@@ -486,6 +486,8 @@ export interface SavedProfile {
   lastName: string;
   color: string;
   avatarText?: string;
+  defaultResumeId?: string;
+  defaultCoverLetterId?: string;
 }
 
 export async function getProfiles(): Promise<SavedProfile[]> {

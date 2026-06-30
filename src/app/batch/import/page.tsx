@@ -406,21 +406,6 @@ export default function AIImportPage() {
 
       setAddedCount(data.added || valid.length);
 
-      // Chain process-queue: process jobs one by one until queue is dry
-      const processNext = async () => {
-        try {
-          const res = await fetch("/api/process-queue", { method: "POST" });
-          const result = await res.json();
-          if (result.morePending) {
-            await new Promise((r) => setTimeout(r, 1500));
-            await processNext();
-          }
-        } catch {
-          // processing failures handled per-job in process-queue
-        }
-      };
-      processNext();
-
       // Navigate to batch page after a brief delay
       setTimeout(() => {
         router.push("/batch");
