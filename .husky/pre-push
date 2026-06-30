@@ -1,1 +1,1 @@
-npm run prepush
+npm run lint && npm run typecheck && npm test
