@@ -50,15 +50,6 @@ export async function GET() {
   }
 }
 
-async function triggerProcessing(request: Request) {
-  try {
-    const baseUrl = new URL(request.url).origin;
-    await fetch(`${baseUrl}/api/process-queue`, { method: "POST" });
-  } catch (err) {
-    console.error("[queue] Processing chain error:", err);
-  }
-}
-
 export async function POST(request: Request) {
   const clientId = getClientIdentifier(request);
   const rl = checkRateLimit(`queue_write_${clientId}`, RATE_LIMITS.GENERAL);
@@ -101,11 +92,6 @@ export async function POST(request: Request) {
         { status: 500, headers: h() },
       );
     }
-
-    // Kick off processing immediately (fire-and-forget chain)
-    triggerProcessing(request).catch((err) =>
-      console.error("[queue] Processing chain failed:", err),
-    );
 
     return NextResponse.json({ success: true, job: newJob }, { headers: h() });
   } catch (error) {

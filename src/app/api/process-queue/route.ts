@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getQueue, updateJobInQueue } from "@/lib/db";
+import { getQueue, updateJobInQueue, getProfiles } from "@/lib/db";
 import { tailorResume, tailorCoverLetter, extractJobLocationInfo } from "@/lib/ai";
 import { Redis } from "@upstash/redis";
 
@@ -105,8 +105,64 @@ export async function POST() {
     return NextResponse.json({ processed: false, reason: "no_pending" });
   }
 
-  // Resolve resume template
+  // Resolve resume template — priority: baked-in > profile > default
   let resumeLatex = pendingJob.resumeLatex;
+
+  // Resolve from profile if no baked-in template
+  if (!resumeLatex && pendingJob.profileId) {
+    const redis = getRedis();
+    const allProfiles = await getProfiles().catch(() => []);
+    const profile = allProfiles.find((p) => p.id === pendingJob.profileId);
+
+    if (!profile) {
+      await updateJobInQueue(pendingJob.id, {
+        status: "failed",
+        error: `Profile "${pendingJob.profileName || pendingJob.profileId}" not found. Edit the job and select a different profile.`,
+        progress: 0,
+        completedAt: Date.now(),
+      });
+      return NextResponse.json({
+        processed: false,
+        reason: "profile_not_found",
+        jobId: pendingJob.id,
+      });
+    }
+
+    if (profile.defaultResumeId && redis) {
+      const templates = await redis.get<StoredTemplate[]>("fd:fd_resume_templates");
+      const tmpl = (templates || []).find((t) => t.id === profile.defaultResumeId);
+      if (tmpl?.content) resumeLatex = tmpl.content;
+    }
+
+    if (!resumeLatex) {
+      await updateJobInQueue(pendingJob.id, {
+        status: "failed",
+        error: `Profile "${profile.name}" has no resume template assigned. Select a template in profile settings.`,
+        progress: 0,
+        completedAt: Date.now(),
+      });
+      return NextResponse.json({
+        processed: false,
+        reason: "profile_no_template",
+        jobId: pendingJob.id,
+      });
+    }
+
+    // Also resolve cover letter from profile if needed
+    if (
+      pendingJob.includeCoverLetter &&
+      !pendingJob.coverLetterLatex &&
+      profile.defaultCoverLetterId &&
+      redis
+    ) {
+      const clTemplates = await redis.get<StoredTemplate[]>("fd:fd_cover_letter_templates");
+      const clTmpl = (clTemplates || []).find((t) => t.id === profile.defaultCoverLetterId);
+      if (clTmpl?.content) {
+        pendingJob.coverLetterLatex = clTmpl.content;
+      }
+    }
+  }
+
   if (!resumeLatex) {
     const tmpl = await getDefaultTemplate("fd:fd_resume_templates", "fd:fd_default_resume_id");
     if (tmpl) resumeLatex = tmpl;

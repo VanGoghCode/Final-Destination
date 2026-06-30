@@ -374,38 +374,86 @@ export default function BatchProcessPage() {
       // Mark this job as the current one being processed
       setCurrentJobId(job.id);
 
-      // Resolve the correct template based on job's profile
-      let jobResumeTemplate: Template | null = resumeTemplate;
-      let jobCoverLetterTemplate: Template | null = coverLetterTemplate;
+      // Resolve the correct template — priority: baked-in > profile > default
+      let jobResumeTemplate: Template | null = null;
+      let jobCoverLetterTemplate: Template | null = null;
 
-      if (job.profileId) {
-        const profile = profiles.find((p) => p.id === job.profileId);
-        if (profile) {
-          // Use profile-specific templates if available
-          if (profile.defaultResumeId) {
-            const allResumeTemplates = await getResumeTemplates();
-            const profileResume = allResumeTemplates.find((t) => t.id === profile.defaultResumeId);
-            if (profileResume) {
-              jobResumeTemplate = profileResume;
-              addActivity(`[Profile] Using "${profile.name}" resume template`);
-            }
-          }
-          if (profile.defaultCoverLetterId) {
-            const allCoverLetterTemplates = await getCoverLetterTemplates();
-            const profileCoverLetter = allCoverLetterTemplates.find(
-              (t) => t.id === profile.defaultCoverLetterId,
-            );
-            if (profileCoverLetter) {
-              jobCoverLetterTemplate = profileCoverLetter;
-            }
-          }
+      // Priority 1: Baked-in template from import time (highest authority)
+      if (job.resumeLatex) {
+        jobResumeTemplate = {
+          id: "",
+          name: "",
+          content: job.resumeLatex,
+          createdAt: 0,
+          updatedAt: 0,
+        };
+        if (job.coverLetterLatex) {
+          jobCoverLetterTemplate = {
+            id: "",
+            name: "",
+            content: job.coverLetterLatex,
+            createdAt: 0,
+            updatedAt: 0,
+          };
         }
       }
 
+      // Priority 2: Resolve from profile (extension-added jobs without baked-in template)
+      if (!jobResumeTemplate && job.profileId) {
+        const profile = profiles.find((p) => p.id === job.profileId);
+        if (!profile) {
+          setJobError(
+            job.id,
+            `Profile "${job.profileName || job.profileId}" not found. The profile may have been deleted. Edit the job and select a different profile.`,
+          );
+          setCurrentJobId(null);
+          return;
+        }
+
+        if (profile.defaultResumeId) {
+          const allResumeTemplates = await getResumeTemplates();
+          const profileResume = allResumeTemplates.find((t) => t.id === profile.defaultResumeId);
+          if (profileResume) {
+            jobResumeTemplate = profileResume;
+          }
+        }
+
+        if (!jobResumeTemplate) {
+          setJobError(
+            job.id,
+            `Profile "${profile.name}" has no resume template assigned. Select a template in profile settings.`,
+          );
+          setCurrentJobId(null);
+          return;
+        }
+
+        if (profile.defaultCoverLetterId) {
+          const allCoverLetterTemplates = await getCoverLetterTemplates();
+          const profileCoverLetter = allCoverLetterTemplates.find(
+            (t) => t.id === profile.defaultCoverLetterId,
+          );
+          if (profileCoverLetter) {
+            jobCoverLetterTemplate = profileCoverLetter;
+          }
+        }
+
+        addActivity(`[Profile] Using "${profile.name}" templates`);
+      }
+
+      // Priority 3: Global default template
       if (!jobResumeTemplate) {
-        setJobError(job.id, "No resume template found for this job's profile");
-        setCurrentJobId(null);
-        return;
+        if (!resumeTemplate) {
+          setJobError(
+            job.id,
+            "No resume template available. Save a default resume template first.",
+          );
+          setCurrentJobId(null);
+          return;
+        }
+        jobResumeTemplate = resumeTemplate;
+        if (!jobCoverLetterTemplate && coverLetterTemplate) {
+          jobCoverLetterTemplate = coverLetterTemplate;
+        }
       }
 
       // Load master context
