@@ -2,7 +2,6 @@
 
 import { JobStatus, QueuedJob } from "@/context/JobQueueContext";
 import { useEffect, useState, useRef } from "react";
-import Button from "./Button";
 
 interface JobQueueCardProps {
   job: QueuedJob;
@@ -379,25 +378,19 @@ export default function JobQueueCard({
           )}
           {/* Restart button shown during processing */}
           {isProcessing && onRetry && (
-            <Button
+            <button
               onClick={onRetry}
-              variant="ghost"
-              className="!border-blue-600 !bg-blue-600 px-3 py-1.5 text-xs font-medium !text-white hover:!border-blue-700 hover:!bg-blue-700"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-600 bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:border-blue-700 hover:bg-blue-700"
               title="Restart job"
             >
-              <svg
-                className="mr-1 h-3.5 w-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   strokeWidth="2"
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
               Restart
-            </Button>
+            </button>
           )}
           {!isProcessing && (
             <button

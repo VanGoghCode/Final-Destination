@@ -104,6 +104,7 @@ function EditJobModal({
     positionTitle: string;
     jobDescription: string;
     personalDetails: string;
+    includeCoverLetter: boolean;
     profileId?: string;
     profileName?: string;
     profileColor?: string;
@@ -140,7 +141,7 @@ function EditJobModal({
               <p className="text-muted mt-1 text-sm">
                 {isProcessing
                   ? "Job will restart from the beginning after saving"
-                  : "Update job details and restart processing"}
+                  : "Update job details"}
               </p>
             </div>
             {isProcessing && (
@@ -699,27 +700,34 @@ export default function BatchProcessPage() {
     window.location.href = `/tailored/${companySlug}?jobId=${job.id}`;
   };
 
-  // Handle edit job - updates job and restarts from beginning
+  // Handle edit job - restarts processing only when profile changes
   const handleEditJob = (updates: {
     companyName: string;
     companyUrl: string;
     positionTitle: string;
     jobDescription: string;
     personalDetails: string;
+    includeCoverLetter: boolean;
     profileId?: string;
     profileName?: string;
     profileColor?: string;
   }) => {
     if (editingJob) {
-      updateJob(editingJob.id, updates);
-      addActivity(`✏️ Edited: ${updates.companyName} - ${updates.positionTitle} (restarting)`);
+      const profileChanged = editingJob.profileId !== updates.profileId;
 
-      // If processing is not active, start it
-      setTimeout(() => {
-        if (!processingRef.current && resumeTemplate) {
-          startProcessing();
-        }
-      }, 100);
+      if (profileChanged) {
+        updateJob(editingJob.id, updates, true);
+        addActivity(`✏️ Edited: ${updates.companyName} - ${updates.positionTitle} (restarting)`);
+
+        setTimeout(() => {
+          if (!processingRef.current && resumeTemplate) {
+            startProcessing();
+          }
+        }, 100);
+      } else {
+        updateJob(editingJob.id, updates, false);
+        addActivity(`✏️ Edited: ${updates.companyName} - ${updates.positionTitle}`);
+      }
     }
   };
 

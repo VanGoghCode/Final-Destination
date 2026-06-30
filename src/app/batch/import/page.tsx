@@ -181,7 +181,7 @@ export default function AIImportPage() {
   } | null>(null);
   const [templateLoading, setTemplateLoading] = useState(true);
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [selectedProfileId, setSelectedProfileId] = useState("");
+  const [jobProfiles, setJobProfiles] = useState<Record<number, string>>({});
   const [freshnessDays, setFreshnessDays] = useState(1);
 
   // Load profiles + templates on mount
@@ -315,6 +315,11 @@ export default function AIImportPage() {
 
       const validated = jobs.map((j, i) => validateJob(j, i));
       setParsedJobs(validated);
+      setJobProfiles(
+        profiles.length > 0
+          ? Object.fromEntries(validated.map((j) => [j._index, profiles[0]!.id]))
+          : {},
+      );
 
       const validCount = validated.filter((j) => j._valid).length;
       if (validCount === 0) {
@@ -323,7 +328,7 @@ export default function AIImportPage() {
     } catch {
       setParseError("Invalid JSON. Check the format and try again.");
     }
-  }, [jsonInput, validateJob]);
+  }, [jsonInput, validateJob, profiles]);
 
   const handleAddToQueue = useCallback(async () => {
     const valid = parsedJobs.filter((j) => j._valid);
@@ -334,24 +339,14 @@ export default function AIImportPage() {
       return;
     }
 
-    // Resolve template from selected profile or use default
-    let resumeLatex = templateReady.resumeLatex;
-    let coverLetterLatex = templateReady.coverLetterLatex;
-    let profileId: string | undefined;
-    let profileName: string | undefined;
-    let profileColor: string | undefined;
-
-    if (selectedProfileId) {
-      const cached = profileCacheRef.current[selectedProfileId];
-      if (cached) {
-        resumeLatex = cached.resumeLatex || resumeLatex;
-        coverLetterLatex = cached.coverLetterLatex ?? coverLetterLatex;
-      }
-      const p = profiles.find((p) => p.id === selectedProfileId);
-      if (p) {
-        profileId = p.id;
-        profileName = p.name;
-        profileColor = p.color;
+    // Validate every valid job has a profile selected
+    if (profiles.length > 0) {
+      const missing = valid.filter((j) => !jobProfiles[j._index]);
+      if (missing.length > 0) {
+        setParseError(
+          `Select a profile for ${missing.length} job${missing.length > 1 ? "s" : ""} before adding to queue.`,
+        );
+        return;
       }
     }
 
@@ -359,20 +354,41 @@ export default function AIImportPage() {
     setParseError("");
 
     try {
-      const jobs = valid.map((j) => ({
-        companyName: j.companyName,
-        positionTitle: j.positionTitle,
-        jobDescription: j.jobDescription,
-        companyUrl: j.companyUrl,
-        companyWebsite: j.companyWebsite || "",
-        includeCoverLetter: j.includeCoverLetter || false,
-        personalDetails: "",
-        resumeLatex,
-        coverLetterLatex: coverLetterLatex || "",
-        profileId,
-        profileName,
-        profileColor,
-      }));
+      const jobs = valid.map((j) => {
+        const pId = jobProfiles[j._index];
+        const cached = pId ? profileCacheRef.current[pId] : null;
+        let resumeLatex = templateReady.resumeLatex;
+        let coverLetterLatex = templateReady.coverLetterLatex;
+        let profileId: string | undefined;
+        let profileName: string | undefined;
+        let profileColor: string | undefined;
+
+        if (pId && cached) {
+          resumeLatex = cached.resumeLatex || resumeLatex;
+          coverLetterLatex = cached.coverLetterLatex ?? coverLetterLatex;
+          const p = profiles.find((p) => p.id === pId);
+          if (p) {
+            profileId = p.id;
+            profileName = p.name;
+            profileColor = p.color;
+          }
+        }
+
+        return {
+          companyName: j.companyName,
+          positionTitle: j.positionTitle,
+          jobDescription: j.jobDescription,
+          companyUrl: j.companyUrl,
+          companyWebsite: j.companyWebsite || "",
+          includeCoverLetter: j.includeCoverLetter || false,
+          personalDetails: "",
+          resumeLatex,
+          coverLetterLatex: coverLetterLatex || "",
+          profileId,
+          profileName,
+          profileColor,
+        };
+      });
 
       const res = await fetch("/api/queue", {
         method: "PUT",
@@ -413,12 +429,13 @@ export default function AIImportPage() {
       setParseError(err instanceof Error ? err.message : "Failed to add jobs");
       setAdding(false);
     }
-  }, [parsedJobs, templateReady, router, selectedProfileId, profiles]);
+  }, [parsedJobs, templateReady, router, jobProfiles, profiles]);
 
   // Reset when input changes
   useEffect(() => {
     if (parsedJobs.length > 0) {
       setParsedJobs([]);
+      setJobProfiles({});
       setParseError("");
       setAddedCount(0);
     }
@@ -619,24 +636,46 @@ export default function AIImportPage() {
                   </p>
                 )}
 
-                {/* Profile selector */}
+                {/* Profile selector — apply to all */}
                 {profiles.length > 0 && (
                   <div className="mt-4 flex items-center gap-3">
                     <label className="text-xs font-medium text-gray-600">
                       Profile (resume template):
                     </label>
                     <select
-                      value={selectedProfileId}
-                      onChange={(e) => setSelectedProfileId(e.target.value)}
+                      id="global-profile-select"
                       className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:border-gray-400 focus:outline-none"
+                      defaultValue=""
                     >
-                      <option value="">Default resume template</option>
+                      <option value="" disabled>
+                        Select a profile…
+                      </option>
                       {profiles.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name}
                         </option>
                       ))}
                     </select>
+                    <button
+                      onClick={() => {
+                        const sel = document.getElementById(
+                          "global-profile-select",
+                        ) as HTMLSelectElement;
+                        if (sel && sel.value) {
+                          const id = sel.value;
+                          setJobProfiles((prev) => {
+                            const next = { ...prev };
+                            parsedJobs.forEach((j) => {
+                              next[j._index] = id;
+                            });
+                            return next;
+                          });
+                        }
+                      }}
+                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800"
+                    >
+                      Apply to all
+                    </button>
                   </div>
                 )}
 
@@ -648,6 +687,7 @@ export default function AIImportPage() {
                         <th className="px-4 py-2 font-medium">Company</th>
                         <th className="px-4 py-2 font-medium">Position</th>
                         <th className="px-4 py-2 font-medium">Cover</th>
+                        {profiles.length > 0 && <th className="px-4 py-2 font-medium">Profile</th>}
                         <th className="px-4 py-2 font-medium">Status</th>
                       </tr>
                     </thead>
@@ -669,6 +709,26 @@ export default function AIImportPage() {
                               <span className="text-gray-300">—</span>
                             )}
                           </td>
+                          {profiles.length > 0 && (
+                            <td className="px-4 py-2.5">
+                              <select
+                                value={jobProfiles[job._index] || ""}
+                                onChange={(e) =>
+                                  setJobProfiles((prev) => ({
+                                    ...prev,
+                                    [job._index]: e.target.value,
+                                  }))
+                                }
+                                className="max-w-[140px] rounded-lg border border-gray-200 px-2 py-1 text-xs focus:border-gray-400 focus:outline-none"
+                              >
+                                {profiles.map((p) => (
+                                  <option key={p.id} value={p.id}>
+                                    {p.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                          )}
                           <td className="px-4 py-2.5">
                             {job._valid ? (
                               <span className="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-medium text-green-700">
