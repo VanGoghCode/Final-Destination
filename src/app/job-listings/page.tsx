@@ -33,7 +33,22 @@ const PLATFORM_COLORS: Record<string, string> = {
 const DAY_OPTIONS = [1, 2, 3, 4] as const;
 type DaysFilter = (typeof DAY_OPTIONS)[number];
 
-const EXCLUDED_TITLES = ["senior", "lead", "principal", "manager", "director", "vp", "vice president", "head of", "chief", "cto", "cfo", "ceo", "founder", "co-founder"];
+const EXCLUDED_TITLES = [
+  "senior",
+  "lead",
+  "principal",
+  "manager",
+  "director",
+  "vp",
+  "vice president",
+  "head of",
+  "chief",
+  "cto",
+  "cfo",
+  "ceo",
+  "founder",
+  "co-founder",
+];
 
 const isExcludedTitle = (title: string) =>
   EXCLUDED_TITLES.some((kw) => title.toLowerCase().includes(kw));
