@@ -667,6 +667,32 @@ export default function JobsPage() {
             </div>
           </div>
 
+          {/* Batch Mode */}
+          <div>
+            <button
+              onClick={() => router.push("/batch")}
+              className="relative flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-black to-gray-800 px-3 py-3 text-xs font-medium text-white shadow-md transition-all hover:from-gray-800 hover:to-black hover:shadow-lg"
+            >
+              <span className="absolute -top-1.5 -right-1.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] leading-none font-bold text-white">
+                NEW
+              </span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <rect x="3" y="3" width="7" height="7" rx="1" />
+                <rect x="14" y="3" width="7" height="7" rx="1" />
+                <rect x="3" y="14" width="7" height="7" rx="1" />
+                <rect x="14" y="14" width="7" height="7" rx="1" />
+              </svg>
+              Batch Mode
+            </button>
+          </div>
+
           {/* External Job Portals */}
           <div>
             <div className="mb-2 flex items-center justify-between">
