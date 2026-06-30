@@ -33,6 +33,11 @@ const PLATFORM_COLORS: Record<string, string> = {
 const DAY_OPTIONS = [1, 2, 3, 4] as const;
 type DaysFilter = (typeof DAY_OPTIONS)[number];
 
+const EXCLUDED_TITLES = ["senior", "lead", "principal", "manager", "director", "vp", "vice president", "head of", "chief", "cto", "cfo", "ceo", "founder", "co-founder"];
+
+const isExcludedTitle = (title: string) =>
+  EXCLUDED_TITLES.some((kw) => title.toLowerCase().includes(kw));
+
 export default function JobListingsPage() {
   const [data, setData] = useState<JobsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,11 +122,6 @@ export default function JobListingsPage() {
     cutoff.setHours(cutoff.getHours() - days * 24);
     return date >= cutoff;
   };
-
-  const EXCLUDED_TITLES = ["senior", "seniour"];
-
-  const isExcludedTitle = (title: string) =>
-    EXCLUDED_TITLES.some((kw) => title.toLowerCase().includes(kw));
 
   // Filter all jobs by selected days window and exclude senior-level roles
   const filteredJobs = useMemo(() => {
