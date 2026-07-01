@@ -16,6 +16,7 @@ interface LaTeXEditorProps {
   showPreview?: boolean;
   fullHeight?: boolean;
   downloadFileName?: string;
+  simpleDownloadFileName?: string;
   jobUrl?: string;
   onApply?: () => void; // Callback after download to redirect
 }
@@ -29,6 +30,7 @@ export default function LaTeXEditor({
   showPreview = true,
   fullHeight = false,
   downloadFileName,
+  simpleDownloadFileName,
   jobUrl,
   onApply,
 }: LaTeXEditorProps) {
@@ -347,15 +349,26 @@ export default function LaTeXEditor({
     setShowFeedback(false);
   };
 
-  // Download PDF with single descriptive filename
+  // Download PDF — once with detailed name, plus simple name if provided
   const handleDownloadPdf = () => {
     if (pdfUrl) {
+      // First download with detailed filename
       const link = document.createElement("a");
       link.href = pdfUrl;
       link.download = downloadFileName
         ? `${downloadFileName}.pdf`
         : `${title.replace(/\s+/g, "_")}.pdf`;
       link.click();
+
+      // Second download with firstname_lastname_resume if provided
+      if (simpleDownloadFileName) {
+        setTimeout(() => {
+          const simpleLink = document.createElement("a");
+          simpleLink.href = pdfUrl;
+          simpleLink.download = `${simpleDownloadFileName}.pdf`;
+          simpleLink.click();
+        }, 500);
+      }
     }
   };
 

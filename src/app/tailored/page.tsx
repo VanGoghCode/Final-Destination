@@ -98,6 +98,7 @@ export default function TailoredPage() {
 
   // Detailed filenames (with company and role) — used for download
   const resumeFileName = `${fullName}_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_Resume`;
+  const simpleResumeFileName = `${firstName || "First"}_${lastName || "Last"}_Resume`;
   const coverLetterFileName = `${fullName}_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_CoverLetter`;
 
   const copyToClipboard = async (text: string, type: "resume" | "coverLetter") => {
@@ -654,6 +655,7 @@ export default function TailoredPage() {
           showPreview={true}
           fullHeight={true}
           downloadFileName={resumeFileName}
+          simpleDownloadFileName={simpleResumeFileName}
         />
       </main>
 
