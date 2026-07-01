@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getQueue, updateJobInQueue, getProfiles } from "@/lib/db";
 import { tailorResume, tailorCoverLetter, extractJobLocationInfo } from "@/lib/ai";
+import { getDeepSeekApiKey } from "@/lib/api-key";
 import { Redis } from "@upstash/redis";
 
 const PROCESSING_TIMEOUT_MS = 5 * 60 * 1000; // 5 min — reset stuck jobs
@@ -103,6 +104,19 @@ export async function POST() {
   const pendingJob = queue.find((j) => j.status === "pending");
   if (!pendingJob) {
     return NextResponse.json({ processed: false, reason: "no_pending" });
+  }
+
+  // Check if API key is available server-side.
+  // If only cookie-based (browser-only), skip so the client-side batch page can handle it.
+  const apiKey = await getDeepSeekApiKey();
+  if (!apiKey) {
+    return NextResponse.json({
+      processed: false,
+      reason: "api_key_unavailable",
+      message:
+        "DeepSeek API key not available server-side. Set DEEPSEEK_API_KEY env var for server-side processing, " +
+        "or use the client-side batch page which sends the key from your browser.",
+    });
   }
 
   // Resolve resume template — priority: baked-in > profile > default

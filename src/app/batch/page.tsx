@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useJobQueue, QueuedJob } from "@/context/JobQueueContext";
 import { useAppContext } from "@/context/AppContext";
@@ -468,6 +468,14 @@ export default function BatchProcessPage() {
         // Non-critical — proceed without master context if fetch fails
       }
 
+      // Include API key as explicit header (more reliable than cookie across all scenarios)
+      const fetchHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      const storedKey =
+        typeof window !== "undefined" ? window.localStorage.getItem("fd_deepseek_api_key") : null;
+      if (storedKey) {
+        fetchHeaders["x-deepseek-api-key"] = storedKey;
+      }
+
       try {
         // Step 1: Tailor resume
         updateJobStatus(job.id, "tailoring-resume", 5);
@@ -475,7 +483,7 @@ export default function BatchProcessPage() {
 
         const tailorResponse = await fetch("/api/tailor", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: fetchHeaders,
           body: JSON.stringify({
             resumeLatex: jobResumeTemplate.content,
             jobDescription: job.jobDescription,
@@ -510,7 +518,7 @@ export default function BatchProcessPage() {
 
           const coverLetterResponse = await fetch("/api/tailor-cover-letter", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: fetchHeaders,
             body: JSON.stringify({
               coverLetterLatex: jobCoverLetterTemplate.content,
               jobDescription: job.jobDescription,
@@ -546,7 +554,7 @@ export default function BatchProcessPage() {
       } catch (error) {
         if ((error as Error).name === "AbortError") {
           if (intentionalCancelRef.current) {
-            // Cancel was intentional — cancelJob already set status to cancelled
+            updateJobStatus(job.id, "cancelled");
             addActivity(`[Cancelled] Stopped: ${job.companyName}`);
           } else {
             // Unintentional abort (page nav, effect re-run) — revert to pending
@@ -817,7 +825,7 @@ export default function BatchProcessPage() {
   // Only show 1 active job — only one job processes at a time
   const getProcessingCount = () => (currentJobId ? 1 : 0);
 
-  const filteredQueue = () => {
+  const filteredQueue = useMemo(() => {
     let filtered = queue;
 
     // Apply search filter
@@ -844,7 +852,7 @@ export default function BatchProcessPage() {
       default:
         return filtered;
     }
-  };
+  }, [queue, searchQuery, statusFilter]);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -1332,7 +1340,7 @@ export default function BatchProcessPage() {
               </div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
-                {filteredQueue().map((job) => (
+                {filteredQueue.map((job) => (
                   <JobQueueCard
                     key={job.id}
                     job={job}

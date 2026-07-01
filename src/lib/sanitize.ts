@@ -90,25 +90,35 @@ export function sanitizeCompanyName(input: string): string {
     .slice(0, 200); // Limit length
 }
 
+/** Extract a plain URL from a value that might contain markdown link syntax */
+function extractUrlFromMarkdown(input: string): string {
+  const markdownMatch = input.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+  if (markdownMatch) {
+    // Prefer the URL in parentheses, fall back to bracket content
+    return (markdownMatch[2] || markdownMatch[1] || input).trim();
+  }
+  return input;
+}
+
 /**
  * Sanitize URL input
  */
 export function sanitizeUrl(input: string): string {
   if (!input || typeof input !== "string") return "";
 
-  const trimmed = input.trim();
+  const extracted = extractUrlFromMarkdown(input.trim());
 
   // Only allow http and https protocols
-  if (trimmed && !trimmed.match(/^https?:\/\//i)) {
+  if (extracted && !extracted.match(/^https?:\/\//i)) {
     // If no protocol, assume https
-    if (trimmed.match(/^[\w.-]+\.\w+/)) {
-      return `https://${trimmed}`;
+    if (extracted.match(/^[\w.-]+\.\w+/)) {
+      return `https://${extracted}`;
     }
     return "";
   }
 
   try {
-    const url = new URL(trimmed);
+    const url = new URL(extracted);
     // Only allow http/https
     if (!["http:", "https:"].includes(url.protocol)) {
       return "";
