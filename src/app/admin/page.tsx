@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/Button";
+import {
+  getAdminKey,
+  setAdminKey as saveAdminKey,
+  removeAdminKey as clearAdminKey,
+} from "@/lib/client-admin";
 
 interface AdminData {
   redisConnected: boolean;
@@ -28,20 +33,50 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [clearing, setClearing] = useState(false);
   const [error, setError] = useState("");
+  const [adminKeyInput, setAdminKeyInput] = useState("");
 
   useEffect(() => {
+    setAdminKeyInput(getAdminKey() || "");
     fetchData();
   }, []);
 
   const fetchData = async () => {
     try {
-      const res = await fetch("/api/admin/users");
+      const key = getAdminKey();
+      const headers: Record<string, string> = key ? { "x-api-key": key } : {};
+      const res = await fetch("/api/admin/users", { headers });
+
+      if (res.status === 401 || res.status === 403) {
+        setError("Unauthorized: Invalid Admin API Key");
+        setData(null);
+        setLoading(false);
+        return;
+      }
+
       const json = await res.json();
-      setData(json);
+      if (json.error) {
+        setError(json.error);
+        setData(null);
+      } else {
+        setData(json);
+        setError("");
+      }
     } catch {
       setError("Failed to fetch admin data");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveAdminKey = () => {
+    if (adminKeyInput.trim()) {
+      saveAdminKey(adminKeyInput.trim());
+      setError("");
+      fetchData();
+    } else {
+      clearAdminKey();
+      setAdminKeyInput("");
+      setData(null);
     }
   };
 
@@ -50,7 +85,12 @@ export default function AdminDashboard() {
 
     setClearing(true);
     try {
-      const res = await fetch("/api/admin/users", { method: "DELETE" });
+      const key = getAdminKey();
+      const headers: Record<string, string> = key ? { "x-api-key": key } : {};
+      const res = await fetch("/api/admin/users", {
+        method: "DELETE",
+        headers,
+      });
       const json = await res.json();
       if (json.success) {
         await fetchData();
@@ -88,6 +128,26 @@ export default function AdminDashboard() {
               Refresh
             </Button>
           </div>
+        </div>
+
+        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-6">
+          <h2 className="mb-4 text-lg font-semibold">Admin Configuration</h2>
+          <div className="flex items-center gap-3">
+            <input
+              type="password"
+              placeholder="Enter Admin API Key..."
+              value={adminKeyInput}
+              onChange={(e) => setAdminKeyInput(e.target.value)}
+              className="flex-1 rounded-lg border border-gray-200 px-4 py-2 text-sm focus:border-gray-400 focus:outline-none"
+            />
+            <Button onClick={handleSaveAdminKey} variant="primary">
+              Save Key
+            </Button>
+          </div>
+          <p className="text-muted mt-2 text-xs">
+            The Admin API Key is required to view and manage system data. It is stored securely in
+            your browser&apos;s local storage.
+          </p>
         </div>
 
         {error && (

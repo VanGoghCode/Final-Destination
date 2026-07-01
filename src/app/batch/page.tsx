@@ -324,6 +324,19 @@ export default function BatchProcessPage() {
     return () => setPollingEnabled(false);
   }, [setPollingEnabled]);
 
+  // Prevent user from accidentally closing tab while processing
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isProcessing) {
+        e.preventDefault();
+        e.returnValue = "Jobs are still processing. If you leave, processing will pause.";
+        return e.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isProcessing]);
+
   // Load templates and profiles on mount
   useEffect(() => {
     const loadData = async () => {

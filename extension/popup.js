@@ -387,8 +387,27 @@ document.addEventListener("DOMContentLoaded", async () => {
         },
       });
       if (results && results[0]?.result) {
-        companyNameInput.value = results[0].result;
-        saveFormData();
+        const extractedName = results[0].result;
+        const jobBoardsLower = [
+          "linkedin",
+          "indeed",
+          "glassdoor",
+          "ziprecruiter",
+          "monster",
+          "dice",
+          "greenhouse",
+          "lever",
+          "workday",
+          "ashby",
+        ];
+        const isJobBoardName = jobBoardsLower.some((board) =>
+          extractedName.toLowerCase().includes(board),
+        );
+
+        if (!isJobBoardName) {
+          companyNameInput.value = extractedName;
+          saveFormData();
+        }
       }
     } catch {}
   }
@@ -397,21 +416,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const jobUrl = tab?.url || "";
       const hostname = new URL(jobUrl).hostname;
-      const parts = hostname.replace(/^(www\.|careers\.|jobs\.|apply\.|hire\.)/, "").split(".");
-      if (parts.length >= 1) {
-        const main = parts[0];
-        if (!companyNameInput.value) {
-          companyNameInput.value = main.charAt(0).toUpperCase() + main.slice(1);
-          saveFormData();
-        }
-        if (!companyUrlInput.value) {
-          const extractedWebsite = extractCompanyWebsite(jobUrl);
-          if (extractedWebsite) {
-            companyUrlInput.value = extractedWebsite;
-          } else {
-            companyUrlInput.value = `https://www.${parts.join(".")}`;
+      const jobBoards = [
+        "linkedin.com",
+        "indeed.com",
+        "glassdoor.com",
+        "ziprecruiter.com",
+        "monster.com",
+        "dice.com",
+      ];
+      const isJobBoard = jobBoards.some((board) => hostname.includes(board));
+
+      if (!isJobBoard) {
+        const parts = hostname.replace(/^(www\.|careers\.|jobs\.|apply\.|hire\.)/, "").split(".");
+        if (parts.length >= 1) {
+          const main = parts[0];
+          if (!companyNameInput.value) {
+            companyNameInput.value = main.charAt(0).toUpperCase() + main.slice(1);
+            saveFormData();
           }
-          saveFormData();
+          if (!companyUrlInput.value) {
+            const extractedWebsite = extractCompanyWebsite(jobUrl);
+            if (extractedWebsite) {
+              companyUrlInput.value = extractedWebsite;
+            } else {
+              companyUrlInput.value = `https://www.${parts.join(".")}`;
+            }
+            saveFormData();
+          }
         }
       }
     } catch {}
