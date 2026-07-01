@@ -206,6 +206,8 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
   const resumeFileName = fullName
     ? `${fullName}_${formatName(companyName)}_${formatName(positionTitle)}_Resume`
     : `${formatName(companyName)}_${formatName(positionTitle)}_Resume`;
+  const simpleResumeFileName =
+    firstName && lastName ? `${formatName(firstName)}_${formatName(lastName)}_Resume` : "Resume";
   const coverLetterFileName = fullName
     ? `${fullName}_${formatName(companyName)}_${formatName(positionTitle)}_CoverLetter`
     : `${formatName(companyName)}_${formatName(positionTitle)}_CoverLetter`;
@@ -742,6 +744,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
           showPreview={true}
           fullHeight={true}
           downloadFileName={resumeFileName}
+          simpleDownloadFileName={simpleResumeFileName}
           jobUrl={jobData?.companyUrl}
           onApply={() => {
             // Redirect to the job application URL
