@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/Button";
 import {
@@ -11,6 +11,7 @@ import {
   getProfiles,
   Profile,
 } from "@/lib/storage";
+import { sanitizeUrl } from "@/lib/sanitize";
 
 interface ImportedJob {
   companyName: string;
@@ -182,6 +183,7 @@ export default function AIImportPage() {
   const [templateLoading, setTemplateLoading] = useState(true);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [jobProfiles, setJobProfiles] = useState<Record<number, string>>({});
+  const [jobCoverLetters, setJobCoverLetters] = useState<Record<number, boolean>>({});
   const [freshnessDays, setFreshnessDays] = useState(1);
 
   // Load profiles + templates on mount
@@ -268,8 +270,8 @@ export default function AIImportPage() {
               whyMatch: (job.whyMatch as string) || "",
             })
           : "",
-      companyUrl: (job.companyUrl as string) || "",
-      companyWebsite: (job.companyWebsite as string) || "",
+      companyUrl: sanitizeUrl((job.companyUrl as string) || ""),
+      companyWebsite: sanitizeUrl((job.companyWebsite as string) || ""),
       includeCoverLetter: job.includeCoverLetter === true,
       _index: index,
       _valid: errors.length === 0,
@@ -320,6 +322,7 @@ export default function AIImportPage() {
           ? Object.fromEntries(validated.map((j) => [j._index, profiles[0]!.id]))
           : {},
       );
+      setJobCoverLetters({});
 
       const validCount = validated.filter((j) => j._valid).length;
       if (validCount === 0) {
@@ -380,7 +383,7 @@ export default function AIImportPage() {
           jobDescription: j.jobDescription,
           companyUrl: j.companyUrl,
           companyWebsite: j.companyWebsite || "",
-          includeCoverLetter: j.includeCoverLetter || false,
+          includeCoverLetter: jobCoverLetters[j._index] ?? j.includeCoverLetter ?? false,
           personalDetails: "",
           resumeLatex,
           coverLetterLatex: coverLetterLatex || "",
@@ -414,13 +417,14 @@ export default function AIImportPage() {
       setParseError(err instanceof Error ? err.message : "Failed to add jobs");
       setAdding(false);
     }
-  }, [parsedJobs, templateReady, router, jobProfiles, profiles]);
+  }, [parsedJobs, templateReady, router, jobProfiles, profiles, jobCoverLetters]);
 
   // Reset when input changes
   useEffect(() => {
     if (parsedJobs.length > 0) {
       setParsedJobs([]);
       setJobProfiles({});
+      setJobCoverLetters({});
       setParseError("");
       setAddedCount(0);
     }
@@ -460,6 +464,10 @@ export default function AIImportPage() {
 
   const validCount = parsedJobs.filter((j) => j._valid).length;
   const invalidCount = parsedJobs.length - validCount;
+  const allCoverLettersOn = useMemo(
+    () => parsedJobs.every((j) => jobCoverLetters[j._index] ?? j.includeCoverLetter),
+    [parsedJobs, jobCoverLetters],
+  );
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -664,6 +672,26 @@ export default function AIImportPage() {
                   </div>
                 )}
 
+                {/* Cover letter toggle — apply to all */}
+                <div className="mt-3 flex items-center gap-3">
+                  <label className="text-xs font-medium text-gray-600">Cover letter:</label>
+                  <button
+                    onClick={() => {
+                      const newVal = !allCoverLettersOn;
+                      setJobCoverLetters((prev) => {
+                        const next = { ...prev };
+                        parsedJobs.forEach((j) => {
+                          next[j._index] = newVal;
+                        });
+                        return next;
+                      });
+                    }}
+                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800"
+                  >
+                    {allCoverLettersOn ? "Disable all" : "Enable all"}
+                  </button>
+                </div>
+
                 {/* Table */}
                 <div className="mt-3 overflow-x-auto rounded-lg border border-gray-200">
                   <table className="w-full text-left text-sm">
@@ -686,13 +714,25 @@ export default function AIImportPage() {
                             {job.positionTitle || <span className="text-gray-300 italic">—</span>}
                           </td>
                           <td className="px-4 py-2.5">
-                            {job.includeCoverLetter ? (
-                              <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[10px] font-medium text-indigo-700">
-                                Yes
+                            <label className="relative inline-flex cursor-pointer items-center">
+                              <input
+                                type="checkbox"
+                                className="peer sr-only"
+                                checked={jobCoverLetters[job._index] ?? job.includeCoverLetter}
+                                onChange={(e) =>
+                                  setJobCoverLetters((prev) => ({
+                                    ...prev,
+                                    [job._index]: e.target.checked,
+                                  }))
+                                }
+                              />
+                              <div className="h-5 w-9 rounded-full bg-gray-200 peer-checked:bg-indigo-600 after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white" />
+                              <span className="ms-2 text-[10px] font-medium text-gray-500">
+                                {(jobCoverLetters[job._index] ?? job.includeCoverLetter)
+                                  ? "Yes"
+                                  : "No"}
                               </span>
-                            ) : (
-                              <span className="text-gray-300">—</span>
-                            )}
+                            </label>
                           </td>
                           {profiles.length > 0 && (
                             <td className="px-4 py-2.5">

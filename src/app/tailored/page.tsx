@@ -32,8 +32,6 @@ export default function TailoredPage() {
 
   const [copiedResume, setCopiedResume] = useState(false);
   const [copiedCoverLetter, setCopiedCoverLetter] = useState(false);
-  const [copiedResumeDetailed, setCopiedResumeDetailed] = useState(false);
-  const [copiedCoverLetterDetailed, setCopiedCoverLetterDetailed] = useState(false);
 
   // Regeneration state
   const [isRegeneratingResume, setIsRegeneratingResume] = useState(false);
@@ -98,18 +96,11 @@ export default function TailoredPage() {
   // Use firstName and lastName from context, fallback to defaults
   const fullName = `${firstName || "First"}_${lastName || "Last"}`;
 
-  // Plain filenames (without company/role)
-  const resumeFileNamePlain = `${fullName}_Resume`;
-  const coverLetterFileNamePlain = `${fullName}_CoverLetter`;
+  // Detailed filenames (with company and role) — used for download
+  const resumeFileName = `${fullName}_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_Resume`;
+  const coverLetterFileName = `${fullName}_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_CoverLetter`;
 
-  // Detailed filenames (with company and role)
-  const resumeFileNameDetailed = `${fullName}_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_Resume`;
-  const coverLetterFileNameDetailed = `${fullName}_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_CoverLetter`;
-
-  const copyToClipboard = async (
-    text: string,
-    type: "resume" | "coverLetter" | "resumeDetailed" | "coverLetterDetailed",
-  ) => {
+  const copyToClipboard = async (text: string, type: "resume" | "coverLetter") => {
     await navigator.clipboard.writeText(text);
     if (type === "resume") {
       setCopiedResume(true);
@@ -117,12 +108,6 @@ export default function TailoredPage() {
     } else if (type === "coverLetter") {
       setCopiedCoverLetter(true);
       setTimeout(() => setCopiedCoverLetter(false), 2000);
-    } else if (type === "resumeDetailed") {
-      setCopiedResumeDetailed(true);
-      setTimeout(() => setCopiedResumeDetailed(false), 2000);
-    } else {
-      setCopiedCoverLetterDetailed(true);
-      setTimeout(() => setCopiedCoverLetterDetailed(false), 2000);
     }
   };
 
@@ -502,26 +487,14 @@ export default function TailoredPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <code className="bg-surface-hover text-foreground flex-1 truncate rounded-lg px-2 py-1.5 font-mono text-[10px]">
-                        {resumeFileNamePlain}
+                        {resumeFileName}
                       </code>
                       <Button
-                        onClick={() => copyToClipboard(resumeFileNamePlain, "resume")}
+                        onClick={() => copyToClipboard(resumeFileName, "resume")}
                         variant="ghost"
                         className="copy-btn shrink-0 px-2 py-1 text-xs"
                       >
                         {copiedResume ? "✓" : "Copy"}
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <code className="bg-surface-hover text-foreground flex-1 truncate rounded-lg px-2 py-1.5 font-mono text-[10px]">
-                        {resumeFileNameDetailed}
-                      </code>
-                      <Button
-                        onClick={() => copyToClipboard(resumeFileNameDetailed, "resumeDetailed")}
-                        variant="ghost"
-                        className="copy-btn shrink-0 px-2 py-1 text-xs"
-                      >
-                        {copiedResumeDetailed ? "✓" : "Copy"}
                       </Button>
                     </div>
                   </div>
@@ -533,28 +506,14 @@ export default function TailoredPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <code className="bg-surface-hover text-foreground flex-1 truncate rounded-lg px-2 py-1.5 font-mono text-[10px]">
-                        {coverLetterFileNamePlain}
+                        {coverLetterFileName}
                       </code>
                       <Button
-                        onClick={() => copyToClipboard(coverLetterFileNamePlain, "coverLetter")}
+                        onClick={() => copyToClipboard(coverLetterFileName, "coverLetter")}
                         variant="ghost"
                         className="copy-btn shrink-0 px-2 py-1 text-xs"
                       >
                         {copiedCoverLetter ? "✓" : "Copy"}
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <code className="bg-surface-hover text-foreground flex-1 truncate rounded-lg px-2 py-1.5 font-mono text-[10px]">
-                        {coverLetterFileNameDetailed}
-                      </code>
-                      <Button
-                        onClick={() =>
-                          copyToClipboard(coverLetterFileNameDetailed, "coverLetterDetailed")
-                        }
-                        variant="ghost"
-                        className="copy-btn shrink-0 px-2 py-1 text-xs"
-                      >
-                        {copiedCoverLetterDetailed ? "✓" : "Copy"}
                       </Button>
                     </div>
                   </div>
@@ -694,7 +653,7 @@ export default function TailoredPage() {
           isRegenerating={isRegeneratingResume}
           showPreview={true}
           fullHeight={true}
-          downloadFileNames={[resumeFileNamePlain, resumeFileNameDetailed]}
+          downloadFileName={resumeFileName}
         />
       </main>
 
@@ -929,7 +888,7 @@ export default function TailoredPage() {
                 isRegenerating={isRegeneratingCoverLetter}
                 showPreview={true}
                 fullHeight={true}
-                downloadFileNames={[coverLetterFileNamePlain, coverLetterFileNameDetailed]}
+                downloadFileName={coverLetterFileName}
               />
             </div>
           </div>

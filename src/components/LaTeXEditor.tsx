@@ -15,7 +15,7 @@ interface LaTeXEditorProps {
   isRegenerating?: boolean;
   showPreview?: boolean;
   fullHeight?: boolean;
-  downloadFileNames?: [string, string]; // [plainName, detailedName]
+  downloadFileName?: string;
   jobUrl?: string;
   onApply?: () => void; // Callback after download to redirect
 }
@@ -28,7 +28,7 @@ export default function LaTeXEditor({
   isRegenerating = false,
   showPreview = true,
   fullHeight = false,
-  downloadFileNames,
+  downloadFileName,
   jobUrl,
   onApply,
 }: LaTeXEditorProps) {
@@ -347,27 +347,15 @@ export default function LaTeXEditor({
     setShowFeedback(false);
   };
 
-  // Download PDF - downloads twice with both filenames
+  // Download PDF with single descriptive filename
   const handleDownloadPdf = () => {
     if (pdfUrl) {
-      const download = (filename: string) => {
-        const link = document.createElement("a");
-        link.href = pdfUrl;
-        link.download = `${filename}.pdf`;
-        link.click();
-      };
-
-      if (downloadFileNames && downloadFileNames.length === 2) {
-        // Download with plain filename first
-        download(downloadFileNames[0]);
-        // Small delay before second download
-        setTimeout(() => {
-          download(downloadFileNames[1]);
-        }, 500);
-      } else {
-        // Fallback to title-based filename
-        download(title.replace(/\s+/g, "_"));
-      }
+      const link = document.createElement("a");
+      link.href = pdfUrl;
+      link.download = downloadFileName
+        ? `${downloadFileName}.pdf`
+        : `${title.replace(/\s+/g, "_")}.pdf`;
+      link.click();
     }
   };
 
