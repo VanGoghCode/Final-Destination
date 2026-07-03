@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { scrapeAllCompanies } from "@/lib/scrapers";
+import type { Job as ScraperJob } from "@/lib/scrapers/types";
 import { getJobs, setJobs, type JobsData } from "@/lib/db";
 
 /**
@@ -76,11 +77,29 @@ export async function POST() {
     // Update summary with filtered count
     const removedCount = scrapedJobs.length - recentJobs.length;
 
+    // Merge with existing jobs from Redis so coverage accumulates across runs
+    // (each run only scrapes a time-budgeted subset of expanded companies).
+    const existingData = await getJobs();
+    const mergedJobs = new Map<string, ScraperJob>();
+    for (const job of existingData?.jobs ?? []) {
+      mergedJobs.set(job.id, job as ScraperJob);
+    }
+    // Overwrite/add with freshly scraped jobs (more recent data wins)
+    for (const job of recentJobs) {
+      mergedJobs.set(job.id, job);
+    }
+
+    // Prune stale jobs from the merged set (>10 days old)
+    const prunedJobs = Array.from(mergedJobs.values()).filter((job) => {
+      if (!job.postedAt) return true; // Keep unknown dates
+      return new Date(job.postedAt) >= tenDaysAgo;
+    });
+
     // Prepare data to save
     const jobsData: JobsData = {
       lastScraped: summary.scrapedAt,
-      totalJobs: recentJobs.length,
-      jobs: recentJobs,
+      totalJobs: prunedJobs.length,
+      jobs: prunedJobs,
     };
 
     // Save to Redis
@@ -92,6 +111,7 @@ export async function POST() {
         ...summary,
         totalJobs: scrapedJobs.length,
         retainedJobs: recentJobs.length,
+        mergedJobs: mergedJobs.size,
         filteredOldJobs: removedCount,
       },
       message: `Scraped ${summary.filteredJobs} matching jobs from ${summary.companiesScraped} companies`,
