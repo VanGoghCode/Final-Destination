@@ -130,6 +130,34 @@ export default function JobListingsPage() {
     });
   };
 
+  /** Get a date-only key (YYYY-MM-DD) from a date string */
+  const getDateKey = (dateStr?: string): string | null => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+
+  /** Get a human-readable section label for a date key */
+  const getDateSectionLabel = (dateKey: string): string => {
+    const todayKey = getDateKey(new Date().toISOString());
+    const yesterdayKey = getDateKey(new Date(Date.now() - 86400000).toISOString());
+
+    const d = new Date(dateKey + "T00:00:00");
+    const formatted = d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+
+    if (dateKey === todayKey) return `Today (${formatted})`;
+    if (dateKey === yesterdayKey) return `Yesterday (${formatted})`;
+    return d.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
   const isWithinDays = (dateStr: string | undefined, days: DaysFilter): boolean => {
     if (!dateStr) return false;
     const date = new Date(dateStr);
@@ -179,6 +207,11 @@ export default function JobListingsPage() {
     });
 
     return Array.from(stats.values()).sort((a, b) => {
+      // Sort by latest job date first (most recent companies on top)
+      const dateA = a.latestJobDate ? new Date(a.latestJobDate).getTime() : 0;
+      const dateB = b.latestJobDate ? new Date(b.latestJobDate).getTime() : 0;
+      if (dateA !== dateB) return dateB - dateA;
+      // Then by total jobs descending
       if (b.totalJobs !== a.totalJobs) return b.totalJobs - a.totalJobs;
       return a.name.localeCompare(b.name);
     });
@@ -319,78 +352,97 @@ export default function JobListingsPage() {
             </div>
 
             {companyJobs.length > 0 ? (
-              <div className="space-y-2 md:space-y-3">
-                {companyJobs.map((job) => {
-                  const cardContent = (
-                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="mb-1 flex flex-wrap items-start gap-2 sm:items-center">
-                          <h3 className="group-hover:text-primary line-clamp-2 text-sm font-semibold transition-colors md:truncate md:text-lg">
-                            {job.title}
-                          </h3>
-                          {isWithinDays(job.postedAt, 1) && (
-                            <span className="shrink-0 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 md:px-2 md:text-xs">
-                              New
+              (() => {
+                // Group jobs by date section
+                const grouped = new Map<string, typeof companyJobs>();
+                companyJobs.forEach((job) => {
+                  const key = getDateKey(job.postedAt) || "unknown";
+                  if (!grouped.has(key)) grouped.set(key, []);
+                  grouped.get(key)!.push(job);
+                });
+                // Map is already ordered by insertion (descending since companyJobs is sorted)
+
+                return Array.from(grouped.entries()).map(([dateKey, jobs]) => (
+                  <div key={dateKey} className="space-y-2 md:space-y-3">
+                    <h3 className="sticky top-0 z-10 bg-white/90 py-2 text-sm font-semibold text-gray-700 backdrop-blur md:text-base">
+                      {getDateSectionLabel(dateKey)}
+                      <span className="ml-1.5 text-xs font-normal text-gray-400">
+                        ({jobs.length})
+                      </span>
+                    </h3>
+                    {jobs.map((job) => {
+                      const cardContent = (
+                        <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="mb-1 flex flex-wrap items-start gap-2 sm:items-center">
+                              <h3 className="group-hover:text-primary line-clamp-2 text-sm font-semibold transition-colors md:truncate md:text-lg">
+                                {job.title}
+                              </h3>
+                              {isWithinDays(job.postedAt, 1) && (
+                                <span className="shrink-0 rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 md:px-2 md:text-xs">
+                                  New
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-muted flex flex-wrap items-center gap-1.5 text-xs md:gap-2 md:text-sm">
+                              <span className="max-w-40 truncate font-medium text-gray-700 md:max-w-none">
+                                {job.companyName}
+                              </span>
+                              <span className="hidden sm:inline">&bull;</span>
+                              <span className="truncate">{job.location}</span>
+                              {job.department && (
+                                <>
+                                  <span className="hidden md:inline">&bull;</span>
+                                  <span className="hidden md:inline">{job.department}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="mt-2 flex items-center gap-2 md:mt-0 md:gap-3">
+                            <span
+                              className={`rounded-full border px-1.5 py-0.5 text-[10px] md:px-2 md:py-1 md:text-xs ${PLATFORM_COLORS[job.platform] || PLATFORM_COLORS.custom}`}
+                            >
+                              {job.platform}
                             </span>
-                          )}
+                            <div className="text-right">
+                              <div className="text-xs font-medium text-gray-900 md:text-sm">
+                                {formatDate(job.postedAt)}
+                              </div>
+                              <div className="text-muted hidden text-[10px] sm:block md:text-xs">
+                                Posted
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-muted flex flex-wrap items-center gap-1.5 text-xs md:gap-2 md:text-sm">
-                          <span className="max-w-40 truncate font-medium text-gray-700 md:max-w-none">
-                            {job.companyName}
-                          </span>
-                          <span className="hidden sm:inline">&bull;</span>
-                          <span className="truncate">{job.location}</span>
-                          {job.department && (
-                            <>
-                              <span className="hidden md:inline">&bull;</span>
-                              <span className="hidden md:inline">{job.department}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                      );
 
-                      <div className="mt-2 flex items-center gap-2 md:mt-0 md:gap-3">
-                        <span
-                          className={`rounded-full border px-1.5 py-0.5 text-[10px] md:px-2 md:py-1 md:text-xs ${PLATFORM_COLORS[job.platform] || PLATFORM_COLORS.custom}`}
+                      if (job.url) {
+                        return (
+                          <a
+                            key={job.id}
+                            href={job.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="glass-card group hover:border-l-primary block border-l-4 border-l-transparent p-3 transition-all hover:shadow-lg md:p-4 lg:p-5"
+                          >
+                            {cardContent}
+                          </a>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={job.id}
+                          className="glass-card block border-l-4 border-l-transparent p-3 opacity-70 md:p-4 lg:p-5"
                         >
-                          {job.platform}
-                        </span>
-                        <div className="text-right">
-                          <div className="text-xs font-medium text-gray-900 md:text-sm">
-                            {formatDate(job.postedAt)}
-                          </div>
-                          <div className="text-muted hidden text-[10px] sm:block md:text-xs">
-                            Posted
-                          </div>
+                          {cardContent}
                         </div>
-                      </div>
-                    </div>
-                  );
-
-                  if (job.url) {
-                    return (
-                      <a
-                        key={job.id}
-                        href={job.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="glass-card group hover:border-l-primary block border-l-4 border-l-transparent p-3 transition-all hover:shadow-lg md:p-4 lg:p-5"
-                      >
-                        {cardContent}
-                      </a>
-                    );
-                  }
-
-                  return (
-                    <div
-                      key={job.id}
-                      className="glass-card block border-l-4 border-l-transparent p-3 opacity-70 md:p-4 lg:p-5"
-                    >
-                      {cardContent}
-                    </div>
-                  );
-                })}
-              </div>
+                      );
+                    })}
+                  </div>
+                ));
+              })()
             ) : (
               <div className="glass-card py-8 text-center md:py-12">
                 <p className="text-base text-gray-500 md:text-lg">
