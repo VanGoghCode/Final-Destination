@@ -157,6 +157,11 @@ export async function scrapeAllCompanies(): Promise<{
   const tierBreakdown = { top: 0, middle: 0, lower: 0, lowest: 0 };
   const scrapedTokens = new Set<string>();
 
+  // Time budget: stop adding work before serverless timeout (Vercel caps at 60s).
+  // Default 45s leaves buffer. Set SCRAPE_TIME_BUDGET_MS to override (e.g. 10000 on Hobby tier).
+  const scrapeStart = Date.now();
+  const timeBudgetMs = parseInt(process.env.SCRAPE_TIME_BUDGET_MS || "") || 45000;
+
   // Helper to run a scrape and collect results
   const runScrape = async (result: ScrapeResult, name: string, tier?: string) => {
     companiesScraped++;
@@ -292,6 +297,14 @@ export async function scrapeAllCompanies(): Promise<{
       );
 
       for (const company of toScrape) {
+        // Stop expanded scraping if we're nearing the time budget
+        if (Date.now() - scrapeStart > timeBudgetMs) {
+          console.log(
+            `  ⏱  Time budget reached (${Math.round((Date.now() - scrapeStart) / 1000)}s), skipping remaining ${config.platform} companies`,
+          );
+          break;
+        }
+
         const result = await config.scrapeFn(company.token, company.id, company.name);
         await runScrape(result, company.name);
         await new Promise((r) => setTimeout(r, 150));
