@@ -37,6 +37,7 @@ const EXCLUDED_TITLES = [
   "senior",
   "lead",
   "principal",
+  "staff",
   "manager",
   "director",
   "vp",
@@ -364,7 +365,7 @@ export default function JobListingsPage() {
 
                 return Array.from(grouped.entries()).map(([dateKey, jobs]) => (
                   <div key={dateKey} className="space-y-2 md:space-y-3">
-                    <h3 className="sticky top-0 z-10 bg-white/90 py-2 text-sm font-semibold text-gray-700 backdrop-blur md:text-base">
+                    <h3 className="sticky top-0 z-10 rounded-lg bg-white/90 px-3 py-2 text-sm font-semibold text-gray-700 backdrop-blur md:text-base">
                       {getDateSectionLabel(dateKey)}
                       <span className="ml-1.5 text-xs font-normal text-gray-400">
                         ({jobs.length})
@@ -452,63 +453,83 @@ export default function JobListingsPage() {
             )}
           </div>
         ) : (
-          /* Companies Grid View */
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3">
-            {companyStats.length > 0 ? (
-              companyStats.map((stat) => (
-                <Button
-                  key={stat.name}
-                  onClick={() => {
-                    if (selectedCompany) {
-                      window.history.replaceState(null, "");
-                    } else {
-                      window.history.pushState(null, "");
-                    }
-                    setSelectedCompany(stat.name);
-                  }}
-                  variant="ghost"
-                  className="glass-card group relative flex h-full flex-col justify-between overflow-hidden p-4 text-left transition-all hover:shadow-lg md:p-5"
-                >
-                  <div className="absolute top-0 right-0 p-2 opacity-10 transition-opacity group-hover:opacity-20 md:p-4">
-                    <svg
-                      className="text-primary h-16 w-16 md:h-24 md:w-24"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm0 2v12h16V6H4zm2 2h12v2H6V8zm0 4h12v2H6v-2zm0 4h12v2H6v-2z" />
-                    </svg>
-                  </div>
+          /* Companies Grid View — grouped by latest activity date */
+          (() => {
+            // Group companyStats by latestJobDate
+            const grouped = new Map<string, typeof companyStats>();
+            companyStats.forEach((stat) => {
+              const key = getDateKey(stat.latestJobDate || undefined) || "unknown";
+              if (!grouped.has(key)) grouped.set(key, []);
+              grouped.get(key)!.push(stat);
+            });
 
-                  <div>
-                    <div className="mb-2 flex items-start justify-between gap-2">
-                      <h3 className="group-hover:text-primary line-clamp-2 text-base font-bold transition-colors md:text-xl">
-                        {stat.name}
-                      </h3>
-                      <span
-                        className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] md:px-2 md:py-1 md:text-xs ${PLATFORM_COLORS[stat.platform] || PLATFORM_COLORS.custom}`}
+            return Array.from(grouped.entries()).length > 0 ? (
+              Array.from(grouped.entries()).map(([dateKey, stats]) => (
+                <div key={dateKey} className="space-y-3 md:space-y-4">
+                  <h3 className="sticky top-0 z-10 rounded-lg bg-white/90 px-3 py-2 text-sm font-semibold text-gray-700 backdrop-blur md:text-base">
+                    {dateKey === "unknown" ? "Unknown date" : getDateSectionLabel(dateKey)}
+                    <span className="ml-1.5 text-xs font-normal text-gray-400">
+                      ({stats.length})
+                    </span>
+                  </h3>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3">
+                    {stats.map((stat) => (
+                      <Button
+                        key={stat.name}
+                        onClick={() => {
+                          if (selectedCompany) {
+                            window.history.replaceState(null, "");
+                          } else {
+                            window.history.pushState(null, "");
+                          }
+                          setSelectedCompany(stat.name);
+                        }}
+                        variant="ghost"
+                        className="glass-card group relative flex h-full flex-col justify-between overflow-hidden p-4 text-left transition-all hover:shadow-lg md:p-5"
                       >
-                        {stat.platform}
-                      </span>
-                    </div>
-                    <div className="text-muted mb-3 text-xs md:mb-4 md:text-sm">
-                      Last active: {formatDate(stat.latestJobDate || undefined)}
-                    </div>
-                  </div>
+                        <div className="absolute top-0 right-0 p-2 opacity-10 transition-opacity group-hover:opacity-20 md:p-4">
+                          <svg
+                            className="text-primary h-16 w-16 md:h-24 md:w-24"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm0 2v12h16V6H4zm2 2h12v2H6V8zm0 4h12v2H6v-2zm0 4h12v2H6v-2z" />
+                          </svg>
+                        </div>
 
-                  <div className="mt-auto">
-                    <div className="rounded-lg bg-gray-50 p-2 md:p-3">
-                      <div className="text-lg font-bold text-gray-900 md:text-xl">
-                        {stat.totalJobs}
-                      </div>
-                      <div className="text-[10px] font-semibold text-blue-600 md:text-xs">
-                        New ({daysFilter}d)
-                      </div>
-                    </div>
+                        <div>
+                          <div className="mb-2 flex items-start justify-between gap-2">
+                            <h3 className="group-hover:text-primary line-clamp-2 text-base font-bold transition-colors md:text-xl">
+                              {stat.name}
+                            </h3>
+                            <span
+                              className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] md:px-2 md:py-1 md:text-xs ${PLATFORM_COLORS[stat.platform] || PLATFORM_COLORS.custom}`}
+                            >
+                              {stat.platform}
+                            </span>
+                          </div>
+                          <div className="text-muted mb-3 text-xs md:mb-4 md:text-sm">
+                            Last active: {formatDate(stat.latestJobDate || undefined)}
+                          </div>
+                        </div>
+
+                        <div className="mt-auto">
+                          <div className="rounded-lg bg-gray-50 p-2 md:p-3">
+                            <div className="text-lg font-bold text-gray-900 md:text-xl">
+                              {stat.totalJobs}
+                            </div>
+                            <div className="text-[10px] font-semibold text-blue-600 md:text-xs">
+                              New ({daysFilter}d)
+                            </div>
+                          </div>
+                        </div>
+                      </Button>
+                    ))}
                   </div>
-                </Button>
+                </div>
               ))
             ) : (
-              <div className="glass-card col-span-full py-12 text-center">
+              <div className="glass-card py-12 text-center">
                 <p className="text-base text-gray-500 md:text-lg">
                   No jobs found in the last {daysFilter} days.
                 </p>
@@ -516,8 +537,8 @@ export default function JobListingsPage() {
                   Try a wider time window or refresh jobs.
                 </p>
               </div>
-            )}
-          </div>
+            );
+          })()
         )}
       </div>
     </div>
