@@ -21,37 +21,6 @@ import {
   buildInternetQuestionPrompt,
 } from "./prompts/index";
 
-// Retry configuration
-const MAX_RETRIES = 3;
-const BASE_DELAY_MS = 1000;
-
-const RETRYABLE_ERRORS = [
-  "RESOURCE_EXHAUSTED",
-  "UNAVAILABLE",
-  "DEADLINE_EXCEEDED",
-  "INTERNAL",
-  "rate limit",
-  "quota exceeded",
-  "temporarily unavailable",
-  "server error",
-  "503",
-  "429",
-];
-
-function isRetryableError(error: unknown): boolean {
-  if (!error) return false;
-  const errorString = String(error).toLowerCase();
-  const errorMessage = error instanceof Error ? error.message.toLowerCase() : "";
-  return RETRYABLE_ERRORS.some(
-    (pattern) =>
-      errorString.includes(pattern.toLowerCase()) || errorMessage.includes(pattern.toLowerCase()),
-  );
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 // ========================================
 // PROVIDER INSTANCES
 // ========================================
@@ -80,23 +49,9 @@ async function generate(prompt: string, systemPrompt?: string, callTag?: string)
     throw new Error("Invalid input detected");
   }
 
-  let lastError: Error | null = null;
-
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      return await provider.generateContent(prompt, systemPrompt);
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-      console.error(`[DeepSeek] Error (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`, error);
-      if (isRetryableError(error) && attempt < MAX_RETRIES) {
-        await sleep(BASE_DELAY_MS * Math.pow(2, attempt));
-        continue;
-      }
-      break;
-    }
-  }
-
-  throw lastError || new Error("Failed to generate content after retries");
+  // Retries live inside the provider, which bounds all attempts + backoff to a
+  // single time budget so the route answers before Vercel's function deadline.
+  return provider.generateContent(prompt, systemPrompt);
 }
 
 // Clean LaTeX response
@@ -124,7 +79,10 @@ export async function extractJobLocationInfo(
     const fastProvider = getFastProvider("extraction");
     const response = await fastProvider.generateContent(prompt);
 
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    // The extraction object is flat JSON — match the first balanced {…} block.
+    // (A greedy [\s\S]* pattern also swallows any trailing text, e.g. a model
+    // "here you go" line, and then JSON.parse throws.)
+    const jsonMatch = response.match(/\{[^{}]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       return {

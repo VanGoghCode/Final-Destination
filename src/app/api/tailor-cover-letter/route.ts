@@ -63,6 +63,12 @@ export async function POST(request: Request) {
           { status: 429 },
         );
       }
+      if (error.message.includes("timeout")) {
+        return NextResponse.json(
+          { error: "The AI service took too long to respond. Please try again." },
+          { status: 504 },
+        );
+      }
       if (error.message.includes("Invalid input")) {
         return NextResponse.json(
           { error: "The cover letter or job description contains invalid content." },
