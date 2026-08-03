@@ -10,13 +10,17 @@ const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
 
 // Total time budget per generateContent call (ms).
-// On Vercel the platform kills functions at maxDuration (60s in vercel.json)
-// with a plain-text error body, so all attempts + backoff MUST fit inside that
-// window for the route to answer with JSON. Locally there is no such cap, so a
-// generous budget lets even a slow DeepSeek response complete.
-const IS_VERCEL = process.env.VERCEL === "1";
-const DEFAULT_TOTAL_BUDGET_MS = IS_VERCEL ? 50_000 : 120_000;
-const DEFAULT_ATTEMPT_TIMEOUT_MS = IS_VERCEL ? 50_000 : 120_000;
+// The Vercel Hobby (Fluid Compute) platform cap for this function is
+// maxDuration: 300s (vercel.json), not 60s. DeepSeek V4 Flash with thinking=high
+// reasons extensively on large resume prompts and can legitimately take a few
+// minutes to respond — a 60s window was killing jobs that would have completed.
+// The in-code budget sits just under the platform cap (~290s) so a genuinely
+// hung request aborts with a clean JSON error instead of being killed by the
+// platform with a plain-text body (which crashed the client with a JSON parse
+// error). Same budget locally — no platform cap there, but parity keeps local
+// behavior identical to production.
+const DEFAULT_TOTAL_BUDGET_MS = 290_000;
+const DEFAULT_ATTEMPT_TIMEOUT_MS = 290_000;
 // Don't start another attempt if less than this remains — it could not finish
 // anyway and would only burn the deadline.
 const MIN_RETRY_GRACE_MS = 2_000;
@@ -64,17 +68,12 @@ export interface DeepSeekConfig {
 
 const DEFAULT_CONFIG: DeepSeekConfig = {
   temperature: 0.7,
-  // 65k tokens let a single generation run for minutes — past Vercel's function
-  // deadline. A tailored resume never needs more than ~2-4k output tokens;
-  // 16k caps worst-case latency while leaving headroom for reasoning.
-  maxTokens: 16384,
-  // Thinking is DISABLED for standard generation. Measured against the live
-  // API: thinking=high takes 8-12s (and spikes past 50s under load — blowing
-  // the batch timeout), while thinking=disabled completes in 2-4s with zero
-  // reasoning tokens. Resume/cover-letter tailoring is structured rewriting,
-  // not deep reasoning, so the speed and reliability win outweighs the loss.
-  // Flip to enabled here (or in a per-call config) to restore reasoning.
-  thinking: { type: "disabled" },
+  // Thinking=high is intentional — tailoring quality matters more than raw
+  // speed, and the budget (just under Vercel's 60s cap) is sized to absorb it.
+  // 65k max tokens leaves headroom for long generations. getStandardProvider in
+  // ai.ts sets the same values explicitly; keep them in sync here.
+  maxTokens: 65535,
+  thinking: { type: "enabled", reasoning_effort: "high" },
 };
 
 const FAST_CONFIG: DeepSeekConfig = {
