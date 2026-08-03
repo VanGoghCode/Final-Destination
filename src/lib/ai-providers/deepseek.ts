@@ -10,11 +10,13 @@ const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
 
 // Total time budget per generateContent call (ms).
-// Vercel kills functions at maxDuration (60s in vercel.json) with a plain-text
-// error body — all attempts + backoff MUST fit well inside that window so the
-// route can return a proper JSON error instead.
-const DEFAULT_TOTAL_BUDGET_MS = 50_000;
-const DEFAULT_ATTEMPT_TIMEOUT_MS = 50_000;
+// On Vercel the platform kills functions at maxDuration (60s in vercel.json)
+// with a plain-text error body, so all attempts + backoff MUST fit inside that
+// window for the route to answer with JSON. Locally there is no such cap, so a
+// generous budget lets even a slow DeepSeek response complete.
+const IS_VERCEL = process.env.VERCEL === "1";
+const DEFAULT_TOTAL_BUDGET_MS = IS_VERCEL ? 50_000 : 120_000;
+const DEFAULT_ATTEMPT_TIMEOUT_MS = IS_VERCEL ? 50_000 : 120_000;
 // Don't start another attempt if less than this remains — it could not finish
 // anyway and would only burn the deadline.
 const MIN_RETRY_GRACE_MS = 2_000;
@@ -66,7 +68,13 @@ const DEFAULT_CONFIG: DeepSeekConfig = {
   // deadline. A tailored resume never needs more than ~2-4k output tokens;
   // 16k caps worst-case latency while leaving headroom for reasoning.
   maxTokens: 16384,
-  thinking: { type: "enabled", reasoning_effort: "high" },
+  // Thinking is DISABLED for standard generation. Measured against the live
+  // API: thinking=high takes 8-12s (and spikes past 50s under load — blowing
+  // the batch timeout), while thinking=disabled completes in 2-4s with zero
+  // reasoning tokens. Resume/cover-letter tailoring is structured rewriting,
+  // not deep reasoning, so the speed and reliability win outweighs the loss.
+  // Flip to enabled here (or in a per-call config) to restore reasoning.
+  thinking: { type: "disabled" },
 };
 
 const FAST_CONFIG: DeepSeekConfig = {

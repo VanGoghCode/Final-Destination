@@ -79,7 +79,10 @@ export async function extractJobLocationInfo(
     const fastProvider = getFastProvider("extraction");
     const response = await fastProvider.generateContent(prompt);
 
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    // The extraction object is flat JSON — match the first balanced {…} block.
+    // (A greedy [\s\S]* pattern also swallows any trailing text, e.g. a model
+    // "here you go" line, and then JSON.parse throws.)
+    const jsonMatch = response.match(/\{[^{}]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       return {
