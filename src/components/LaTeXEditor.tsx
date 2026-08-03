@@ -15,7 +15,8 @@ interface LaTeXEditorProps {
   isRegenerating?: boolean;
   showPreview?: boolean;
   fullHeight?: boolean;
-  downloadFileNames?: [string, string]; // [plainName, detailedName]
+  downloadFileName?: string;
+  simpleDownloadFileName?: string;
   jobUrl?: string;
   onApply?: () => void; // Callback after download to redirect
 }
@@ -28,7 +29,8 @@ export default function LaTeXEditor({
   isRegenerating = false,
   showPreview = true,
   fullHeight = false,
-  downloadFileNames,
+  downloadFileName,
+  simpleDownloadFileName,
   jobUrl,
   onApply,
 }: LaTeXEditorProps) {
@@ -347,26 +349,25 @@ export default function LaTeXEditor({
     setShowFeedback(false);
   };
 
-  // Download PDF - downloads twice with both filenames
+  // Download PDF — once with detailed name, plus simple name if provided
   const handleDownloadPdf = () => {
     if (pdfUrl) {
-      const download = (filename: string) => {
-        const link = document.createElement("a");
-        link.href = pdfUrl;
-        link.download = `${filename}.pdf`;
-        link.click();
-      };
+      // First download with detailed filename
+      const link = document.createElement("a");
+      link.href = pdfUrl;
+      link.download = downloadFileName
+        ? `${downloadFileName}.pdf`
+        : `${title.replace(/\s+/g, "_")}.pdf`;
+      link.click();
 
-      if (downloadFileNames && downloadFileNames.length === 2) {
-        // Download with plain filename first
-        download(downloadFileNames[0]);
-        // Small delay before second download
+      // Second download with firstname_lastname_resume if provided
+      if (simpleDownloadFileName) {
         setTimeout(() => {
-          download(downloadFileNames[1]);
+          const simpleLink = document.createElement("a");
+          simpleLink.href = pdfUrl;
+          simpleLink.download = `${simpleDownloadFileName}.pdf`;
+          simpleLink.click();
         }, 500);
-      } else {
-        // Fallback to title-based filename
-        download(title.replace(/\s+/g, "_"));
       }
     }
   };

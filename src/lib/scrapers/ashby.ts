@@ -7,7 +7,7 @@ interface AshbyJob {
   title: string;
   location: string;
   department: string;
-  jobPostingUrl: string;
+  jobUrl: string;
   publishedAt: string;
 }
 
@@ -44,7 +44,7 @@ export async function scrapeAshby(
       title: job.title,
       location: job.location,
       department: job.department,
-      url: job.jobPostingUrl,
+      url: job.jobUrl,
       postedAt: job.publishedAt,
       scrapedAt: new Date().toISOString(),
       platform: "ashby",

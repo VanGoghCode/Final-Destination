@@ -202,14 +202,13 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
   const companyName = jobData?.companyName || resolvedParams.company || "Company";
   const positionTitle = jobData?.positionTitle || "Position";
 
-  // Plain filename (just name or "Resume" if no profile)
-  const resumeFileNamePlain = fullName ? `${fullName}_Resume` : "Resume";
-
-  // Detailed filenames - format: FullName_Company_Position_Resume (matches /tailored page)
-  const resumeFileNameDetailed = fullName
+  // Detailed filenames - format: FullName_Company_Position_Resume
+  const resumeFileName = fullName
     ? `${fullName}_${formatName(companyName)}_${formatName(positionTitle)}_Resume`
     : `${formatName(companyName)}_${formatName(positionTitle)}_Resume`;
-  const coverLetterFileNameDetailed = fullName
+  const simpleResumeFileName =
+    firstName && lastName ? `${formatName(firstName)}_${formatName(lastName)}_Resume` : "Resume";
+  const coverLetterFileName = fullName
     ? `${fullName}_${formatName(companyName)}_${formatName(positionTitle)}_CoverLetter`
     : `${formatName(companyName)}_${formatName(positionTitle)}_CoverLetter`;
 
@@ -579,10 +578,10 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
               <div className="mt-2 space-y-2">
                 <div className="flex items-center gap-2">
                   <code className="bg-surface-hover flex-1 truncate rounded px-2 py-1 font-mono text-[10px]">
-                    {resumeFileNameDetailed}
+                    {resumeFileName}
                   </code>
                   <button
-                    onClick={() => copyToClipboard(resumeFileNameDetailed, "resume")}
+                    onClick={() => copyToClipboard(resumeFileName, "resume")}
                     className="text-muted hover:text-foreground text-xs"
                   >
                     {copiedResume ? "✓" : "Copy"}
@@ -590,10 +589,10 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                 </div>
                 <div className="flex items-center gap-2">
                   <code className="bg-surface-hover flex-1 truncate rounded px-2 py-1 font-mono text-[10px]">
-                    {coverLetterFileNameDetailed}
+                    {coverLetterFileName}
                   </code>
                   <button
-                    onClick={() => copyToClipboard(coverLetterFileNameDetailed, "coverLetter")}
+                    onClick={() => copyToClipboard(coverLetterFileName, "coverLetter")}
                     className="text-muted hover:text-foreground text-xs"
                   >
                     {copiedCoverLetter ? "✓" : "Copy"}
@@ -744,7 +743,8 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
           isRegenerating={isRegeneratingResume}
           showPreview={true}
           fullHeight={true}
-          downloadFileNames={[resumeFileNamePlain, resumeFileNameDetailed]}
+          downloadFileName={resumeFileName}
+          simpleDownloadFileName={simpleResumeFileName}
           jobUrl={jobData?.companyUrl}
           onApply={() => {
             // Redirect to the job application URL
@@ -919,10 +919,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                 isRegenerating={isRegeneratingCoverLetter}
                 showPreview={true}
                 fullHeight={true}
-                downloadFileNames={[
-                  `Cover_Letter_${companyName}`,
-                  `Cover_Letter_Detailed_${companyName}`,
-                ]}
+                downloadFileName={coverLetterFileName}
               />
             </div>
           </div>

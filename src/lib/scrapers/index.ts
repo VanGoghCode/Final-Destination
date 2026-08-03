@@ -79,6 +79,71 @@ function loadTierCompanies(): TierCompany[] {
 }
 
 /**
+ * Expanded company entry (from validated JSON files)
+ */
+interface ExpandedCompany {
+  token: string;
+  id: string;
+  name: string;
+}
+
+/**
+ * Load expanded company lists from validated JSON files.
+ * Falls back gracefully if files don't exist yet.
+ */
+function loadExpandedCompanies(): Record<string, ExpandedCompany[]> {
+  const result: Record<string, ExpandedCompany[]> = {
+    greenhouse: [],
+    lever: [],
+    ashby: [],
+  };
+
+  const files: { key: string; file: string }[] = [
+    { key: "greenhouse", file: "greenhouse-expanded.json" },
+    { key: "lever", file: "lever-expanded.json" },
+    { key: "ashby", file: "ashby-expanded.json" },
+  ];
+
+  for (const { key, file } of files) {
+    const filePath = path.join(process.cwd(), "data", file);
+    try {
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, "utf-8");
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed)) {
+          // Validate entries
+          result[key] = parsed.filter(
+            (c: unknown): c is ExpandedCompany =>
+              typeof c === "object" &&
+              c !== null &&
+              typeof (c as ExpandedCompany).token === "string" &&
+              typeof (c as ExpandedCompany).id === "string" &&
+              typeof (c as ExpandedCompany).name === "string",
+          );
+          console.log(`  Loaded ${result[key].length} expanded ${key} companies from ${file}`);
+        }
+      }
+    } catch (error) {
+      console.error(`  Error loading expanded ${key} companies:`, error);
+      // Graceful — non-fatal, just skip
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Shuffle an array in place (Fisher-Yates)
+ */
+function shuffleArray<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j]!, arr[i]!];
+  }
+  return arr;
+}
+
+/**
  * Scrape all configured companies from tier files and legacy sources
  */
 export async function scrapeAllCompanies(): Promise<{
@@ -91,6 +156,11 @@ export async function scrapeAllCompanies(): Promise<{
   let companiesWithJobs = 0;
   const tierBreakdown = { top: 0, middle: 0, lower: 0, lowest: 0 };
   const scrapedTokens = new Set<string>();
+
+  // Time budget: stop adding work before serverless timeout (Vercel caps at 60s).
+  // Default 45s leaves buffer. Set SCRAPE_TIME_BUDGET_MS to override (e.g. 10000 on Hobby tier).
+  const scrapeStart = Date.now();
+  const timeBudgetMs = parseInt(process.env.SCRAPE_TIME_BUDGET_MS || "") || 45000;
 
   // Helper to run a scrape and collect results
   const runScrape = async (result: ScrapeResult, name: string, tier?: string) => {
@@ -170,6 +240,75 @@ export async function scrapeAllCompanies(): Promise<{
       const result = await scrapeAshby(org, company.id, company.name);
       await runScrape(result, company.name);
       await new Promise((r) => setTimeout(r, 150));
+    }
+  }
+
+  // 5. Scrape from expanded ATS company lists (optional, configurable)
+  const expandedMaxStr = process.env.EXPANDED_SCRAPE_MAX;
+  const expandedMax = expandedMaxStr ? parseInt(expandedMaxStr, 10) : 200;
+
+  if (expandedMax > 0) {
+    const expanded = loadExpandedCompanies();
+
+    const expandedConfigs: {
+      platform: "greenhouse" | "lever" | "ashby";
+      list: ExpandedCompany[];
+      scrapeFn: (token: string, id: string, name: string) => Promise<ScrapeResult>;
+      tokenPrefix: string;
+    }[] = [
+      {
+        platform: "greenhouse",
+        list: expanded.greenhouse ?? [],
+        scrapeFn: scrapeGreenhouse,
+        tokenPrefix: "gh",
+      },
+      {
+        platform: "lever",
+        list: expanded.lever ?? [],
+        scrapeFn: scrapeLever,
+        tokenPrefix: "lever",
+      },
+      {
+        platform: "ashby",
+        list: expanded.ashby ?? [],
+        scrapeFn: scrapeAshby,
+        tokenPrefix: "ashby",
+      },
+    ];
+
+    for (const config of expandedConfigs) {
+      if (config.list.length === 0) continue;
+
+      // Shuffle to get variety across runs
+      const shuffled = shuffleArray([...config.list]);
+
+      // Pick up to expandedMax, but skip tokens already scraped from tier/hardcoded lists
+      const toScrape: ExpandedCompany[] = [];
+      for (const company of shuffled) {
+        if (!scrapedTokens.has(`${config.tokenPrefix}-${company.token}`)) {
+          toScrape.push(company);
+          scrapedTokens.add(`${config.tokenPrefix}-${company.token}`);
+          if (toScrape.length >= expandedMax) break;
+        }
+      }
+
+      console.log(
+        `  Scraping ${toScrape.length} expanded ${config.platform} companies (pool: ${config.list.length})`,
+      );
+
+      for (const company of toScrape) {
+        // Stop expanded scraping if we're nearing the time budget
+        if (Date.now() - scrapeStart > timeBudgetMs) {
+          console.log(
+            `  ⏱  Time budget reached (${Math.round((Date.now() - scrapeStart) / 1000)}s), skipping remaining ${config.platform} companies`,
+          );
+          break;
+        }
+
+        const result = await config.scrapeFn(company.token, company.id, company.name);
+        await runScrape(result, company.name);
+        await new Promise((r) => setTimeout(r, 150));
+      }
     }
   }
 
