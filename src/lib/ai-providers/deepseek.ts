@@ -9,6 +9,16 @@ const MODEL_NAME = "deepseek-v4-flash";
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
 
+// Total time budget per generateContent call (ms).
+// Vercel kills functions at maxDuration (60s in vercel.json) with a plain-text
+// error body — all attempts + backoff MUST fit well inside that window so the
+// route can return a proper JSON error instead.
+const DEFAULT_TOTAL_BUDGET_MS = 50_000;
+const DEFAULT_ATTEMPT_TIMEOUT_MS = 50_000;
+// Don't start another attempt if less than this remains — it could not finish
+// anyway and would only burn the deadline.
+const MIN_RETRY_GRACE_MS = 2_000;
+
 const RETRYABLE_ERRORS = [
   "rate limit",
   "temporarily unavailable",
@@ -44,11 +54,18 @@ export interface DeepSeekConfig {
   _fetch?: typeof fetch;
   /** Tag for cache hit/miss logging. */
   callTag?: string;
+  /** Per-attempt timeout. Defaults to DEFAULT_ATTEMPT_TIMEOUT_MS. */
+  timeoutMs?: number;
+  /** Total budget across all attempts + backoff. Defaults to DEFAULT_TOTAL_BUDGET_MS. */
+  totalBudgetMs?: number;
 }
 
 const DEFAULT_CONFIG: DeepSeekConfig = {
   temperature: 0.7,
-  maxTokens: 65535,
+  // 65k tokens let a single generation run for minutes — past Vercel's function
+  // deadline. A tailored resume never needs more than ~2-4k output tokens;
+  // 16k caps worst-case latency while leaving headroom for reasoning.
+  maxTokens: 16384,
   thinking: { type: "enabled", reasoning_effort: "high" },
 };
 
@@ -91,7 +108,19 @@ export class DeepSeekProvider implements AIProviderInterface {
 
     let lastError: Error | null = null;
 
+    const attemptTimeoutMs = this.config.timeoutMs ?? DEFAULT_ATTEMPT_TIMEOUT_MS;
+    const deadline = Date.now() + (this.config.totalBudgetMs ?? DEFAULT_TOTAL_BUDGET_MS);
+
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      // No budget left at all — the route would be killed by Vercel before it
+      // can answer, so stop. (The grace window that gates retries lives in the
+      // catch below; the first attempt always runs.)
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        break;
+      }
+      const timeoutMs = Math.min(attemptTimeoutMs, remaining);
+
       try {
         const messages: Array<{ role: string; content: string }> = [];
         if (systemPrompt) {
@@ -103,7 +132,7 @@ export class DeepSeekProvider implements AIProviderInterface {
           model: MODEL_NAME,
           messages,
           temperature: this.config.temperature ?? 0.7,
-          max_tokens: this.config.maxTokens ?? 65535,
+          max_tokens: this.config.maxTokens ?? 16384,
           stream: false,
         };
 
@@ -115,45 +144,77 @@ export class DeepSeekProvider implements AIProviderInterface {
           body.response_format = this.config.responseFormat;
         }
 
-        const response = await this._fetchFn(DEEPSEEK_API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify(body),
-        });
+        // Abort hung generations instead of waiting until Vercel kills the
+        // whole function with a non-JSON error body. Manual controller rather
+        // than AbortSignal.timeout — equivalent in production, and reliable
+        // under the test runner.
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-        if (!response.ok) {
-          const errorBody = await response.text();
-          throw new Error(`DeepSeek API error (${response.status}): ${errorBody}`);
+        try {
+          const response = await this._fetchFn(DEEPSEEK_API_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify(body),
+            signal: controller.signal,
+          });
+
+          if (!response.ok) {
+            const errorBody = await response.text();
+            throw new Error(`DeepSeek API error (${response.status}): ${errorBody}`);
+          }
+
+          const data = await response.json();
+          const text = data.choices?.[0]?.message?.content || "";
+
+          // Log KV cache metrics (DeepSeek disk cache — always active, no opt-in needed)
+          if (data.usage) {
+            const hit = data.usage.prompt_cache_hit_tokens ?? 0;
+            const miss = data.usage.prompt_cache_miss_tokens ?? 0;
+            const totalPrompt = data.usage.prompt_tokens ?? 0;
+            const cacheRate = totalPrompt > 0 ? ((hit / totalPrompt) * 100).toFixed(0) : "0";
+            const tag = this.config.callTag || "unknown";
+            console.info(
+              `[DeepSeek Cache] tag=${tag} hit=${hit} miss=${miss} prompt_total=${totalPrompt} ` +
+                `cache_rate=${cacheRate}% ` +
+                (hit > 0 ? "REUSED" : "COLD"),
+            );
+          }
+
+          return text;
+        } finally {
+          clearTimeout(timer);
         }
-
-        const data = await response.json();
-        const text = data.choices?.[0]?.message?.content || "";
-
-        // Log KV cache metrics (DeepSeek disk cache — always active, no opt-in needed)
-        if (data.usage) {
-          const hit = data.usage.prompt_cache_hit_tokens ?? 0;
-          const miss = data.usage.prompt_cache_miss_tokens ?? 0;
-          const totalPrompt = data.usage.prompt_tokens ?? 0;
-          const cacheRate = totalPrompt > 0 ? ((hit / totalPrompt) * 100).toFixed(0) : "0";
-          const tag = this.config.callTag || "unknown";
-          console.info(
-            `[DeepSeek Cache] tag=${tag} hit=${hit} miss=${miss} prompt_total=${totalPrompt} ` +
-              `cache_rate=${cacheRate}% ` +
-              (hit > 0 ? "REUSED" : "COLD"),
-          );
-        }
-
-        return text;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        console.error(`[DeepSeek] Error (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`, error);
 
-        if (isRetryableError(error) && attempt < MAX_RETRIES) {
-          const delay = BASE_DELAY_MS * Math.pow(2, attempt);
-          await sleep(delay);
+        // Wrap abort timeouts so the message is clear and matches the
+        // "timeout" retry classification (retryable when budget remains).
+        // AbortError covers runtimes that report the default abort reason.
+        const name =
+          typeof error === "object" && error !== null ? (error as { name?: string }).name : "";
+        const isTimeout = name === "TimeoutError" || name === "AbortError";
+        if (isTimeout) {
+          lastError = new Error(`DeepSeek API timeout after ${timeoutMs}ms`);
+        }
+
+        console.error(`[DeepSeek] Error (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`, lastError);
+
+        if (isRetryableError(lastError) && attempt < MAX_RETRIES) {
+          // Backoff but never beyond the deadline — leave the route time to
+          // return a JSON error before Vercel's hard cap.
+          const remainingAfterError = deadline - Date.now();
+          if (remainingAfterError < MIN_RETRY_GRACE_MS) {
+            break;
+          }
+          const delay = Math.min(
+            BASE_DELAY_MS * Math.pow(2, attempt),
+            remainingAfterError - MIN_RETRY_GRACE_MS,
+          );
+          await sleep(Math.max(0, delay));
           continue;
         }
 

@@ -334,10 +334,10 @@ describe("DeepSeekProvider", () => {
       const provider = createProvider();
       await expect(provider.generateContent("test")).rejects.toThrow("DeepSeek");
       expect(callCount).toBe(4);
-      expect(delays.length).toBe(3);
-      expect(delays[0]).toBe(1000);
-      expect(delays[1]).toBe(2000);
-      expect(delays[2]).toBe(4000);
+      // Abort timers (one per attempt) fire through the same mocked setTimeout;
+      // filter to the backoff delays the test is about.
+      const backoffDelays = delays.filter((d) => d < 10000); // abort timers are ~50s
+      expect(backoffDelays).toEqual([1000, 2000, 4000]);
 
       (globalThis as Record<string, unknown>).setTimeout = origSetTimeout;
     });
@@ -393,12 +393,94 @@ describe("DeepSeekProvider", () => {
       };
       const provider = createProvider();
       await provider.generateContent("test");
-      expect(delays.length).toBe(3);
-      expect(delays[0]).toBe(1000);
-      expect(delays[1]).toBe(2000);
-      expect(delays[2]).toBe(4000);
+      // Abort timers (one per attempt) fire through the same mocked setTimeout;
+      // filter to the backoff delays the test is about.
+      const backoffDelays = delays.filter((d) => d < 10000); // abort timers are ~50s
+      expect(backoffDelays).toEqual([1000, 2000, 4000]);
 
       (globalThis as Record<string, unknown>).setTimeout = origSetTimeout;
+    });
+  });
+
+  describe("generateContent — timeout & budget", () => {
+    // The provider aborts via setTimeout -> controller.abort(). Firing every
+    // setTimeout synchronously makes the fetch mock see an already-aborted
+    // signal, so the timeout path runs without real timers. (Real-timer
+    // tests intermittently segfault the x64 Bun test runner under Windows
+    // on ARM emulation, so the suite keeps everything synchronous.)
+    function fireTimersImmediately() {
+      const origSetTimeout = globalThis.setTimeout;
+      (globalThis as Record<string, unknown>).setTimeout = ((fn: () => void) => {
+        fn();
+        return 0 as unknown as ReturnType<typeof setTimeout>;
+      }) as typeof setTimeout;
+      return () => {
+        (globalThis as Record<string, unknown>).setTimeout = origSetTimeout;
+      };
+    }
+
+    function timeoutError(): Error {
+      const err = new Error("The operation was aborted");
+      err.name = "TimeoutError";
+      return err;
+    }
+
+    it("rejects with a timeout error when the API hangs", async () => {
+      const restore = fireTimersImmediately();
+      fetchMock = async (_url, init) => {
+        if (init?.signal?.aborted) {
+          throw timeoutError();
+        }
+        return fakeResponse({ body: successBody("should not happen") });
+      };
+      const provider = createProvider({ timeoutMs: 30, totalBudgetMs: 5000 });
+      await expect(provider.generateContent("test")).rejects.toThrow(/timeout/i);
+      restore();
+    });
+
+    it("does not retry when the budget is exhausted (single attempt)", async () => {
+      const restore = fireTimersImmediately();
+      let callCount = 0;
+      fetchMock = async (_url, init) => {
+        callCount++;
+        if (init?.signal?.aborted) {
+          throw timeoutError();
+        }
+        return fakeResponse({ body: successBody("ok") });
+      };
+      const provider = createProvider({ timeoutMs: 20, totalBudgetMs: 25 });
+      await expect(provider.generateContent("test")).rejects.toThrow(/timeout/i);
+      expect(callCount).toBe(1);
+      restore();
+    });
+
+    it("retries a timeout when budget remains", async () => {
+      const restore = fireTimersImmediately();
+      let callCount = 0;
+      fetchMock = async (_url, init) => {
+        callCount++;
+        if (callCount === 1 && init?.signal?.aborted) {
+          throw timeoutError();
+        }
+        return fakeResponse({ body: successBody("recovered after timeout") });
+      };
+      const provider = createProvider({ timeoutMs: 30, totalBudgetMs: 5000 });
+      const result = await provider.generateContent("test");
+      expect(result).toBe("recovered after timeout");
+      expect(callCount).toBe(2);
+      restore();
+    });
+
+    it("passes an abort signal to fetch", async () => {
+      let signal: AbortSignal | null | undefined;
+      fetchMock = async (_url, init) => {
+        signal = init?.signal;
+        return fakeResponse({ body: successBody("ok") });
+      };
+      const provider = createProvider({ timeoutMs: 1000, totalBudgetMs: 1000 });
+      const result = await provider.generateContent("test");
+      expect(result).toBe("ok");
+      expect(signal).toBeDefined();
     });
   });
 

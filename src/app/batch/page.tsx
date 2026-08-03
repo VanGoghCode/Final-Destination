@@ -19,6 +19,7 @@ import {
   Template,
   Profile,
 } from "@/lib/storage";
+import { extractApiError } from "@/lib/api-error";
 import JobForm from "@/components/JobForm";
 
 interface Activity {
@@ -496,8 +497,7 @@ export default function BatchProcessPage() {
         });
 
         if (!tailorResponse.ok) {
-          const data = await tailorResponse.json();
-          throw new Error(data.error || "Resume tailoring failed");
+          throw new Error(await extractApiError(tailorResponse, "Resume tailoring failed"));
         }
 
         const tailorData = await tailorResponse.json();
@@ -530,8 +530,9 @@ export default function BatchProcessPage() {
           });
 
           if (!coverLetterResponse.ok) {
-            const data = await coverLetterResponse.json();
-            throw new Error(data.error || "Cover letter generation failed");
+            throw new Error(
+              await extractApiError(coverLetterResponse, "Cover letter generation failed"),
+            );
           }
 
           const coverLetterData = await coverLetterResponse.json();
