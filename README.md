@@ -120,7 +120,7 @@ Process jobs at scale using the **batch page** (`/batch`) and the **Final Destin
 6. The job appears in `/batch` within seconds — processing starts while this page is open and the queue is resumed
 7. View results, apply, and log to Google Sheets — all from the tailored results page
 
-The extension works with both `localhost` and deployed Vercel URLs. Set the server URL and **app access key** in the popup; a green dot confirms authenticated access. Configure your AI provider and key in the app's model settings.
+The extension works with both `localhost` and deployed Vercel URLs. Set the server URL in the popup; a green dot confirms the connection. Configure your AI provider and key in the app's model settings.
 
 **Pause queue** persists across reloads and prevents new jobs from starting; the current job finishes. **Cancel job** stops that job. Retry, reprocess, and editing clear previous results before requeuing; editing pauses the queue until you resume. **Recover job** becomes available when an interrupted worker's claim expires. Queue card actions use icons with animated names on hover and keyboard focus; **View results** is available for completed jobs. Extension retries reuse submission IDs so a lost response does not add duplicate jobs.
 
@@ -144,7 +144,6 @@ Track your job applications automatically in a personal Google Sheet.
 ```bash
 GOOGLE_SPREADSHEET_ID=your-spreadsheet-id
 GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"...","private_key":"..."}
-ADMIN_API_KEY=your-secret-admin-key
 ```
 
 ### Usage
@@ -156,9 +155,6 @@ ADMIN_API_KEY=your-secret-admin-key
 
 ### Security
 
-- The sheets endpoint requires `ADMIN_API_KEY` (x-api-key header)
-- Store your admin key in the browser: open DevTools Console and run `localStorage.setItem('fd_admin_key', 'your-admin-key')`
-- Only browsers with the admin key can write to your sheet
 - Your service account key lives in Vercel env vars, never in source code
 
 ---
@@ -234,8 +230,6 @@ src/
 │   ├── db.ts                  # Redis database layer
 │   ├── storage.ts             # Cloud/local storage
 │   ├── api-key.ts             # Provider/model selection and keys (env → header → cookie)
-│   ├── admin-auth.ts          # Admin authentication
-│   ├── client-admin.ts        # Client-side admin key management
 │   ├── auth.ts                # Google service account auth
 │   ├── config.ts              # Centralized config
 │   ├── cors.ts                # CORS headers
@@ -269,8 +263,6 @@ OPENAI_MODEL=gpt-6-luna
 GOOGLE_SPREADSHEET_ID=
 GOOGLE_SERVICE_ACCOUNT_KEY=
 
-# Required — app access key (also enter in the sidebar and extension)
-ADMIN_API_KEY=
 # Optional — authenticated Vercel cron trigger
 # CRON_SECRET=
 ```
@@ -287,7 +279,6 @@ ADMIN_API_KEY=
 | `KV_REST_API_TOKEN` | Optional | Upstash Redis token — without this, data stays in localStorage |
 | `GOOGLE_SPREADSHEET_ID` | Optional | Google Sheet ID for tracking |
 | `GOOGLE_SERVICE_ACCOUNT_KEY` | Optional | Google service account JSON (single line) |
-| `ADMIN_API_KEY` | Required for private APIs | App access key for AI, storage, queue, mutations, and admin routes |
 | `CRON_SECRET` | Optional | Bearer credential accepted only for the cron trigger |
 | `ALLOWED_ORIGINS` | Optional | Comma-separated allowed CORS origins (defaults to `*` for extension)
 
@@ -304,14 +295,14 @@ vercel
 
 Add the environment variables from the table above in the Vercel dashboard.
 
-After deploying, open the sidebar AI settings and enter your `ADMIN_API_KEY` as **App access key**. Enter an AI key there or use a server-configured AI key. Enter the same app access key in the extension. Public job listings and health checks remain accessible; private APIs deny access when the app key is unconfigured.
+After deploying, select your AI provider in the sidebar settings and enter its API key, or use a server-configured AI key. Connect the extension using the app URL. No separate app access key is required.
 
 ---
 
 ## Security
 
 - API keys and credentials are **never** in source code — always in environment variables
-- Private APIs and all writes require `ADMIN_API_KEY`; cron may use `CRON_SECRET`
+- Scheduled queue processing uses `CRON_SECRET` when configured
 - Paid AI requests share an atomic Redis limit when Redis is configured, with an in-memory limit otherwise
 - Input sanitization against prompt injection and LaTeX attacks
 - CORS restricted to configured origins
@@ -326,7 +317,6 @@ After deploying, open the sidebar AI settings and enter your `ADMIN_API_KEY` as 
 - **UI**: React 19, Tailwind CSS 4
 - **AI**: DeepSeek V4 Flash or OpenAI Luna (Responses API)
 - **Database**: Upstash Redis
-- **Auth**: Admin API key (x-api-key / Bearer)
 - **Testing**: Bun test
 - **CI/CD**: GitHub Actions, Husky pre-commit hooks
 - **Deploy**: Vercel

@@ -11,7 +11,6 @@ import {
   type AIProvider,
 } from "@/lib/ai-providers/types";
 import { removeAIKey, saveAISettings, setAICookie } from "@/lib/client-ai";
-import { getAdminKey, setAdminKey } from "@/lib/client-admin";
 
 const inputClass =
   "w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-[13px] text-gray-900 outline-none focus:border-gray-500";
@@ -25,7 +24,6 @@ export default function ModelSelector() {
   const [hasKey, setHasKey] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [inputKey, setInputKey] = useState("");
-  const [accessKey, setAccessKey] = useState("");
 
   useEffect(() => {
     const id = setTimeout(() => {
@@ -58,7 +56,6 @@ export default function ModelSelector() {
     );
   };
   const save = () => {
-    setAdminKey(accessKey);
     saveAISettings(draftProvider, inputKey, model);
     setProvider(draftProvider);
     setHasKey(!!localStorage.getItem(PROVIDER_SETTINGS[draftProvider].storageKey));
@@ -84,7 +81,6 @@ export default function ModelSelector() {
           type="button"
           className="flex w-full items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5 hover:bg-gray-100"
           onClick={() => {
-            setAccessKey(getAdminKey() || "");
             selectDraft(provider);
             setShowModal(true);
           }}
@@ -116,17 +112,6 @@ export default function ModelSelector() {
               <h3 id="ai-settings-title" className="mb-2 text-base font-bold text-gray-900">
                 AI Provider &amp; API Key
               </h3>
-              <label className="mb-3 block text-xs text-gray-600">
-                App access key
-                <input
-                  aria-label="App access key"
-                  type="password"
-                  className={`${inputClass} mt-1`}
-                  value={accessKey}
-                  onChange={(event) => setAccessKey(event.target.value)}
-                  placeholder="ADMIN_API_KEY from your server"
-                />
-              </label>
               <label className="mb-3 block text-xs text-gray-600">
                 Provider
                 <select

@@ -97,13 +97,12 @@ describe("AI model selector", () => {
     expect(document.body.textContent).toContain("DeepSeek V4 Flash");
     expect(localStorage.getItem("fd_ai_provider")).toBeNull();
   });
-  it("retains the app access key when switching AI providers", async () => {
+  it("shows only the AI key when switching providers", async () => {
     localStorage.setItem("fd_admin_key", "owner");
     await render();
     await click("DeepSeek V4 Flash");
-    expect(document.querySelector<HTMLInputElement>('[aria-label="App access key"]')?.value).toBe(
-      "owner",
-    );
+    expect(document.querySelector('[aria-label="App access key"]')).toBeNull();
+    expect(document.querySelector('[aria-label="API key"]')).not.toBeNull();
     await act(() => {
       const select = document.querySelector("select")!;
       select.value = "openai";

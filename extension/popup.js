@@ -9,10 +9,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const jobDescriptionInput = document.getElementById("jobDescription");
   const profileIdInput = document.getElementById("profileId");
   const serverUrlInput = document.getElementById("serverUrl");
-  const serverKeyInput = document.getElementById("serverKey");
   const requestHeaders = () => ({
     "Content-Type": "application/json",
-    "x-api-key": serverKeyInput?.value?.trim() || "",
   });
   const connectionDot = document.getElementById("connectionDot");
   const openBatchBtn = document.getElementById("openBatchBtn");
@@ -44,8 +42,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Load saved server URL
   if (hasStorage && serverUrlInput) {
     try {
-      const result = await chrome.storage.local.get([SERVER_URL_KEY, "fd_server_key"]);
-      if (serverKeyInput) serverKeyInput.value = result.fd_server_key || "";
+      const result = await chrome.storage.local.get(SERVER_URL_KEY);
       if (result[SERVER_URL_KEY]) {
         serverUrlInput.value = result[SERVER_URL_KEY];
       }
@@ -349,8 +346,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         connectionDot.className = "dot offline";
         profiles = [];
         profileIdInput.value = "";
-        container.textContent =
-          res.status === 401 ? "Enter your app access key" : "Server unreachable";
+        container.textContent = "Server unreachable";
       }
     } catch {
       if (version !== profileRequest) return;
@@ -372,14 +368,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   await loadProfiles();
-  serverKeyInput?.addEventListener("input", () => {
-    if (hasStorage) chrome.storage.local.set({ fd_server_key: serverKeyInput.value.trim() });
+  serverUrlInput?.addEventListener("change", () => {
+    profileIdInput.value = "";
+    void loadProfiles();
   });
-  for (const input of [serverUrlInput, serverKeyInput])
-    input?.addEventListener("change", () => {
-      profileIdInput.value = "";
-      void loadProfiles();
-    });
 
   // ======== Auto-extract from URL ========
 

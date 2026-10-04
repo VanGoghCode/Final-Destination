@@ -1,9 +1,8 @@
-import { getAdminHeaders } from "./client-admin";
 import { getAIHeaders } from "./client-ai";
 
 export function apiFetch(input: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers);
-  for (const [name, value] of Object.entries({ ...getAdminHeaders(), ...getAIHeaders() }))
+  for (const [name, value] of Object.entries(getAIHeaders()))
     if (!headers.has(name)) headers.set(name, value);
   return fetch(input, { ...init, headers });
 }

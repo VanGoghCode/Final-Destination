@@ -12,7 +12,7 @@ export type CorsHeaders = Record<string, string> & {
 
 let defaultMethods = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
 let defaultHeaders =
-  "Content-Type, Authorization, x-api-key, x-ai-provider, x-ai-model, x-openai-api-key, x-deepseek-api-key";
+  "Content-Type, Authorization, x-ai-provider, x-ai-model, x-openai-api-key, x-deepseek-api-key";
 
 export function setCorsDefaults(methods: string, headers: string) {
   defaultMethods = methods;

@@ -3,11 +3,8 @@ import { getProfiles } from "@/lib/db";
 import { getQueue } from "@/lib/db";
 import { isRedisConfigured } from "@/lib/db";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
-import { validateAdminRequest, adminUnauthorizedResponse } from "@/lib/admin-auth";
 
 export async function GET(request: Request) {
-  if (!validateAdminRequest(request)) return adminUnauthorizedResponse();
-
   const clientId = getClientIdentifier(request);
   const rl = checkRateLimit(`admin_${clientId}`, RATE_LIMITS.GENERAL);
   if (!rl.success) {
@@ -52,8 +49,6 @@ export async function GET(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  if (!validateAdminRequest(request)) return adminUnauthorizedResponse();
-
   const clientId = getClientIdentifier(request);
   const rl = checkRateLimit(`admin_${clientId}`, RATE_LIMITS.GENERAL);
   if (!rl.success) {
