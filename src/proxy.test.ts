@@ -15,19 +15,14 @@ afterEach(() => {
 });
 const request = (path: string, method = "GET", headers = {}) =>
   new NextRequest(`http://localhost/api/${path}`, { method, headers });
-describe("API access boundary", () => {
-  it.each([
-    "storage",
-    "profiles",
-    "queue",
-    "master-context",
-    "admin/users",
-    "process-queue",
-    "cron/process-queue",
-  ])("denies anonymous %s reads", async (path) => {
-    process.env.ADMIN_API_KEY = "owner";
-    expect((await proxy(request(path))).status).toBe(401);
-  });
+describe("API access without an app key", () => {
+  it.each(["storage", "profiles", "queue", "master-context", "admin/users", "process-queue"])(
+    "allows %s reads without an app key",
+    async (path) => {
+      process.env.ADMIN_API_KEY = "owner";
+      expect((await proxy(request(path))).status).toBe(200);
+    },
+  );
   it.each([
     "data",
     "sheets",
@@ -39,32 +34,50 @@ describe("API access boundary", () => {
     "ask",
     "emails",
     "extract-job",
-  ])("denies anonymous %s writes", async (path) => {
+  ])("allows %s writes without an app key", async (path) => {
     process.env.ADMIN_API_KEY = "owner";
-    expect((await proxy(request(path, "POST"))).status).toBe(401);
+    const limiter = spyOn(limits, "checkRateLimitAsync").mockResolvedValue({
+      success: true,
+      remaining: 1,
+      resetTime: 1,
+    });
+    try {
+      expect(
+        (
+          await proxy(
+            request(path, "POST", { "x-ai-provider": "openai", "x-openai-api-key": "fixture" }),
+          )
+        ).status,
+      ).toBe(200);
+    } finally {
+      limiter.mockRestore();
+    }
   });
-  it("fails closed when no key is configured", async () => {
+  it("works when no app key is configured", async () => {
     delete process.env.ADMIN_API_KEY;
-    expect((await proxy(request("storage"))).status).toBe(401);
+    expect((await proxy(request("storage"))).status).toBe(200);
   });
-  it("accepts an owner key and permits public health checks", async () => {
+  it("ignores obsolete app keys and permits health checks", async () => {
     process.env.ADMIN_API_KEY = "owner";
     expect((await proxy(request("storage", "GET", { "x-api-key": "owner" }))).status).toBe(200);
     expect((await proxy(request("health"))).status).toBe(200);
   });
   it("scopes cron credentials to the cron route", async () => {
+    delete process.env.CRON_SECRET;
+    expect((await proxy(request("cron/process-queue"))).status).toBe(200);
     process.env.CRON_SECRET = "cron";
+    expect((await proxy(request("cron/process-queue"))).status).toBe(401);
     expect(
       (await proxy(request("cron/process-queue", "GET", { authorization: "Bearer cron" }))).status,
     ).toBe(200);
     expect((await proxy(request("storage", "GET", { authorization: "Bearer cron" }))).status).toBe(
-      401,
+      200,
     );
   });
-  it("allows authenticated extension preflight headers", async () => {
+  it("allows extension preflight headers", async () => {
     const response = await proxy(request("queue", "OPTIONS"));
     expect(response.status).toBe(204);
-    expect(response.headers.get("Access-Control-Allow-Headers")).toContain("x-api-key");
+    expect(response.headers.get("Access-Control-Allow-Headers")).toContain("x-openai-api-key");
   });
   it("blocks paid requests when shared usage is exhausted or unavailable", async () => {
     process.env.ADMIN_API_KEY = "owner";
@@ -75,13 +88,9 @@ describe("API access boundary", () => {
       retryAfter: 60,
     });
     try {
-      expect((await proxy(request("process-queue", "POST", { "x-api-key": "owner" }))).status).toBe(
-        429,
-      );
+      expect((await proxy(request("process-queue", "POST"))).status).toBe(429);
       limiter.mockRejectedValue(new Error("Redis unavailable"));
-      expect((await proxy(request("process-queue", "POST", { "x-api-key": "owner" }))).status).toBe(
-        503,
-      );
+      expect((await proxy(request("process-queue", "POST"))).status).toBe(503);
     } finally {
       limiter.mockRestore();
     }

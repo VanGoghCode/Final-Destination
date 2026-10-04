@@ -9,8 +9,8 @@ afterEach(() =>
     else Reflect.deleteProperty(globalThis, key);
   }),
 );
-describe("authenticated browser requests", () => {
-  it("adds owner and selected provider headers without dropping custom headers", async () => {
+describe("browser AI requests", () => {
+  it("adds only selected provider headers without dropping custom headers", async () => {
     const browser = new Window({ url: "http://localhost" });
     Object.assign(globalThis, {
       window: browser,
@@ -26,7 +26,7 @@ describe("authenticated browser requests", () => {
       return Response.json({ success: true });
     }) as typeof fetch;
     await apiFetch("/api/tailor", { headers: { "Content-Type": "application/json" } });
-    expect(sent!.get("x-api-key")).toBe("owner");
+    expect(sent!.get("x-api-key")).toBeNull();
     expect(sent!.get("x-openai-api-key")).toBe("ai");
     expect(sent!.get("Content-Type")).toBe("application/json");
   });

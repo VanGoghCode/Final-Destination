@@ -194,15 +194,13 @@ export default function BatchProcessPage() {
           }
         })
         .catch(() => {
-          /* The queue connection banner handles access errors. */
+          /* The queue connection banner handles connection errors. */
         });
     };
     load();
-    window.addEventListener("fd-access-key", load);
     window.addEventListener("focus", load);
     return () => {
       active = false;
-      window.removeEventListener("fd-access-key", load);
       window.removeEventListener("focus", load);
     };
   }, []);
@@ -597,9 +595,9 @@ export default function BatchProcessPage() {
                 folder.
               </li>
               <li>
-                <strong>2. Connect your app.</strong> Enter this app&apos;s server URL and app
-                access key in the extension. The green dot confirms authenticated access. Your AI
-                key belongs in the app&apos;s model settings.
+                <strong>2. Connect your app.</strong> Enter this app&apos;s server URL in the
+                extension. The green dot confirms the connection. Your AI key belongs in the
+                app&apos;s model settings.
               </li>
               <li>
                 <strong>3. Add jobs.</strong> Open a job listing, select a profile or default
@@ -613,7 +611,7 @@ export default function BatchProcessPage() {
                 <li>The extension detects company and job title from the URL.</li>
                 <li>Select text before opening the extension to fill the description.</li>
                 <li>Copy/Paste transfers company data between tabs.</li>
-                <li>A red connection dot means check the URL and app access key.</li>
+                <li>A red connection dot means check the server URL and connection.</li>
                 <li>Both local and deployed servers are supported.</li>
               </ul>
             </details>

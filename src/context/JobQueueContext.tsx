@@ -193,13 +193,11 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
       blocked.current = false;
       void tick();
     };
-    for (const event of ["fd-access-key", "fd-ai-settings", "online"])
-      window.addEventListener(event, retry);
+    for (const event of ["fd-ai-settings", "online"]) window.addEventListener(event, retry);
     return () => {
       active = false;
       clearInterval(timer);
-      for (const event of ["fd-access-key", "fd-ai-settings", "online"])
-        window.removeEventListener(event, retry);
+      for (const event of ["fd-ai-settings", "online"]) window.removeEventListener(event, retry);
     };
   }, [pollingEnabled, refreshQueue]);
   const addJobs = useCallback(

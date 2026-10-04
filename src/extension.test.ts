@@ -72,15 +72,16 @@ describe("actual extension popup", () => {
     }
     expect(Object.keys(saved).filter((key) => key.startsWith("form_data_"))).toHaveLength(2);
   });
-  it("sends the saved access key when loading profiles and submitting jobs", async () => {
+  it("loads profiles and submits jobs without an app key", async () => {
     const { browser, calls } = await openPopup("https://example.com/job", {
       fd_server_key: "owner",
     });
+    expect(browser.document.querySelector("#serverKey")).toBeNull();
     expect(
       new Headers(calls.find((call) => call.url.includes("profiles"))?.init?.headers).get(
         "x-api-key",
       ),
-    ).toBe("owner");
+    ).toBeNull();
     (browser.document.querySelector(".profile") as Element).click();
     for (const id of ["companyName", "positionTitle", "jobDescription"])
       (browser.document.querySelector("#" + id) as Input).value = "filled";
@@ -88,7 +89,7 @@ describe("actual extension popup", () => {
     await new Promise((resolve) => setTimeout(resolve, 5));
     expect(
       new Headers(calls.find((call) => call.url.includes("queue"))?.init?.headers).get("x-api-key"),
-    ).toBe("owner");
+    ).toBeNull();
   });
   it("reuses a persisted submission ID after a lost response and popup reopen", async () => {
     const saved = { fd_server_key: "owner" };
@@ -128,13 +129,13 @@ describe("actual extension popup", () => {
     expect(submissions).toHaveLength(1);
     expect(JSON.parse(String(submissions[0]?.init?.body)).profileId).toBeUndefined();
   });
-  it("shows authentication failures as a disconnected state", async () => {
+  it("shows server failures without asking for an app key", async () => {
     const { browser } = await openPopup("https://example.com/job", {}, () =>
       Response.json({ error: "Unauthorized" }, { status: 401 }),
     );
     expect(browser.document.querySelector("#connectionDot")?.className).toContain("offline");
     expect(browser.document.querySelector("#profileContainer")?.textContent).toContain(
-      "access key",
+      "Server unreachable",
     );
   });
 });

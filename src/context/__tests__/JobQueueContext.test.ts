@@ -52,7 +52,6 @@ beforeEach(async () => {
     HTMLElement: browser.HTMLElement,
     IS_REACT_ACT_ENVIRONMENT: true,
   });
-  localStorage.setItem("fd_admin_key", "owner");
   requests = [];
   fail = false;
   spies.push(
@@ -120,11 +119,11 @@ describe("queue UI connected to real queue routes", () => {
       expect((await getQueue()).filter((job) => job.status === "pending")).toHaveLength(1);
     },
   );
-  it("authenticates reads and every mutation", async () => {
+  it("reads and mutates the queue without an app key", async () => {
     await act(async () => {
       await api.removeJob("done");
     });
-    expect(requests.every((r) => new Headers(r.init?.headers).get("x-api-key") === "owner")).toBe(
+    expect(requests.every((r) => new Headers(r.init?.headers).get("x-api-key") === null)).toBe(
       true,
     );
   });
