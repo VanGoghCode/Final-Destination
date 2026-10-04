@@ -10,11 +10,13 @@ export function getAdminKey(): string | null {
 }
 
 export function setAdminKey(key: string): void {
-  localStorage.setItem(STORAGE_KEY, key);
+  if (key.trim()) localStorage.setItem(STORAGE_KEY, key.trim());
+  else localStorage.removeItem(STORAGE_KEY);
+  window.dispatchEvent(new window.Event("fd-access-key"));
 }
 
 export function removeAdminKey(): void {
-  localStorage.removeItem(STORAGE_KEY);
+  setAdminKey("");
 }
 
 export function hasAdminKey(): boolean {

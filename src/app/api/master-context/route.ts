@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getMasterContext, saveMasterContext, deleteMasterContext } from "@/lib/storage";
+import { getRedis } from "@/lib/db";
 import { corsHeaders } from "@/lib/cors";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
 
@@ -13,7 +13,7 @@ export async function OPTIONS() {
 
 export async function GET() {
   try {
-    const content = await getMasterContext();
+    const content = await getRedis().get<string>("fd:fd_master_context");
     return NextResponse.json({ content }, { headers: h() });
   } catch (error) {
     console.error("Master context GET error:", error);
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       );
     }
 
-    await saveMasterContext(content);
+    await getRedis().set("fd:fd_master_context", content);
     return NextResponse.json({ success: true }, { headers: h() });
   } catch (error) {
     console.error("Master context POST error:", error);
@@ -73,7 +73,7 @@ export async function DELETE(request: Request) {
   }
 
   try {
-    await deleteMasterContext();
+    await getRedis().del("fd:fd_master_context");
     return NextResponse.json({ success: true }, { headers: h() });
   } catch (error) {
     console.error("Master context DELETE error:", error);

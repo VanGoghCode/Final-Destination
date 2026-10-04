@@ -14,6 +14,7 @@
     "test": "bun test",
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
+    "benchmark:optimizations": "bun run src/scripts/benchmark-optimizations.ts",
     "seed": "tsx src/scripts/seed-redis.ts",
     "validate-companies": "tsx src/scripts/validate-ats-companies.ts",
     "prepare": "husky || true",
@@ -23,7 +24,7 @@
   "dependencies": {
     "@upstash/redis": "^1.36.2",
     "googleapis": "^170.1.0",
-    "next": "16.1.3",
+    "next": "^16.3.8",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
@@ -45,7 +46,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.1.3",
+    "eslint-config-next": "^16.3.8",
     "happy-dom": "^20.10.6",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",

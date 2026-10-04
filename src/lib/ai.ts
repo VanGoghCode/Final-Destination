@@ -1,13 +1,6 @@
-// ========================================
-// AI GENERATION — DeepSeek V4 Flash
-// Uses system + user message separation.
-// Master context injected into all user prompts.
-// Research step removed — replaced by manualResearch param.
-// ========================================
-
 import { isValidInput } from "./sanitize";
 import { getLatexCharBudget } from "./latex-count";
-import { DeepSeekProvider } from "./ai-providers/deepseek";
+import { getSelectedAIProvider } from "./ai-providers";
 import {
   buildResumePrompt,
   buildCoverLetterPrompt,
@@ -21,29 +14,8 @@ import {
   buildInternetQuestionPrompt,
 } from "./prompts/index";
 
-// ========================================
-// PROVIDER INSTANCES
-// ========================================
-
-function getStandardProvider(callTag?: string): DeepSeekProvider {
-  return new DeepSeekProvider({
-    temperature: 0.7,
-    maxTokens: 65535,
-    thinking: { type: "enabled", reasoning_effort: "high" },
-    callTag,
-  });
-}
-
-function getFastProvider(callTag?: string): DeepSeekProvider {
-  return DeepSeekProvider.createFast(callTag);
-}
-
-// ========================================
-// CORE GENERATION
-// ========================================
-
 async function generate(prompt: string, systemPrompt?: string, callTag?: string): Promise<string> {
-  const provider = getStandardProvider(callTag);
+  const provider = await getSelectedAIProvider(callTag);
 
   if (!isValidInput(prompt)) {
     throw new Error("Invalid input detected");
@@ -63,10 +35,6 @@ function cleanLatex(result: string): string {
     .trim();
 }
 
-// ========================================
-// JOB INFO EXTRACTION
-// ========================================
-
 export async function extractJobLocationInfo(
   jobDescription: string,
   companyName: string,
@@ -76,7 +44,7 @@ export async function extractJobLocationInfo(
   const prompt = pair.system + "\n\n" + pair.user;
 
   try {
-    const fastProvider = getFastProvider("extraction");
+    const fastProvider = await getSelectedAIProvider("extraction", true);
     const response = await fastProvider.generateContent(prompt);
 
     // The extraction object is flat JSON — match the first balanced {…} block.
@@ -92,14 +60,10 @@ export async function extractJobLocationInfo(
     }
     return { country: "", workMode: "" };
   } catch (error) {
-    console.error("[DeepSeek] Error extracting job info:", error);
+    console.error("[AI] Error extracting job info:", error);
     return { country: "", workMode: "" };
   }
 }
-
-// ========================================
-// RESUME TAILORING
-// ========================================
 
 export async function tailorResume(
   resumeLatex: string,
@@ -124,10 +88,6 @@ export async function tailorResume(
   return cleanLatex(result);
 }
 
-// ========================================
-// COVER LETTER TAILORING
-// ========================================
-
 export async function tailorCoverLetter(
   coverLetterLatex: string,
   jobDescription: string,
@@ -149,10 +109,6 @@ export async function tailorCoverLetter(
   return cleanLatex(result);
 }
 
-// ========================================
-// ANSWERS
-// ========================================
-
 export async function generateAnswers(
   questions: string,
   tailoredResume: string,
@@ -168,12 +124,8 @@ export async function generateAnswers(
     jobDescription,
   });
 
-  return await generate(pair.user, pair.system, "answers");
+  return generate(pair.user, pair.system, "answers");
 }
-
-// ========================================
-// EMAILS
-// ========================================
 
 export async function generateColdEmail(
   tailoredResume: string,
@@ -192,7 +144,7 @@ export async function generateColdEmail(
     tailoredCoverLetter,
   });
 
-  return await generate(pair.user, pair.system, "cold-email");
+  return generate(pair.user, pair.system, "cold-email");
 }
 
 export async function generateReferenceEmail(
@@ -212,12 +164,8 @@ export async function generateReferenceEmail(
     tailoredCoverLetter: _tailoredCoverLetter,
   });
 
-  return await generate(pair.user, pair.system, "reference-email");
+  return generate(pair.user, pair.system, "reference-email");
 }
-
-// ========================================
-// REGENERATION
-// ========================================
 
 export async function regenerateResume(
   currentContent: string,
@@ -293,7 +241,7 @@ ${questions}
 ## INSTRUCTIONS:
 Apply the user's feedback to the Current Answers. Use Master Context for accurate details. Return the regenerated answers in Question/Answer format.`;
 
-  return await generate(userPrompt, systemPrompt, "regenerate-answers");
+  return generate(userPrompt, systemPrompt, "regenerate-answers");
 }
 
 export async function regenerateEmail(
@@ -332,12 +280,8 @@ ${currentContent}
 ## INSTRUCTIONS:
 Apply the feedback. Return the regenerated email.`;
 
-  return await generate(userPrompt, systemPrompt, "regenerate-email");
+  return generate(userPrompt, systemPrompt, "regenerate-email");
 }
-
-// ========================================
-// QUESTION ANSWERING
-// ========================================
 
 export async function answerGeneralQuestion(
   question: string,
@@ -362,7 +306,7 @@ export async function answerGeneralQuestion(
     limitValue,
   });
 
-  return await generate(pair.user, pair.system, "question");
+  return generate(pair.user, pair.system, "question");
 }
 
 export async function answerWithInternet(
@@ -388,7 +332,7 @@ export async function answerWithInternet(
     limitValue,
   });
 
-  return await generate(pair.user, pair.system, "question-internet");
+  return generate(pair.user, pair.system, "question-internet");
 }
 
 export async function answerInternetOnly(
@@ -413,5 +357,5 @@ ${contextHint}
 ## INSTRUCTIONS:
 Provide a clear, accurate answer based on your training knowledge. Use natural tone. Do NOT use ** or em dashes.${limitInstruction}`;
 
-  return await generate(userPrompt, systemPrompt, "question-internet-only");
+  return generate(userPrompt, systemPrompt, "question-internet-only");
 }

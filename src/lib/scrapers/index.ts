@@ -68,7 +68,12 @@ function loadTierCompanies(): TierCompany[] {
           (c) =>
             c.platform && c.platform !== "custom" && (c.greenhouseId || c.leverId || c.ashbyId),
         );
-        allCompanies.push(...companiesWithPlatform);
+        allCompanies.push(
+          ...companiesWithPlatform.map((company) => ({
+            ...company,
+            tier: tier.replace("-tier", ""),
+          })),
+        );
       }
     } catch (error) {
       console.error(`Error loading ${tier}.json:`, error);
@@ -146,182 +151,84 @@ function shuffleArray<T>(arr: T[]): T[] {
 /**
  * Scrape all configured companies from tier files and legacy sources
  */
-export async function scrapeAllCompanies(): Promise<{
-  jobs: Job[];
-  summary: ScrapeSummary;
-}> {
-  const allJobs: Job[] = [];
-  const errors: string[] = [];
-  let companiesScraped = 0;
-  let companiesWithJobs = 0;
-  const tierBreakdown = { top: 0, middle: 0, lower: 0, lowest: 0 };
-  const scrapedTokens = new Set<string>();
-
-  // Time budget: stop adding work before serverless timeout (Vercel caps at 60s).
-  // Default 45s leaves buffer. Set SCRAPE_TIME_BUDGET_MS to override (e.g. 10000 on Hobby tier).
-  const scrapeStart = Date.now();
-  const timeBudgetMs = parseInt(process.env.SCRAPE_TIME_BUDGET_MS || "") || 45000;
-
-  // Helper to run a scrape and collect results
-  const runScrape = async (result: ScrapeResult, name: string, tier?: string) => {
-    companiesScraped++;
-    if (result.success) {
-      if (result.jobs.length > 0) {
-        allJobs.push(...result.jobs);
-        companiesWithJobs++;
-        if (tier && tier in tierBreakdown) {
-          tierBreakdown[tier as keyof typeof tierBreakdown]++;
-        }
-      }
-    } else if (result.error && !result.error.includes("reachable")) {
-      errors.push(`${name}: ${result.error}`);
-    }
+export async function scrapeAllCompanies(): Promise<{ jobs: Job[]; summary: ScrapeSummary }> {
+  const budget = Math.max(1, Number(process.env.SCRAPE_TIME_BUDGET_MS) || 45_000);
+  const deadline = Date.now() + budget;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), budget);
+  const sources = {
+    greenhouse: { scrape: scrapeGreenhouse, companies: GREENHOUSE_COMPANIES },
+    lever: { scrape: scrapeLever, companies: LEVER_COMPANIES },
+    ashby: { scrape: scrapeAshby, companies: ASHBY_COMPANIES },
   };
-
-  // 1. Load and scrape from tier JSON files (Primary Source)
-
-  const tierCompanies = loadTierCompanies();
-
-  for (const company of tierCompanies) {
-    let result: ScrapeResult | null = null;
-    let token: string | null = null;
-
-    if (company.platform === "greenhouse" && company.greenhouseId) {
-      token = company.greenhouseId;
-      if (!scrapedTokens.has(`gh-${token}`)) {
-        scrapedTokens.add(`gh-${token}`);
-        result = await scrapeGreenhouse(token, company.id, company.name);
-      }
-    } else if (company.platform === "lever" && company.leverId) {
-      token = company.leverId;
-      if (!scrapedTokens.has(`lever-${token}`)) {
-        scrapedTokens.add(`lever-${token}`);
-        result = await scrapeLever(token, company.id, company.name);
-      }
-    } else if (company.platform === "ashby" && company.ashbyId) {
-      token = company.ashbyId;
-      if (!scrapedTokens.has(`ashby-${token}`)) {
-        scrapedTokens.add(`ashby-${token}`);
-        result = await scrapeAshby(token, company.id, company.name);
-      }
+  type Platform = keyof typeof sources;
+  type Candidate = { platform: Platform; token: string; id: string; name: string; tier?: string };
+  const candidates = new Map<string, Candidate>();
+  const add = (candidate: Candidate) => {
+    const key = candidate.platform + ":" + candidate.token;
+    if (!candidates.has(key)) candidates.set(key, candidate);
+  };
+  const jobs: Job[] = [],
+    errors: string[] = [];
+  const tierBreakdown = { top: 0, middle: 0, lower: 0, lowest: 0 };
+  let companiesScraped = 0,
+    companiesWithJobs = 0;
+  try {
+    for (const company of loadTierCompanies()) {
+      const platform = company.platform as Platform;
+      if (!sources[platform]) continue;
+      const token =
+        company.greenhouseId && platform === "greenhouse"
+          ? company.greenhouseId
+          : platform === "lever"
+            ? company.leverId
+            : company.ashbyId;
+      if (token) add({ platform, token, id: company.id, name: company.name, tier: company.tier });
     }
-
-    if (result) {
-      await runScrape(result, company.name, company.tier);
-      // Rate limiting
-      await new Promise((r) => setTimeout(r, 150));
-    }
-  }
-
-  // 2. Scrape additional Greenhouse companies from hardcoded list
-  for (const [token, company] of Object.entries(GREENHOUSE_COMPANIES)) {
-    if (!scrapedTokens.has(`gh-${token}`)) {
-      scrapedTokens.add(`gh-${token}`);
-      const result = await scrapeGreenhouse(token, company.id, company.name);
-      await runScrape(result, company.name);
-      await new Promise((r) => setTimeout(r, 150));
-    }
-  }
-
-  // 3. Scrape additional Lever companies from hardcoded list
-  for (const [lever, company] of Object.entries(LEVER_COMPANIES)) {
-    if (!scrapedTokens.has(`lever-${lever}`)) {
-      scrapedTokens.add(`lever-${lever}`);
-      const result = await scrapeLever(lever, company.id, company.name);
-      await runScrape(result, company.name);
-      await new Promise((r) => setTimeout(r, 150));
-    }
-  }
-
-  // 4. Scrape Ashby companies from hardcoded list
-  for (const [org, company] of Object.entries(ASHBY_COMPANIES)) {
-    if (!scrapedTokens.has(`ashby-${org}`)) {
-      scrapedTokens.add(`ashby-${org}`);
-      const result = await scrapeAshby(org, company.id, company.name);
-      await runScrape(result, company.name);
-      await new Promise((r) => setTimeout(r, 150));
-    }
-  }
-
-  // 5. Scrape from expanded ATS company lists (optional, configurable)
-  const expandedMaxStr = process.env.EXPANDED_SCRAPE_MAX;
-  const expandedMax = expandedMaxStr ? parseInt(expandedMaxStr, 10) : 200;
-
-  if (expandedMax > 0) {
-    const expanded = loadExpandedCompanies();
-
-    const expandedConfigs: {
-      platform: "greenhouse" | "lever" | "ashby";
-      list: ExpandedCompany[];
-      scrapeFn: (token: string, id: string, name: string) => Promise<ScrapeResult>;
-      tokenPrefix: string;
-    }[] = [
-      {
-        platform: "greenhouse",
-        list: expanded.greenhouse ?? [],
-        scrapeFn: scrapeGreenhouse,
-        tokenPrefix: "gh",
-      },
-      {
-        platform: "lever",
-        list: expanded.lever ?? [],
-        scrapeFn: scrapeLever,
-        tokenPrefix: "lever",
-      },
-      {
-        platform: "ashby",
-        list: expanded.ashby ?? [],
-        scrapeFn: scrapeAshby,
-        tokenPrefix: "ashby",
-      },
-    ];
-
-    for (const config of expandedConfigs) {
-      if (config.list.length === 0) continue;
-
-      // Shuffle to get variety across runs
-      const shuffled = shuffleArray([...config.list]);
-
-      // Pick up to expandedMax, but skip tokens already scraped from tier/hardcoded lists
-      const toScrape: ExpandedCompany[] = [];
-      for (const company of shuffled) {
-        if (!scrapedTokens.has(`${config.tokenPrefix}-${company.token}`)) {
-          toScrape.push(company);
-          scrapedTokens.add(`${config.tokenPrefix}-${company.token}`);
-          if (toScrape.length >= expandedMax) break;
+    for (const platform of Object.keys(sources) as Platform[])
+      for (const [token, company] of Object.entries(sources[platform].companies))
+        add({ platform, token, ...company });
+    const max = Math.max(0, Number(process.env.EXPANDED_SCRAPE_MAX ?? 200) || 0);
+    if (max && Date.now() < deadline) {
+      const expanded = loadExpandedCompanies();
+      for (const platform of Object.keys(sources) as Platform[]) {
+        let added = 0;
+        for (const company of shuffleArray([...(expanded[platform] ?? [])])) {
+          if (candidates.has(platform + ":" + company.token)) continue;
+          add({ platform, ...company });
+          if (++added >= max) break;
         }
       }
-
-      console.log(
-        `  Scraping ${toScrape.length} expanded ${config.platform} companies (pool: ${config.list.length})`,
+    }
+    for (const company of candidates.values()) {
+      if (controller.signal.aborted || Date.now() >= deadline) break;
+      const result = await sources[company.platform].scrape(
+        company.token,
+        company.id,
+        company.name,
+        controller.signal,
       );
-
-      for (const company of toScrape) {
-        // Stop expanded scraping if we're nearing the time budget
-        if (Date.now() - scrapeStart > timeBudgetMs) {
-          console.log(
-            `  ⏱  Time budget reached (${Math.round((Date.now() - scrapeStart) / 1000)}s), skipping remaining ${config.platform} companies`,
-          );
-          break;
-        }
-
-        const result = await config.scrapeFn(company.token, company.id, company.name);
-        await runScrape(result, company.name);
-        await new Promise((r) => setTimeout(r, 150));
-      }
+      companiesScraped++;
+      if (result.success && result.jobs.length) {
+        jobs.push(...result.jobs);
+        companiesWithJobs++;
+        if (company.tier && company.tier in tierBreakdown)
+          tierBreakdown[company.tier as keyof typeof tierBreakdown]++;
+      } else if (result.error && !result.error.includes("reachable"))
+        errors.push(company.name + ": " + result.error);
+      const remaining = deadline - Date.now();
+      if (remaining > 0 && !controller.signal.aborted)
+        await new Promise((resolve) => setTimeout(resolve, Math.min(150, remaining)));
     }
+  } finally {
+    clearTimeout(timer);
   }
-
-  // Filter jobs based on target roles
-  const targetRoles = getTargetRoles();
-  const excludedKeywords = getExcludedKeywords();
-  const filteredJobs = filterJobs(allJobs, targetRoles, excludedKeywords);
-
+  const filtered = filterJobs(jobs, getTargetRoles(), getExcludedKeywords());
   return {
-    jobs: filteredJobs,
+    jobs: filtered,
     summary: {
-      totalJobs: allJobs.length,
-      filteredJobs: filteredJobs.length,
+      totalJobs: jobs.length,
+      filteredJobs: filtered.length,
       companiesScraped,
       companiesWithJobs,
       errors,

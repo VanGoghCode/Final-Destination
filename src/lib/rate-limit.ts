@@ -1,3 +1,5 @@
+import { getRedis } from "./db";
+
 // Rate limiting utility for API routes
 // Uses Redis if available, falls back to in-memory storage
 
@@ -23,42 +25,6 @@ function cleanupOldEntries() {
       rateLimitStore.delete(key);
     }
   }
-}
-
-// Lazy Redis client for rate limiting
-let redisPromise: Promise<{
-  get: (k: string) => Promise<number | null>;
-  set: (k: string, v: number, ttl: number) => Promise<void>;
-} | null> | null = null;
-
-async function getRedisRateLimiter() {
-  if (redisPromise !== null) return redisPromise;
-  redisPromise = (async () => {
-    try {
-      if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
-        const base = process.env.KV_REST_API_URL;
-        const token = process.env.KV_REST_API_TOKEN;
-        return {
-          async get(key: string) {
-            const res = await fetch(`${base}/get/${key}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            const data = (await res.json()) as { result: string | null };
-            return data.result ? Number(data.result) : null;
-          },
-          async set(key: string, value: number, ttl: number) {
-            await fetch(`${base}/set/${key}/${value}/ex/${ttl}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-          },
-        };
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  })();
-  return redisPromise;
 }
 
 export interface RateLimitConfig {
@@ -124,41 +90,23 @@ export async function checkRateLimitAsync(
   identifier: string,
   config: RateLimitConfig,
 ): Promise<RateLimitResult> {
-  const redis = await getRedisRateLimiter();
-  if (!redis) return checkRateLimit(identifier, config);
-
-  const now = Date.now();
-  const windowSeconds = Math.ceil(config.windowMs / 1000);
-  const redisKey = `rl:${identifier}`;
-
-  try {
-    const current = await redis.get(redisKey);
-    const count = current ?? 0;
-
-    if (count >= config.maxRequests) {
-      // Calculate TTL for retry-after
-      // We don't know exact TTL from Redis, so estimate from window
-      const retryAfter = windowSeconds;
-      return {
-        success: false,
-        remaining: 0,
-        resetTime: now + retryAfter * 1000,
-        retryAfter,
-      };
-    }
-
-    const newCount = count + 1;
-    await redis.set(redisKey, newCount, windowSeconds);
-
-    return {
-      success: true,
-      remaining: config.maxRequests - newCount,
-      resetTime: now + windowSeconds * 1000,
-    };
-  } catch {
-    // Redis error — fall back to in-memory
+  if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN)
     return checkRateLimit(identifier, config);
-  }
+  const now = Date.now(),
+    resetTime = (Math.floor(now / config.windowMs) + 1) * config.windowMs;
+  const key = `rl:${identifier}:${resetTime}`;
+  const count = await getRedis().eval<[number], number>(
+    "local n = redis.call('INCR', KEYS[1]); if n == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]) end; return n",
+    [key],
+    [resetTime - now],
+  );
+  const success = count <= config.maxRequests;
+  return {
+    success,
+    remaining: Math.max(0, config.maxRequests - count),
+    resetTime,
+    retryAfter: success ? undefined : Math.ceil((resetTime - now) / 1000),
+  };
 }
 
 // Preset configurations for different API endpoints

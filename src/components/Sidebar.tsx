@@ -24,12 +24,17 @@ export default function Sidebar({
 }: SidebarProps) {
   const [sidebarOpen, setSidebarOpen] = useState(defaultOpen);
   const [isMobile, setIsMobile] = useState(false);
-  const [isAdmin] = useState(() => {
-    if (typeof window !== "undefined") {
-      return hasAdminKey();
-    }
-    return false;
-  });
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    const sync = () => setIsAdmin(hasAdminKey());
+    sync();
+    window.addEventListener("fd-access-key", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("fd-access-key", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
 
   // Detect mobile on mount and resize
   useEffect(() => {

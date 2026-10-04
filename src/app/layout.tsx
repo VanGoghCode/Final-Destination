@@ -4,6 +4,8 @@ import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import { JobQueueProvider } from "@/context/JobQueueContext";
 import MouseGlow from "@/components/MouseGlow";
+import { AISettingsProvider } from "@/context/AISettingsContext";
+import { getConfiguredProvider, PROVIDER_MODELS } from "@/lib/ai-providers/types";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,13 +37,24 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const provider = getConfiguredProvider();
+  const settings = {
+    provider,
+    modelId:
+      provider === "openai"
+        ? process.env.OPENAI_MODEL || PROVIDER_MODELS.openai.default
+        : PROVIDER_MODELS.deepseek.default,
+    configured: { deepseek: !!process.env.DEEPSEEK_API_KEY, openai: !!process.env.OPENAI_API_KEY },
+  };
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <MouseGlow />
-        <AppProvider>
-          <JobQueueProvider>{children}</JobQueueProvider>
-        </AppProvider>
+        <AISettingsProvider settings={settings}>
+          <AppProvider>
+            <JobQueueProvider>{children}</JobQueueProvider>
+          </AppProvider>
+        </AISettingsProvider>
       </body>
     </html>
   );

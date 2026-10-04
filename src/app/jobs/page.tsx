@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/client-api";
+
 import { useState, useEffect, useMemo, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -181,10 +183,10 @@ export default function JobsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/top-tier").then((res) => res.json()),
-      fetch("/api/middle-tier").then((res) => res.json()),
-      fetch("/api/lower-tier").then((res) => res.json()),
-      fetch("/api/lowest-tier").then((res) => res.json()),
+      apiFetch("/api/top-tier").then((res) => res.json()),
+      apiFetch("/api/middle-tier").then((res) => res.json()),
+      apiFetch("/api/lower-tier").then((res) => res.json()),
+      apiFetch("/api/lowest-tier").then((res) => res.json()),
     ])
       .then(
         ([topTier, middleTier, lowerTier, lowestTier]: [
@@ -312,7 +314,7 @@ export default function JobsPage() {
 
     setSavingLinks(true);
     try {
-      const response = await fetch("/api/company-links", {
+      const response = await apiFetch("/api/company-links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

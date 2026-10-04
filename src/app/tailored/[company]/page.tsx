@@ -1,13 +1,17 @@
 "use client";
 
+import { apiFetch, apiJSON } from "@/lib/client-api";
+
 import { useState, useRef, useEffect, use, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LaTeXEditor from "@/components/LaTeXEditor";
 import Sidebar from "@/components/Sidebar";
 import Button from "@/components/Button";
-import { getAdminHeaders } from "@/lib/client-admin";
+
+import { readQueueResult, regenerateQueueResult, saveQueueResult } from "@/lib/queue-results";
 
 interface BatchJobData {
+  completedAt?: number;
   tailoredResume?: string;
   tailoredCoverLetter?: string;
   resumeLatex?: string;
@@ -31,6 +35,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
   const jobId = searchParams.get("jobId");
 
   // Job data from sessionStorage
+  const [resultError, setResultError] = useState("");
+  const [savingResults, setSavingResults] = useState(false);
+  const [resultsSaved, setResultsSaved] = useState(false);
   const [jobData, setJobData] = useState<BatchJobData | null>(null);
   const [tailoredResume, setTailoredResume] = useState("");
   const [tailoredCoverLetter, setTailoredCoverLetter] = useState("");
@@ -73,15 +80,12 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
   // Delete from batch state
   const [isDeletingFromBatch, setIsDeletingFromBatch] = useState(false);
 
-  // Load job data from sessionStorage
   useEffect(() => {
-    let ignore = false;
-    if (jobId) {
-      const jobKey = `batch_job_${jobId}`;
-      const stored = sessionStorage.getItem(jobKey);
-      if (stored) {
-        try {
-          const data = JSON.parse(stored) as BatchJobData;
+    let active = true;
+    if (jobId)
+      void readQueueResult(jobId)
+        .then((data) => {
+          if (!active) return;
           setJobData(data);
           setTailoredResume(data.tailoredResume || "");
           setTailoredCoverLetter(data.tailoredCoverLetter || "");
@@ -89,44 +93,13 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
           setWorkMode(data.jobWorkMode || "");
           setEditableCompanyName(data.companyName);
           setEditablePositionTitle(data.positionTitle);
-        } catch {
-          console.error("Failed to parse job data");
-        }
-      } else {
-        // Fallback: fetch from /api/queue and find job by jobId
-        fetch("/api/queue", { signal: AbortSignal.timeout(10000) })
-          .then((res) => res.json())
-          .then((queue: unknown[]) => {
-            if (ignore) return;
-            const job = (queue as Record<string, unknown>[]).find((j) => j.id === jobId);
-            if (job) {
-              const data: BatchJobData = {
-                tailoredResume: (job.tailoredResume as string) || "",
-                tailoredCoverLetter: (job.tailoredCoverLetter as string) || "",
-                resumeLatex: (job.resumeLatex as string) || "",
-                coverLetterLatex: (job.coverLetterLatex as string) || "",
-                companyName: (job.companyName as string) || "",
-                companyUrl: (job.companyUrl as string) || "",
-                positionTitle: (job.positionTitle as string) || "",
-                jobDescription: (job.jobDescription as string) || "",
-                masterContext: (job.masterContext as string) || "",
-                jobCountry: (job.jobCountry as string) || "",
-                jobWorkMode: (job.jobWorkMode as "" | "Remote" | "Hybrid" | "On-site") || "",
-              };
-              setJobData(data);
-              setTailoredResume(data.tailoredResume || "");
-              setTailoredCoverLetter(data.tailoredCoverLetter || "");
-              setCountry(data.jobCountry || "");
-              setWorkMode(data.jobWorkMode || "");
-              setEditableCompanyName(data.companyName);
-              setEditablePositionTitle(data.positionTitle);
-            }
-          })
-          .catch((err) => console.error("Failed to fetch job from queue:", err));
-      }
-    }
+        })
+        .catch((error) => {
+          if (active)
+            setResultError(error instanceof Error ? error.message : "Could not load results");
+        });
     return () => {
-      ignore = true;
+      active = false;
     };
   }, [jobId]);
 
@@ -148,14 +121,18 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       // Show warning before closing if job Data exists
-      if (jobData) {
+      if (
+        jobData &&
+        (jobData.tailoredResume !== tailoredResume ||
+          (jobData.tailoredCoverLetter || "") !== tailoredCoverLetter)
+      ) {
         e.preventDefault();
       }
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [jobData]);
+  }, [jobData, tailoredResume, tailoredCoverLetter]);
 
   // Handle delete from batch
   const handleDeleteFromBatch = useCallback(
@@ -171,7 +148,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
 
       setIsDeletingFromBatch(true);
       try {
-        await fetch(`/api/queue?id=${jobId}`, {
+        await apiJSON(`/api/queue?id=${encodeURIComponent(jobId || "")}`, {
           method: "DELETE",
         });
         // Remove from sessionStorage too
@@ -239,9 +216,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
     const composedNotes = noteParts.join(" | ");
 
     try {
-      const response = await fetch("/api/sheets", {
+      const response = await apiFetch("/api/sheets", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           companyName: editableCompanyName || companyName,
           positionTitle: editablePositionTitle || positionTitle,
@@ -259,7 +236,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
       if (shouldDelete) {
         // Delete from batch after logging
         try {
-          await fetch(`/api/queue?id=${jobId}`, { method: "DELETE" });
+          await apiJSON(`/api/queue?id=${encodeURIComponent(jobId || "")}`, { method: "DELETE" });
           sessionStorage.removeItem(`batch_job_${jobId}`);
         } catch {
           // Log succeeded — non-critical if delete fails, job stays in queue
@@ -286,53 +263,52 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
     }
   };
 
-  const handleRegenerateResume = async (comment: string) => {
-    setIsRegeneratingResume(true);
+  const regenerate = async (type: "resume" | "coverLetter", comment: string) => {
+    if (!jobId) return;
+    const setBusy = type === "resume" ? setIsRegeneratingResume : setIsRegeneratingCoverLetter;
+    setBusy(true);
+    setResultError("");
     try {
-      const response = await fetch("/api/regenerate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
-        body: JSON.stringify({
-          type: "resume",
-          currentContent: tailoredResume,
+      const content = await regenerateQueueResult(
+        jobId,
+        {
+          type,
+          currentContent: type === "resume" ? tailoredResume : tailoredCoverLetter,
           comment,
           resumeLatex: jobData?.resumeLatex,
-          jobDescription: jobData?.jobDescription,
-          masterContext: jobData?.masterContext || "",
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      setTailoredResume(data.result);
-    } catch (err) {
-      console.error("Error regenerating resume:", err);
-    } finally {
-      setIsRegeneratingResume(false);
-    }
-  };
-
-  const handleRegenerateCoverLetter = async (comment: string) => {
-    setIsRegeneratingCoverLetter(true);
-    try {
-      const response = await fetch("/api/regenerate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
-        body: JSON.stringify({
-          type: "coverLetter",
-          currentContent: tailoredCoverLetter,
-          comment,
           coverLetterLatex: jobData?.coverLetterLatex,
           jobDescription: jobData?.jobDescription,
           masterContext: jobData?.masterContext || "",
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
-      setTailoredCoverLetter(data.result);
-    } catch (err) {
-      console.error("Error regenerating cover letter:", err);
+        },
+        jobData?.completedAt,
+      );
+      (type === "resume" ? setTailoredResume : setTailoredCoverLetter)(content);
+      setJobData((job) =>
+        job
+          ? { ...job, [type === "resume" ? "tailoredResume" : "tailoredCoverLetter"]: content }
+          : job,
+      );
+    } catch (error) {
+      setResultError(error instanceof Error ? error.message : "Regeneration failed");
     } finally {
-      setIsRegeneratingCoverLetter(false);
+      setBusy(false);
+    }
+  };
+  const handleRegenerateResume = (comment: string) => regenerate("resume", comment);
+  const handleRegenerateCoverLetter = (comment: string) => regenerate("coverLetter", comment);
+  const handleSaveResults = async () => {
+    if (!jobId) return;
+    setSavingResults(true);
+    setResultError("");
+    setResultsSaved(false);
+    try {
+      await saveQueueResult(jobId, { tailoredResume, tailoredCoverLetter }, jobData?.completedAt);
+      setResultsSaved(true);
+      setJobData((job) => (job ? { ...job, tailoredResume, tailoredCoverLetter } : job));
+    } catch (error) {
+      setResultError(error instanceof Error ? error.message : "Could not save results");
+    } finally {
+      setSavingResults(false);
     }
   };
 
@@ -342,7 +318,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
     else if (newType === "characters") setLimitValue(200);
   };
 
-  if (!jobData && jobId) {
+  if (!jobData && jobId && !resultError) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
@@ -384,7 +360,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
           </div>
           <h2 className="mb-2 text-lg font-semibold">Job data not found</h2>
           <p className="text-muted mb-4 text-sm">
-            This page requires job data from batch processing. The data may have expired.
+            {resultError || "This page requires a job with saved results from the queue."}
           </p>
           <Button onClick={() => router.push("/batch")} variant="primary">
             Go to Batch Processing
@@ -397,6 +373,21 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar title={companyName} subtitle={positionTitle} hideModelSelector>
+        <div className="space-y-2 border-b p-3">
+          {resultError && (
+            <p role="alert" className="text-xs text-red-700">
+              {resultError}
+            </p>
+          )}
+          <Button
+            onClick={() => void handleSaveResults()}
+            disabled={savingResults || isRegeneratingResume || isRegeneratingCoverLetter}
+            variant="secondary"
+            className="w-full"
+          >
+            {savingResults ? "Saving…" : resultsSaved ? "Results saved" : "Save edited results"}
+          </Button>
+        </div>
         {/* Step Navigation - Breadcrumbs */}
         <div className="border-b border-gray-100 p-3">
           <div className="flex items-center gap-1">
@@ -668,9 +659,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                 if (!generalQuestion.trim()) return;
                 setIsAskingQuestion(true);
                 try {
-                  const response = await fetch("/api/ask", {
+                  const response = await apiFetch("/api/ask", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json", ...getAdminHeaders() },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                       question: generalQuestion,
                       tailoredResume,
@@ -738,7 +729,10 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
         <LaTeXEditor
           title="Tailored Resume"
           code={tailoredResume}
-          onCodeChange={setTailoredResume}
+          onCodeChange={(value) => {
+            setTailoredResume(value);
+            setResultsSaved(false);
+          }}
           onRegenerate={handleRegenerateResume}
           isRegenerating={isRegeneratingResume}
           showPreview={true}
@@ -914,7 +908,10 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
               <LaTeXEditor
                 title="Cover Letter Preview"
                 code={tailoredCoverLetter}
-                onCodeChange={setTailoredCoverLetter}
+                onCodeChange={(value) => {
+                  setTailoredCoverLetter(value);
+                  setResultsSaved(false);
+                }}
                 onRegenerate={handleRegenerateCoverLetter}
                 isRegenerating={isRegeneratingCoverLetter}
                 showPreview={true}

@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/client-api";
+
 import { useState, useEffect, useMemo } from "react";
 import Button from "@/components/Button";
 
@@ -70,7 +72,7 @@ export default function JobListingsPage() {
   const fetchJobs = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/jobs?limit=10000");
+      const res = await apiFetch("/api/jobs?limit=10000");
       const json = await res.json();
       setData(json);
     } catch (err) {
@@ -86,7 +88,7 @@ export default function JobListingsPage() {
     const loadJobs = async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/jobs?limit=10000");
+        const res = await apiFetch("/api/jobs?limit=10000");
         const json = await res.json();
         if (mounted) {
           setData(json);
@@ -110,7 +112,7 @@ export default function JobListingsPage() {
   const triggerScrape = async () => {
     setScraping(true);
     try {
-      const res = await fetch("/api/jobs", { method: "POST" });
+      const res = await apiFetch("/api/jobs", { method: "POST" });
       const result = await res.json();
       if (result.success) {
         fetchJobs();

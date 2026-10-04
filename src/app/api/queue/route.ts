@@ -1,243 +1,223 @@
 import { NextResponse } from "next/server";
-import { getQueue, addJobToQueue, addJobsToQueue, QueuedJob } from "@/lib/db";
-import { corsHeaders } from "@/lib/cors";
-import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
+import { createHash } from "node:crypto";
+import {
+  getQueue,
+  addJobToQueue,
+  addJobsToQueue,
+  claimJob,
+  updateJobInQueue,
+  removeJobFromQueue,
+  clearQueue,
+  clearCompletedJobs,
+  getQueueState,
+  setQueuePaused,
+  type QueuedJob,
+} from "@/lib/db";
+import { corsHeaders, handleOptions } from "@/lib/cors";
 
-function h() {
-  return corsHeaders("GET, POST, PUT, DELETE, PATCH, OPTIONS");
-}
-
-function validJobBody(body: unknown): body is {
-  companyName: string;
-  companyUrl: string;
-  positionTitle: string;
-  jobDescription: string;
-  personalDetails?: string;
-  profileId?: string;
-  profileName?: string;
-  profileColor?: string;
-  companyWebsite?: string;
-  includeCoverLetter?: boolean;
-  id?: string;
-  resumeLatex?: string;
-  coverLetterLatex?: string;
-} {
-  if (!body || typeof body !== "object") return false;
-  const b = body as Record<string, unknown>;
-  return (
-    typeof b.companyName === "string" &&
-    b.companyName.length > 0 &&
-    typeof b.companyUrl === "string" &&
-    b.companyUrl.length > 0 &&
-    typeof b.positionTitle === "string" &&
-    b.positionTitle.length > 0 &&
-    typeof b.jobDescription === "string" &&
-    b.jobDescription.length > 0
+const headers = () => corsHeaders();
+const response = (data: unknown, status = 200) =>
+  NextResponse.json(data, { status, headers: headers() });
+const required = ["companyName", "companyUrl", "positionTitle", "jobDescription"] as const;
+const optional = [
+  "personalDetails",
+  "profileId",
+  "profileName",
+  "profileColor",
+  "companyWebsite",
+  "resumeLatex",
+  "coverLetterLatex",
+] as const;
+function newJob(value: unknown): QueuedJob | null {
+  if (!value || typeof value !== "object") return null;
+  const body = value as Record<string, unknown>;
+  if (
+    !required.every((key) => typeof body[key] === "string" && (body[key] as string).trim()) ||
+    !optional.every((key) => body[key] === undefined || typeof body[key] === "string") ||
+    (body.includeCoverLetter !== undefined && typeof body.includeCoverLetter !== "boolean")
+  )
+    return null;
+  if (
+    [...required, ...optional].some(
+      (key) => typeof body[key] === "string" && (body[key] as string).length > 200_000,
+    ) ||
+    (body.id !== undefined && (typeof body.id !== "string" || !body.id || body.id.length > 200))
+  )
+    return null;
+  const fields = Object.fromEntries(
+    [...required, ...optional]
+      .filter((key) => body[key] !== undefined)
+      .map((key) => [
+        key,
+        typeof body[key] === "string" ? (body[key] as string).trim() : body[key],
+      ]),
   );
+  return {
+    ...fields,
+    inputHash: createHash("sha256")
+      .update(
+        JSON.stringify({
+          ...fields,
+          personalDetails: body.personalDetails || "",
+          includeCoverLetter: body.includeCoverLetter === true,
+        }),
+      )
+      .digest("hex"),
+    id: typeof body.id === "string" && body.id ? body.id : crypto.randomUUID(),
+    personalDetails: body.personalDetails || "",
+    includeCoverLetter: body.includeCoverLetter === true,
+    status: "pending",
+    progress: 0,
+    addedAt: Date.now(),
+  } as QueuedJob;
 }
-
-export async function OPTIONS() {
-  return NextResponse.json({}, { headers: h() });
-}
-
-export async function GET() {
+async function handle(action: () => Promise<Response>) {
   try {
-    const queue = await getQueue();
-    return NextResponse.json(queue, { headers: h() });
+    return await action();
   } catch (error) {
-    console.error("Queue GET error:", error);
-    return NextResponse.json({ error: "Failed to fetch queue" }, { status: 500, headers: h() });
+    if (error instanceof SyntaxError || error instanceof TypeError)
+      return response({ error: "Invalid request body" }, 400);
+    console.error("Queue request failed", error);
+    return response({ error: "Queue storage operation failed" }, 500);
   }
 }
-
-export async function POST(request: Request) {
-  const clientId = getClientIdentifier(request);
-  const rl = checkRateLimit(`queue_write_${clientId}`, RATE_LIMITS.GENERAL);
-  if (!rl.success) {
-    return NextResponse.json(
-      { error: "Too many requests" },
-      { status: 429, headers: { ...h(), "Retry-After": String(rl.retryAfter) } },
+export const OPTIONS = () => handleOptions();
+export const GET = (request?: Request) =>
+  handle(async () =>
+    response(
+      request && new URL(request.url).searchParams.has("state")
+        ? await getQueueState()
+        : await getQueue(),
+    ),
+  );
+export const POST = (request: Request) =>
+  handle(async () => {
+    const job = newJob(await request.json());
+    if (!job) return response({ error: "Missing or invalid required fields" }, 400);
+    if (await addJobToQueue(job)) return response({ success: true, job });
+    const existing = (await getQueue()).find((saved) => saved.id === job.id);
+    return existing &&
+      (existing.inputHash
+        ? existing.inputHash === job.inputHash
+        : [...required, ...optional, "includeCoverLetter" as const].every(
+            (key) => (existing[key] || "") === (job[key] || ""),
+          ))
+      ? response({ success: true, duplicate: true, job: existing })
+      : response({ error: "Job ID already exists with different details" }, 409);
+  });
+export const PUT = (request: Request) =>
+  handle(async () => {
+    const { jobs: input } = await request.json();
+    if (!Array.isArray(input) || !input.length || input.length > 50)
+      return response({ error: "Expected 1–50 jobs" }, 400);
+    const jobs: QueuedJob[] = [],
+      errors: Array<{ index: number; error: string }> = [];
+    input.forEach((value, index) => {
+      const job = newJob(value);
+      if (job) jobs.push(job);
+      else errors.push({ index, error: "Missing or invalid required fields" });
+    });
+    if (!jobs.length) return response({ error: "No valid jobs", details: errors }, 400);
+    return response({
+      ...(await addJobsToQueue(jobs)),
+      errors: errors.length ? errors : undefined,
+    });
+  });
+export const PATCH = (request: Request) =>
+  handle(async () => {
+    const { id, updates, action, runId, expectedCompletedAt } = await request.json();
+    if (
+      expectedCompletedAt !== undefined &&
+      (typeof expectedCompletedAt !== "number" || !Number.isFinite(expectedCompletedAt))
+    )
+      return response({ error: "Invalid results version" }, 400);
+    if (action === "pause" || action === "resume")
+      return response({ paused: await setQueuePaused(action === "pause") });
+    if (typeof id !== "string" || !id || (runId !== undefined && typeof runId !== "string"))
+      return response({ error: "Invalid job ID or claim" }, 400);
+    if (action === "claim") {
+      const job = await claimJob(id);
+      return job
+        ? response({ job })
+        : response({ error: "Job is already claimed or unavailable" }, 409);
+    }
+    if (
+      !updates ||
+      typeof updates !== "object" ||
+      Array.isArray(updates) ||
+      (action && !["reset", "retry", "cancel", "edit"].includes(action))
+    )
+      return response({ error: "Invalid updates" }, 400);
+    const strings = [
+      ...required,
+      ...optional,
+      "error",
+      "tailoredResume",
+      "tailoredCoverLetter",
+      "companyResearch",
+      "jobCountry",
+      "jobWorkMode",
+    ];
+    const numbers = ["progress", "retryCount", "startedAt", "completedAt"];
+    if (
+      Object.entries(updates).some(([key, value]) =>
+        strings.includes(key)
+          ? typeof value !== "string" ||
+            value.length > 200_000 ||
+            (required.includes(key as (typeof required)[number]) && !value.trim())
+          : numbers.includes(key)
+            ? typeof value !== "number" || !Number.isFinite(value) || value < 0
+            : key === "includeCoverLetter"
+              ? typeof value !== "boolean"
+              : key === "status"
+                ? ![
+                    "pending",
+                    "researching",
+                    "tailoring-resume",
+                    "tailoring-cover-letter",
+                    "completed",
+                    "failed",
+                    "cancelled",
+                  ].includes(value as string)
+                : true,
+      ) ||
+      (updates.progress !== undefined && updates.progress > 100)
+    )
+      return response({ error: "Invalid update fields or values" }, 400);
+    const safe = { ...updates } as Partial<QueuedJob>;
+    if (action === "cancel") {
+      safe.status = "cancelled";
+      safe.completedAt = Date.now();
+    } else if (action) {
+      safe.status = "pending";
+      safe.progress = 0;
+    }
+    const job = await updateJobInQueue(
+      id,
+      safe,
+      runId,
+      action === "reset",
+      action === "retry",
+      action === "edit",
+      expectedCompletedAt,
     );
-  }
-
-  try {
-    const body = await request.json();
-
-    if (!validJobBody(body)) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: h() });
-    }
-
-    const newJob: QueuedJob = {
-      id: body.id || `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      companyName: body.companyName,
-      companyUrl: body.companyUrl,
-      positionTitle: body.positionTitle,
-      jobDescription: body.jobDescription,
-      personalDetails: body.personalDetails || "",
-      status: "pending",
-      progress: 0,
-      addedAt: Date.now(),
-      profileId: body.profileId,
-      profileName: body.profileName,
-      profileColor: body.profileColor,
-      companyWebsite: body.companyWebsite,
-      includeCoverLetter: body.includeCoverLetter || false,
-      resumeLatex: body.resumeLatex,
-      coverLetterLatex: body.coverLetterLatex,
-    };
-
-    const success = await addJobToQueue(newJob);
-
-    if (!success) {
-      return NextResponse.json(
-        { error: "Failed to add job (duplicate ID?)" },
-        { status: 500, headers: h() },
-      );
-    }
-
-    return NextResponse.json({ success: true, job: newJob }, { headers: h() });
-  } catch (error) {
-    console.error("Queue POST error:", error);
-    return NextResponse.json({ error: "Failed to add job" }, { status: 500, headers: h() });
-  }
-}
-
-/**
- * PUT /api/queue — atomic batch add
- * Accepts { jobs: [...] } with an array of job payloads.
- * All jobs are added in a single atomic transaction — no race conditions.
- */
-export async function PUT(request: Request) {
-  const clientId = getClientIdentifier(request);
-  const rl = checkRateLimit(`queue_write_${clientId}`, RATE_LIMITS.GENERAL);
-  if (!rl.success) {
-    return NextResponse.json(
-      { error: "Too many requests" },
-      { status: 429, headers: { ...h(), "Retry-After": String(rl.retryAfter) } },
-    );
-  }
-
-  try {
-    const body = await request.json();
-
-    if (!body.jobs || !Array.isArray(body.jobs) || body.jobs.length === 0) {
-      return NextResponse.json(
-        { error: "Expected { jobs: [...] } with at least one job" },
-        { status: 400, headers: h() },
-      );
-    }
-
-    const newJobs: QueuedJob[] = [];
-    const errors: { index: number; error: string }[] = [];
-
-    for (let i = 0; i < body.jobs.length; i++) {
-      const jobData = body.jobs[i];
-      if (!validJobBody(jobData)) {
-        errors.push({ index: i, error: "Missing required fields" });
-        continue;
-      }
-      newJobs.push({
-        id: jobData.id || `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${i}`,
-        companyName: jobData.companyName,
-        companyUrl: jobData.companyUrl,
-        positionTitle: jobData.positionTitle,
-        jobDescription: jobData.jobDescription,
-        personalDetails: jobData.personalDetails || "",
-        status: "pending",
-        progress: 0,
-        addedAt: Date.now(),
-        profileId: jobData.profileId,
-        profileName: jobData.profileName,
-        profileColor: jobData.profileColor,
-        companyWebsite: jobData.companyWebsite,
-        includeCoverLetter: jobData.includeCoverLetter || false,
-        resumeLatex: jobData.resumeLatex,
-        coverLetterLatex: jobData.coverLetterLatex,
-      });
-    }
-
-    if (newJobs.length === 0) {
-      return NextResponse.json(
-        { error: "No valid jobs in batch", details: errors },
-        { status: 400, headers: h() },
-      );
-    }
-
-    const result = await addJobsToQueue(newJobs);
-
-    return NextResponse.json(
-      {
-        success: result.success,
-        added: result.added,
-        duplicates: result.duplicates,
-        errors: errors.length > 0 ? errors : undefined,
-        jobs: newJobs.slice(0, result.added),
-      },
-      { headers: h() },
-    );
-  } catch (error) {
-    console.error("Queue PUT (batch) error:", error);
-    return NextResponse.json({ error: "Failed to add batch jobs" }, { status: 500, headers: h() });
-  }
-}
-
-export async function DELETE(request: Request) {
-  const clientId = getClientIdentifier(request);
-  const rl = checkRateLimit(`queue_write_${clientId}`, RATE_LIMITS.GENERAL);
-  if (!rl.success) {
-    return NextResponse.json(
-      { error: "Too many requests" },
-      { status: 429, headers: { ...h(), "Retry-After": String(rl.retryAfter) } },
-    );
-  }
-
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
-
-    if (id) {
-      const { removeJobFromQueue } = await import("@/lib/db");
-      const removed = await removeJobFromQueue(id);
-      return NextResponse.json({ success: removed }, { headers: h() });
-    } else {
-      const { clearQueue } = await import("@/lib/db");
-      await clearQueue();
-      return NextResponse.json({ success: true }, { headers: h() });
-    }
-  } catch (error) {
-    console.error("Queue DELETE error:", error);
-    return NextResponse.json({ error: "Failed to delete job(s)" }, { status: 500, headers: h() });
-  }
-}
-
-export async function PATCH(request: Request) {
-  const clientId = getClientIdentifier(request);
-  const rl = checkRateLimit(`queue_write_${clientId}`, RATE_LIMITS.GENERAL);
-  if (!rl.success) {
-    return NextResponse.json(
-      { error: "Too many requests" },
-      { status: 429, headers: { ...h(), "Retry-After": String(rl.retryAfter) } },
-    );
-  }
-
-  try {
-    const body = await request.json();
-    const { id, updates } = body;
-
-    if (!id || !updates) {
-      return NextResponse.json({ error: "Missing id or updates" }, { status: 400, headers: h() });
-    }
-
-    const { updateJobInQueue } = await import("@/lib/db");
-    const updatedJob = await updateJobInQueue(id, updates);
-
-    if (!updatedJob) {
-      return NextResponse.json({ error: "Job not found" }, { status: 404, headers: h() });
-    }
-
-    return NextResponse.json({ success: true, job: updatedJob }, { headers: h() });
-  } catch (error) {
-    console.error("Queue PATCH error:", error);
-    return NextResponse.json({ error: "Failed to update job" }, { status: 500, headers: h() });
-  }
-}
+    return job
+      ? response({ success: true, job })
+      : response(
+          { error: "Job unavailable, already processing, or results changed. Refresh the queue." },
+          runId || expectedCompletedAt !== undefined || action === "edit" ? 409 : 404,
+        );
+  });
+export const DELETE = (request: Request) =>
+  handle(async () => {
+    const params = new URL(request.url).searchParams;
+    const id = params.get("id");
+    if ((params.has("id") && !id) || (params.has("status") && params.get("status") !== "completed"))
+      return response({ error: "Invalid delete filter" }, 400);
+    const success = id
+      ? await removeJobFromQueue(id)
+      : params.get("status") === "completed"
+        ? await clearCompletedJobs()
+        : await clearQueue();
+    return response({ success });
+  });

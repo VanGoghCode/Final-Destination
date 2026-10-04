@@ -1,4 +1,7 @@
 import { Redis } from "@upstash/redis";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { resetJob, isClaimable, isActiveJob } from "./queue";
+export { resetJob } from "./queue";
 
 // Types
 export interface Company {
@@ -60,6 +63,9 @@ export interface JobsData {
 }
 
 export interface QueuedJob {
+  inputHash?: string;
+  runId?: string;
+  leaseExpiresAt?: number;
   id: string;
   companyName: string;
   companyUrl: string;
@@ -109,16 +115,10 @@ const KEYS = {
   TIER_LOWEST: "data:tier:lowest",
 };
 
-// Get user-specific key for queue and profiles
-// (Deprecated - no auth, flat key space)
-function getKey(baseKey: string): string {
-  return baseKey;
-}
-
 // Singleton Redis instance
 let redisInstance: Redis | null = null;
 
-function getRedis(): Redis {
+export function getRedis(): Redis {
   if (redisInstance) {
     return redisInstance;
   }
@@ -138,7 +138,7 @@ function getRedis(): Redis {
 }
 
 // For testing purposes only
-export function setRedisInstance(redis: Redis) {
+export function setRedisInstance(redis: Redis | null) {
   redisInstance = redis;
 }
 
@@ -154,70 +154,32 @@ const TIER_KEY_MAP: Record<string, string> = {
 export async function getTierData(
   tier: "top" | "middle" | "lower" | "lowest",
 ): Promise<TierData | null> {
-  const redis = getRedis();
-
   const key = TIER_KEY_MAP[tier];
-  if (!key) return null;
-
-  try {
-    const data = await redis.get<TierData>(key);
-    return data;
-  } catch (error) {
-    console.error(`Failed to get ${tier}-tier data from Redis:`, error);
-    throw error;
-  }
+  return key ? getRedis().get<TierData>(key) : null;
 }
 
 export async function setTierData(
   tier: "top" | "middle" | "lower" | "lowest",
   data: TierData,
 ): Promise<boolean> {
-  const redis = getRedis();
-
   const key = TIER_KEY_MAP[tier];
   if (!key) return false;
-
-  try {
-    await redis.set(key, data);
-    return true;
-  } catch (error) {
-    console.error(`Failed to save ${tier}-tier data to Redis:`, error);
-    throw error;
-  }
+  await getRedis().set(key, data);
+  return true;
 }
 
 export async function getAllTierData(): Promise<Record<string, TierData | null>> {
-  const tiers = ["top", "middle", "lower", "lowest"] as const;
-  const results = await Promise.all(tiers.map((tier) => getTierData(tier)));
-
-  const result: Record<string, TierData | null> = {};
-  tiers.forEach((tier, index) => {
-    const data = results[index];
-    result[tier] = data || null;
-  });
-
-  return result;
+  const tiers = Object.keys(TIER_KEY_MAP);
+  const results = await getRedis().mget<Array<TierData | null>>(...Object.values(TIER_KEY_MAP));
+  return Object.fromEntries(tiers.map((tier, index) => [tier, results[index] ?? null]));
 }
 
 export async function getCompanyFromTiers(
   companyId: string,
 ): Promise<{ company: Company; tier: string } | null> {
-  const tiers = ["top", "middle", "lower", "lowest"] as const;
-
-  const results = await Promise.all(
-    tiers.map(async (tier) => {
-      const data = await getTierData(tier);
-      return { tier, data };
-    }),
-  );
-
-  for (const { tier, data } of results) {
-    if (data) {
-      const company = data.companies.find((c) => c.id === companyId);
-      if (company) {
-        return { company, tier };
-      }
-    }
+  for (const [tier, data] of Object.entries(await getAllTierData())) {
+    const company = data?.companies.find((c) => c.id === companyId);
+    if (company) return { company, tier };
   }
 
   return null;
@@ -227,28 +189,13 @@ export async function updateCompanyInTier(
   companyId: string,
   updates: Partial<Company>,
 ): Promise<{ company: Company; tier: string } | null> {
-  const tiers = ["top", "middle", "lower", "lowest"] as const;
-
-  const results = await Promise.all(
-    tiers.map(async (tier) => {
-      const data = await getTierData(tier);
-      return { tier, data };
-    }),
-  );
-
-  for (const { tier, data } of results) {
-    if (data) {
-      const index = data.companies.findIndex((c) => c.id === companyId);
-      if (index !== -1) {
-        const existingCompany = data.companies[index];
-        if (existingCompany) {
-          const updatedCompany: Company = { ...existingCompany, ...updates };
-          data.companies[index] = updatedCompany;
-          await setTierData(tier, data);
-          return { company: updatedCompany, tier };
-        }
-      }
-    }
+  for (const [tier, data] of Object.entries(await getAllTierData())) {
+    const index = data?.companies.findIndex((c) => c.id === companyId) ?? -1;
+    if (!data || index < 0) continue;
+    const company = { ...data.companies[index]!, ...updates };
+    data.companies[index] = company;
+    await setTierData(tier as "top" | "middle" | "lower" | "lowest", data);
+    return { company, tier };
   }
 
   return null;
@@ -257,27 +204,12 @@ export async function updateCompanyInTier(
 // ============== JOBS ==============
 
 export async function getJobs(): Promise<JobsData | null> {
-  const redis = getRedis();
-
-  try {
-    const data = await redis.get<JobsData>(KEYS.JOBS);
-    return data;
-  } catch (error) {
-    console.error("Failed to get jobs from Redis:", error);
-    throw error;
-  }
+  return getRedis().get<JobsData>(KEYS.JOBS);
 }
 
 export async function setJobs(data: JobsData): Promise<boolean> {
-  const redis = getRedis();
-
-  try {
-    await redis.set(KEYS.JOBS, data);
-    return true;
-  } catch (error) {
-    console.error("Failed to save jobs to Redis:", error);
-    throw error;
-  }
+  await getRedis().set(KEYS.JOBS, data);
+  return true;
 }
 
 export async function addJobs(newJobs: Job[]): Promise<boolean> {
@@ -316,6 +248,8 @@ export async function deleteJob(jobId: string): Promise<boolean> {
 
 const QUEUE_LOCK_KEY = "lock:queue";
 const QUEUE_LOCK_TTL = 10; // seconds — max time a queue operation can hold the lock
+const queueLock = new AsyncLocalStorage<string>();
+const PAUSED_KEY = "data:queue:paused";
 
 /**
  * Acquire a distributed mutex lock around queue operations.
@@ -338,7 +272,7 @@ async function withQueueLock<T>(fn: () => Promise<T>, maxWaitMs = 5000): Promise
 
     if (acquired === "OK") {
       try {
-        return await fn();
+        return await queueLock.run(lockValue, fn);
       } finally {
         // Release lock only if we still hold it (compare value)
         const luaScript = `
@@ -368,27 +302,60 @@ async function withQueueLock<T>(fn: () => Promise<T>, maxWaitMs = 5000): Promise
 }
 
 export async function getQueue(): Promise<QueuedJob[]> {
-  const redis = getRedis();
-  try {
-    const key = getKey(KEYS.QUEUE);
-    const queue = await redis.get<QueuedJob[]>(key);
-    return queue || [];
-  } catch (error) {
-    console.error("Failed to get queue from Redis:", error);
-    return [];
-  }
+  const queue = (await getRedis().get<QueuedJob[]>(KEYS.QUEUE)) ?? [];
+  if (!Array.isArray(queue)) throw new Error("Queue storage is invalid");
+  return queue;
 }
 
-export async function setQueue(queue: QueuedJob[]): Promise<boolean> {
-  const redis = getRedis();
-  try {
-    const key = getKey(KEYS.QUEUE);
-    await redis.set(key, queue);
-    return true;
-  } catch (error) {
-    console.error("Failed to save queue to Redis:", error);
-    return false;
-  }
+async function setQueueValue(key: string, value: unknown): Promise<boolean> {
+  const lock = queueLock.getStore();
+  if (lock) {
+    const saved = await getRedis().eval(
+      `if redis.call("get", KEYS[1]) ~= ARGV[1] then return 0 end
+       redis.call("set", KEYS[2], ARGV[2]); return 1`,
+      [QUEUE_LOCK_KEY, key],
+      [lock, JSON.stringify(value)],
+    );
+    if (saved !== 1) throw new Error("Queue lock expired. Please retry the action.");
+  } else await getRedis().set(key, value);
+  return true;
+}
+
+export const setQueue = (queue: QueuedJob[]) => setQueueValue(KEYS.QUEUE, queue);
+
+export const isQueuePaused = async () => (await getRedis().get<boolean>(PAUSED_KEY)) === true;
+export const setQueuePaused = (paused: boolean) =>
+  withQueueLock(async () => {
+    await setQueueValue(PAUSED_KEY, paused);
+    return paused;
+  });
+export const getQueueState = () =>
+  withQueueLock(async () => ({ jobs: await getQueue(), paused: await isQueuePaused() }));
+
+export async function claimJob(jobId?: string): Promise<QueuedJob | null> {
+  return withQueueLock(async () => {
+    if (await isQueuePaused()) return null;
+    const now = Date.now();
+    const queue = (await getQueue()).map((job) =>
+      job.status !== "pending" && isClaimable(job, now) ? resetJob(job, false) : job,
+    );
+    if (queue.some(isActiveJob)) return null;
+    const index = queue.findIndex(
+      (job) => job.status === "pending" && (!jobId || job.id === jobId),
+    );
+    if (index < 0) return null;
+    const claimed = {
+      ...queue[index]!,
+      status: "tailoring-resume" as const,
+      progress: 5,
+      startedAt: now,
+      runId: crypto.randomUUID(),
+      leaseExpiresAt: now + 600_000,
+    };
+    queue[index] = claimed;
+    await setQueue(queue);
+    return claimed;
+  });
 }
 
 /**
@@ -416,37 +383,75 @@ export async function addJobsToQueue(jobs: QueuedJob[]): Promise<{
   success: boolean;
   added: number;
   duplicates: number;
+  jobs: QueuedJob[];
 }> {
   return withQueueLock(async () => {
     const queue = await getQueue();
+    const existingIds = new Set(queue.map((job) => job.id));
     let added = 0;
     let duplicates = 0;
+    const addedJobs: QueuedJob[] = [];
 
     for (const job of jobs) {
-      if (queue.some((j) => j.id === job.id)) {
+      if (existingIds.has(job.id)) {
         duplicates++;
         continue;
       }
       queue.push(job);
+      addedJobs.push(job);
+      existingIds.add(job.id);
       added++;
     }
 
     const ok = await setQueue(queue);
-    return { success: ok, added, duplicates };
+    return { success: ok, added, duplicates, jobs: addedJobs };
   });
 }
 
 export async function updateJobInQueue(
   jobId: string,
   updates: Partial<QueuedJob>,
+  runId?: string,
+  resetTemplates = false,
+  retry = false,
+  edit = false,
+  expectedCompletedAt?: number,
 ): Promise<QueuedJob | null> {
   return withQueueLock(async () => {
     const queue = await getQueue();
     const index = queue.findIndex((j) => j.id === jobId);
 
-    if (index === -1) return null;
+    if (
+      index === -1 ||
+      (runId &&
+        (queue[index]?.runId !== runId || (queue[index]?.leaseExpiresAt ?? Infinity) <= Date.now()))
+    )
+      return null;
 
-    const updatedJob = { ...queue[index], ...updates } as QueuedJob;
+    const current = queue[index]!;
+    if (expectedCompletedAt !== undefined && current.completedAt !== expectedCompletedAt)
+      return null;
+    if (
+      !runId &&
+      isActiveJob(current) &&
+      (updates.tailoredResume !== undefined || updates.tailoredCoverLetter !== undefined)
+    )
+      return null;
+    if (edit && isActiveJob(current)) return null;
+    const base =
+      updates.status === "pending"
+        ? resetJob(
+            current,
+            resetTemplates ||
+              (updates.profileId !== undefined && updates.profileId !== current.profileId),
+          )
+        : current;
+    const updatedJob = { ...base, ...updates } as QueuedJob;
+    if (retry) updatedJob.retryCount = (current.retryCount || 0) + 1;
+    if (["completed", "failed", "cancelled"].includes(updatedJob.status)) {
+      delete updatedJob.runId;
+      delete updatedJob.leaseExpiresAt;
+    }
     queue[index] = updatedJob;
 
     await setQueue(queue);
@@ -465,13 +470,13 @@ export async function removeJobFromQueue(jobId: string): Promise<boolean> {
   });
 }
 
-/**
- * Atomically clear the entire queue.
- */
-export async function clearQueue(): Promise<boolean> {
-  return withQueueLock(async () => {
-    return setQueue([]);
-  });
+// Clear under the same lock as submissions and worker updates.
+export const clearQueue = () => withQueueLock(() => setQueue([]));
+
+export async function clearCompletedJobs(): Promise<boolean> {
+  return withQueueLock(async () =>
+    setQueue((await getQueue()).filter((job) => job.status !== "completed")),
+  );
 }
 
 // ============== PROFILES ==============
@@ -486,27 +491,23 @@ export interface SavedProfile {
   lastName: string;
   color: string;
   avatarText?: string;
-  defaultResumeId?: string;
-  defaultCoverLetterId?: string;
+  defaultResumeId?: string | null;
+  defaultCoverLetterId?: string | null;
 }
 
 export async function getProfiles(): Promise<SavedProfile[]> {
   const redis = getRedis();
-  try {
-    const key = getKey(KEYS.PROFILES);
-    const profiles = await redis.get<SavedProfile[]>(key);
-    return profiles || [];
-  } catch (error) {
-    console.error("Failed to get profiles from Redis:", error);
-    return [];
-  }
+  return (
+    (await redis.get<SavedProfile[]>("fd:fd_profiles")) ??
+    (await redis.get<SavedProfile[]>(KEYS.PROFILES)) ??
+    []
+  );
 }
 
 export async function setProfiles(profiles: SavedProfile[]): Promise<boolean> {
   const redis = getRedis();
   try {
-    const key = getKey(KEYS.PROFILES);
-    await redis.set(key, profiles);
+    await redis.set("fd:fd_profiles", profiles);
     return true;
   } catch (error) {
     console.error("Failed to save profiles to Redis:", error);

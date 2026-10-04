@@ -1,4 +1,5 @@
-import type { Job, ScrapeResult } from "./types";
+import type { ScrapeResult } from "./types";
+import { fetchJobs } from "./fetch-jobs";
 
 const GREENHOUSE_API_BASE = "https://boards-api.greenhouse.io/v1/boards";
 
@@ -30,49 +31,26 @@ export async function scrapeGreenhouse(
   boardToken: string,
   companyId: string,
   companyName: string,
+  signal?: AbortSignal,
 ): Promise<ScrapeResult> {
-  try {
-    const url = `${GREENHOUSE_API_BASE}/${boardToken}/jobs`;
-    const response = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      return {
-        success: false,
-        jobs: [],
-        error: `Greenhouse API error: ${response.status} ${response.statusText}`,
-      };
-    }
-
-    const data: GreenhouseResponse = await response.json();
-
-    const jobs: Job[] = data.jobs.map((job) => ({
-      id: `gh-${boardToken}-${job.id}`,
-      companyId,
-      companyName,
-      title: job.title,
-      location: job.location?.name || "Remote",
-      department: job.departments?.[0]?.name,
-      url: job.absolute_url,
-      postedAt: job.updated_at,
-      scrapedAt: new Date().toISOString(),
-      platform: "greenhouse",
-    }));
-
-    return {
-      success: true,
-      jobs,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      jobs: [],
-      error: `Failed to scrape Greenhouse: ${error instanceof Error ? error.message : "Unknown error"}`,
-    };
-  }
+  return fetchJobs<GreenhouseResponse>(
+    "greenhouse",
+    "Greenhouse",
+    `${GREENHOUSE_API_BASE}/${boardToken}/jobs`,
+    companyId,
+    companyName,
+    (data, metadata) =>
+      data.jobs.map((job) => ({
+        ...metadata,
+        id: `gh-${boardToken}-${job.id}`,
+        title: job.title,
+        location: job.location?.name || "Remote",
+        department: job.departments?.[0]?.name,
+        url: job.absolute_url,
+        postedAt: job.updated_at,
+      })),
+    { headers: { Accept: "application/json" }, signal },
+  );
 }
 
 /**

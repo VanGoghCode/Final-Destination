@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import Button from "@/components/Button";
 import { Profile } from "@/lib/storage";
 
@@ -23,10 +23,9 @@ interface JobFormProps {
     profileId?: string;
     profileName?: string;
     profileColor?: string;
-  }) => void;
+  }) => void | Promise<boolean | void>;
   onCancel: () => void;
   submitLabel: React.ReactNode;
-  isProcessing?: boolean;
 }
 
 export default function JobForm({
@@ -43,8 +42,8 @@ export default function JobForm({
   onSubmit,
   onCancel,
   submitLabel,
-  isProcessing,
 }: JobFormProps) {
+  const formId = useId();
   const [companyName, setCompanyName] = useState(initialValues.companyName);
   const [companyUrl, setCompanyUrl] = useState(initialValues.companyUrl);
   const [positionTitle, setPositionTitle] = useState(initialValues.positionTitle);
@@ -55,11 +54,14 @@ export default function JobForm({
     initialValues.includeCoverLetter || false,
   );
   const [showAdvanced, setShowAdvanced] = useState(!!initialValues.personalDetails);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     if (
       !companyName.trim() ||
       !companyUrl.trim() ||
@@ -68,17 +70,29 @@ export default function JobForm({
     )
       return;
 
-    onSubmit({
-      companyName: companyName.trim(),
-      companyUrl: companyUrl.trim(),
-      positionTitle: positionTitle.trim(),
-      jobDescription: jobDescription.trim(),
-      personalDetails: personalDetails.trim(),
-      includeCoverLetter,
-      profileId: selectedProfileId || undefined,
-      profileName: selectedProfile?.name,
-      profileColor: selectedProfile?.color,
-    });
+    setSaving(true);
+    setError("");
+    try {
+      const saved = await onSubmit({
+        companyName: companyName.trim(),
+        companyUrl: companyUrl.trim(),
+        positionTitle: positionTitle.trim(),
+        jobDescription: jobDescription.trim(),
+        personalDetails: personalDetails.trim(),
+        includeCoverLetter,
+        profileId: selectedProfileId,
+        profileName: selectedProfile?.name || "",
+        profileColor: selectedProfile?.color || "",
+      });
+      if (saved === false)
+        setError(
+          "The job could not be saved. Your changes are still here; check the queue connection and retry.",
+        );
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not save job");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -129,52 +143,67 @@ export default function JobForm({
       )}
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-muted mb-1 block text-xs font-medium">Company Name *</label>
-          <input
-            type="text"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            className="border-card-border focus:ring-primary/20 focus:border-primary w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
-            placeholder="e.g. Google"
-            required
-          />
-        </div>
-        <div>
-          <label className="text-muted mb-1 block text-xs font-medium">Position Title *</label>
-          <input
-            type="text"
-            value={positionTitle}
-            onChange={(e) => setPositionTitle(e.target.value)}
-            className="border-card-border focus:ring-primary/20 focus:border-primary w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
-            placeholder="e.g. Software Engineer"
-            required
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="text-muted mb-1 block text-xs font-medium">Job Posting URL *</label>
-        <input
-          type="url"
-          value={companyUrl}
-          onChange={(e) => setCompanyUrl(e.target.value)}
-          className="border-card-border focus:ring-primary/20 focus:border-primary w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
-          placeholder="https://careers.google.com/jobs/..."
-          required
-        />
-      </div>
-
-      <div>
-        <label className="text-muted mb-1 block text-xs font-medium">Job Description *</label>
-        <textarea
-          value={jobDescription}
-          onChange={(e) => setJobDescription(e.target.value)}
-          className="border-card-border focus:ring-primary/20 focus:border-primary w-full resize-none rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
-          rows={6}
-          placeholder="Paste the job description here..."
-          required
-        />
+        {[
+          {
+            name: "company",
+            label: "Company Name",
+            value: companyName,
+            set: setCompanyName,
+            placeholder: "e.g. Google",
+            type: "text",
+          },
+          {
+            name: "position",
+            label: "Position Title",
+            value: positionTitle,
+            set: setPositionTitle,
+            placeholder: "e.g. Software Engineer",
+            type: "text",
+          },
+          {
+            name: "url",
+            label: "Job Posting URL",
+            value: companyUrl,
+            set: setCompanyUrl,
+            placeholder: "https://careers.google.com/jobs/...",
+            type: "url",
+          },
+          {
+            name: "description",
+            label: "Job Description",
+            value: jobDescription,
+            set: setJobDescription,
+            placeholder: "Paste the job description here...",
+          },
+        ].map((field) => {
+          const props = {
+            id: `${formId}-${field.name}`,
+            value: field.value,
+            placeholder: field.placeholder,
+            required: true,
+            className:
+              "border-card-border focus:ring-primary/20 focus:border-primary w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none",
+          };
+          return (
+            <div
+              key={field.name}
+              className={field.name === "url" || field.name === "description" ? "col-span-2" : ""}
+            >
+              <label htmlFor={props.id} className="text-muted mb-1 block text-xs font-medium">
+                {field.label} *
+              </label>
+              {field.type ? (
+                <input
+                  {...props}
+                  type={field.type}
+                  onChange={(event) => field.set(event.target.value)}
+                />
+              ) : (
+                <textarea {...props} rows={6} onChange={(event) => field.set(event.target.value)} />
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Advanced Options Toggle */}
@@ -197,13 +226,13 @@ export default function JobForm({
       <div className="flex items-center gap-2 px-1">
         <input
           type="checkbox"
-          id="includeCoverLetter"
+          id={`${formId}-cover`}
           checked={includeCoverLetter}
           onChange={(e) => setIncludeCoverLetter(e.target.checked)}
           className="text-primary focus:ring-primary/20 h-4 w-4 rounded border-gray-300"
         />
         <label
-          htmlFor="includeCoverLetter"
+          htmlFor={`${formId}-cover`}
           className="cursor-pointer text-xs font-medium text-gray-700"
         >
           Generate Cover Letter
@@ -213,10 +242,14 @@ export default function JobForm({
       {showAdvanced && (
         <div className="space-y-4 border-l-2 border-gray-100 pl-4">
           <div>
-            <label className="text-muted mb-1 block text-xs font-medium">
+            <label
+              htmlFor={`${formId}-details`}
+              className="text-muted mb-1 block text-xs font-medium"
+            >
               Additional Details (optional)
             </label>
             <textarea
+              id={`${formId}-details`}
               value={personalDetails}
               onChange={(e) => setPersonalDetails(e.target.value)}
               className="border-card-border focus:ring-primary/20 focus:border-primary w-full resize-none rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
@@ -227,20 +260,19 @@ export default function JobForm({
         </div>
       )}
 
-      {isProcessing && (
-        <div className="rounded-lg bg-yellow-50 p-3 text-xs text-yellow-800">
-          <strong>Note:</strong> Editing will restart the job processing from the beginning.
-        </div>
-      )}
-
       <div className="flex gap-3 pt-4">
         <Button type="button" variant="secondary" onClick={onCancel} className="flex-1">
           Cancel
         </Button>
-        <Button type="submit" variant="primary" className="flex-1 justify-center">
-          {submitLabel}
+        <Button type="submit" variant="primary" disabled={saving} className="flex-1 justify-center">
+          {saving ? "Saving…" : submitLabel}
         </Button>
       </div>
+      {error && (
+        <p role="alert" className="text-sm text-red-700">
+          {error}
+        </p>
+      )}
     </form>
   );
 }

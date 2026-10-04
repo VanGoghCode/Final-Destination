@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 
 interface AppState {
   firstName: string;
@@ -39,6 +39,7 @@ interface AppState {
 }
 
 interface AppContextType extends AppState {
+  loadJob: (job: Partial<AppState>) => void;
   setFirstName: (value: string) => void;
   setLastName: (value: string) => void;
   setResumeLatex: (value: string) => void;
@@ -91,6 +92,10 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(initialState);
+  const loadJob = useCallback(
+    (job: Partial<AppState>) => setState((prev) => ({ ...prev, ...job })),
+    [],
+  );
 
   const setFirstName = (value: string) => setState((prev) => ({ ...prev, firstName: value }));
   const setLastName = (value: string) => setState((prev) => ({ ...prev, lastName: value }));
@@ -134,6 +139,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider
       value={{
         ...state,
+        loadJob,
         setFirstName,
         setLastName,
         setResumeLatex,

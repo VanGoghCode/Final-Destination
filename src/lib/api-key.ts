@@ -1,39 +1,57 @@
-// API key resolution utility
-// Priority 1: process.env.DEEPSEEK_API_KEY (server environment)
-// Priority 2: fd_api_key cookie (set by client-side ModelSelector via document.cookie)
+import {
+  getConfiguredProvider,
+  isAIProvider,
+  PROVIDER_MODELS,
+  PROVIDER_SETTINGS,
+  type AIProvider,
+  type AIProviderConfig,
+} from "./ai-providers/types";
 
-const COOKIE_NAME = "fd_api_key";
-
-/**
- * Resolve the DeepSeek API key from environment, request header, or browser-set cookie.
- * Async — cookies()/headers() in Next.js 16+ returns a Promise.
- * Uses dynamic import so tests (Bun) can import this module without next/headers.
- */
-export async function getDeepSeekApiKey(): Promise<string | undefined> {
-  // Priority 1: environment variable (sync — return immediately)
-  if (process.env.DEEPSEEK_API_KEY) {
-    return process.env.DEEPSEEK_API_KEY;
-  }
-
+async function requestValue(
+  header: string,
+  cookie: string,
+  request?: Request,
+): Promise<string | undefined> {
   try {
-    const { cookies, headers } = await import("next/headers");
-
-    // Priority 2: x-deepseek-api-key header (explicit client header, more reliable than cookie)
-    const headersList = await headers();
-    const headerKey = headersList.get("x-deepseek-api-key");
-    if (headerKey) {
-      return headerKey;
+    if (request) {
+      const headerValue = request.headers.get(header);
+      if (headerValue) return headerValue;
+      const prefix = `${cookie}=`;
+      const value = request.headers
+        .get("cookie")
+        ?.split(";")
+        .map((part) => part.trim())
+        .find((part) => part.startsWith(prefix))
+        ?.slice(prefix.length);
+      return value ? decodeURIComponent(value) : undefined;
     }
-
-    // Priority 3: cookie set by client-side API key manager
-    const cookieStore = await cookies();
-    const cookie = cookieStore.get(COOKIE_NAME);
-    if (cookie?.value) {
-      return cookie.value;
-    }
+    const { headers, cookies } = await import("next/headers");
+    return (await headers()).get(header) || (await cookies()).get(cookie)?.value || undefined;
   } catch {
-    // Not in a Next.js request context (e.g., build time, tests, client side) — ignore
+    return undefined;
   }
+}
 
-  return undefined;
+export async function getApiKey(
+  provider: AIProvider,
+  request?: Request,
+): Promise<string | undefined> {
+  const settings = PROVIDER_SETTINGS[provider];
+  return (
+    process.env[settings.envKey] || requestValue(`x-${provider}-api-key`, settings.cookie, request)
+  );
+}
+
+export const getDeepSeekApiKey = () => getApiKey("deepseek");
+
+export async function getAISelection(request?: Request): Promise<AIProviderConfig> {
+  const selected = await requestValue("x-ai-provider", "fd_ai_provider", request);
+  const provider = isAIProvider(selected) ? selected : getConfiguredProvider();
+  const modelId =
+    provider === "openai"
+      ? (await requestValue("x-ai-model", "fd_openai_model", request)) ||
+        process.env.OPENAI_MODEL ||
+        PROVIDER_MODELS.openai.default
+      : PROVIDER_MODELS.deepseek.default;
+  return { provider, modelId };
 }

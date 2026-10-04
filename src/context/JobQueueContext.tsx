@@ -1,425 +1,319 @@
 "use client";
-
 import {
   createContext,
   useContext,
   useState,
   useCallback,
   useEffect,
-  useMemo,
-  ReactNode,
+  useRef,
+  type ReactNode,
 } from "react";
-
-export type JobStatus =
-  | "pending"
-  | "tailoring-resume"
-  | "tailoring-cover-letter"
-  | "completed"
-  | "failed"
-  | "cancelled";
-
-export interface QueuedJob {
-  id: string;
-  companyName: string;
-  companyUrl: string;
-  positionTitle: string;
-  jobDescription: string;
-  personalDetails: string;
-  includeCoverLetter: boolean;
-  status: JobStatus;
-  progress: number;
-  error?: string;
-  profileId?: string;
-  profileName?: string;
-  profileColor?: string;
-  companyWebsite?: string;
-  companyResearch?: string;
-  tailoredResume?: string;
-  tailoredCoverLetter?: string;
-  resumeLatex?: string;
-  coverLetterLatex?: string;
-  jobCountry?: string;
-  jobWorkMode?: "" | "Remote" | "Hybrid" | "On-site";
-  retryCount?: number;
-  addedAt: number;
-  startedAt?: number;
-  completedAt?: number;
-}
-
-interface JobQueueContextType {
+import type { QueuedJob } from "@/lib/db";
+import { isClaimable, isActiveJob } from "@/lib/queue";
+import { apiJSON, apiFetch } from "@/lib/client-api";
+export type { QueuedJob };
+export type JobStatus = QueuedJob["status"];
+type NewJob = Omit<QueuedJob, "id" | "status" | "progress" | "addedAt">;
+type Edits = Partial<
+  Pick<
+    QueuedJob,
+    | "companyName"
+    | "companyUrl"
+    | "positionTitle"
+    | "jobDescription"
+    | "personalDetails"
+    | "includeCoverLetter"
+    | "profileId"
+    | "profileName"
+    | "profileColor"
+  >
+>;
+type State = { jobs: QueuedJob[]; paused: boolean };
+const json = (method: string, body?: unknown): RequestInit => ({
+  method,
+  headers: { "Content-Type": "application/json" },
+  body: body === undefined ? undefined : JSON.stringify(body),
+});
+interface QueueContext {
   queue: QueuedJob[];
+  loading: boolean;
+  queueError: string;
+  busyIds: string[];
+  retryConnection: () => Promise<void>;
+  refreshQueue: () => Promise<void>;
   isProcessing: boolean;
   currentJobId: string | null;
-  setCurrentJobId: (id: string | null) => void;
-  addJob: (job: Omit<QueuedJob, "id" | "status" | "progress" | "addedAt">) => string;
-  addJobs: (jobs: Omit<QueuedJob, "id" | "status" | "progress" | "addedAt">[]) => string[];
-  removeJob: (id: string) => void;
-  updateJob: (
-    id: string,
-    updates: Partial<
-      Pick<
-        QueuedJob,
-        | "companyName"
-        | "companyUrl"
-        | "positionTitle"
-        | "jobDescription"
-        | "personalDetails"
-        | "includeCoverLetter"
-      >
-    > & { profileId?: string; profileName?: string; profileColor?: string },
-    resetProcessing?: boolean,
-  ) => void;
-  clearQueue: () => void;
-  clearCompleted: () => void;
-  startProcessing: () => void;
-  stopProcessing: () => void;
-  cancelJob: (id: string) => void;
-  retryJob: (id: string) => void;
   processingPaused: boolean;
-  setProcessingPaused: (paused: boolean) => void;
-  updateJobStatus: (id: string, status: JobStatus, progress?: number) => void;
-  updateJobResults: (id: string, results: Partial<QueuedJob>) => void;
-  setJobError: (id: string, error: string) => void;
+  pollingEnabled: boolean;
+  setPollingEnabled: (value: boolean) => void;
+  setProcessingPaused: (value: boolean) => Promise<boolean>;
+  activeCount: number;
   completedCount: number;
   failedCount: number;
   pendingCount: number;
   cancelledCount: number;
   totalCount: number;
-  pollingEnabled: boolean;
-  setPollingEnabled: (enabled: boolean) => void;
+  addJob: (job: NewJob) => Promise<string | null>;
+  addJobs: (jobs: NewJob[]) => Promise<string[]>;
+  removeJob: (id: string) => Promise<boolean>;
+  updateJob: (id: string, updates: Edits, reset?: boolean) => Promise<boolean>;
+  clearQueue: () => Promise<boolean>;
+  clearCompleted: () => Promise<boolean>;
+  retryJob: (id: string) => Promise<boolean>;
+  cancelJob: (id: string) => Promise<boolean>;
+  startProcessing: () => Promise<boolean>;
+  stopProcessing: () => Promise<boolean>;
 }
-
-const JobQueueContext = createContext<JobQueueContextType | undefined>(undefined);
-
-const HEADERS = { "Content-Type": "application/json" };
-
+const JobQueueContext = createContext<QueueContext | undefined>(undefined);
 export function JobQueueProvider({ children }: { children: ReactNode }) {
-  const [queue, setQueue] = useState<QueuedJob[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [state, setState] = useState<State>({ jobs: [], paused: true });
+  const current = useRef(state);
   const [pollingEnabled, setPollingEnabled] = useState(false);
-  const [processingPaused, setProcessingPaused] = useState(false);
-
+  const [queueError, setQueueError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [busyIds, setBusyIds] = useState<string[]>([]);
+  const writes = useRef<Promise<unknown>>(Promise.resolve());
+  const submissions = useRef(new Map<string, string>());
+  const batchSubmissions = useRef(new Map<string, string[]>());
+  const revision = useRef(0),
+    pending = useRef(0),
+    running = useRef(false),
+    blocked = useRef(false);
+  const commit = useCallback((next: State) => {
+    current.current = next;
+    setState(next);
+    setLoading(false);
+  }, []);
+  const read = useCallback(async () => {
+    const next = await apiJSON<State>("/api/queue?state=1", {
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!Array.isArray(next.jobs) || typeof next.paused !== "boolean")
+      throw new Error("Invalid queue response");
+    return next;
+  }, []);
+  const refreshQueue = useCallback(async () => {
+    const version = revision.current;
+    try {
+      const next = await read();
+      if (version === revision.current && pending.current === 0) {
+        commit(next);
+        if (!blocked.current) setQueueError("");
+      }
+      return true;
+    } catch (error) {
+      setQueueError(error instanceof Error ? error.message : "Queue unavailable");
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [commit, read]);
+  const mutate = useCallback(
+    <T,>(id: string, url: string, init: RequestInit): Promise<T | null> => {
+      pending.current++;
+      revision.current++;
+      setBusyIds((ids) => [...ids, id]);
+      const request = writes.current
+        .catch(() => undefined)
+        .then(async () => {
+          try {
+            const result = await apiJSON<T>(url, { ...init, signal: AbortSignal.timeout(10_000) });
+            blocked.current = false;
+            try {
+              commit(await read());
+              setQueueError("");
+            } catch {
+              blocked.current = true;
+              setQueueError(
+                "Change saved, but the queue could not refresh. Reconnect to see the latest state.",
+              );
+            }
+            return result;
+          } catch (error) {
+            blocked.current = true;
+            setQueueError(error instanceof Error ? error.message : "Queue action failed");
+            return null;
+          } finally {
+            pending.current--;
+            revision.current++;
+            setBusyIds((ids) => {
+              const next = [...ids];
+              next.splice(next.indexOf(id), 1);
+              return next;
+            });
+          }
+        });
+      writes.current = request;
+      return request;
+    },
+    [commit, read],
+  );
   useEffect(() => {
     if (!pollingEnabled) return;
-
-    const fetchQueue = () => {
-      fetch("/api/queue")
-        .then((res) => res.json())
-        .then((data) => {
-          if (Array.isArray(data)) setQueue(data);
-        })
-        .catch(console.error);
+    let active = true,
+      polling = false;
+    const tick = async () => {
+      if (polling) return;
+      polling = true;
+      const synced = await refreshQueue();
+      polling = false;
+      if (
+        !synced ||
+        !active ||
+        running.current ||
+        blocked.current ||
+        pending.current ||
+        current.current.paused
+      )
+        return;
+      const jobs = current.current.jobs;
+      if (jobs.some((job) => isActiveJob(job) && !isClaimable(job))) return;
+      const job = jobs.find((job) => isClaimable(job));
+      if (!job) return;
+      running.current = true;
+      try {
+        const response = await apiFetch("/api/process-queue", {
+          ...json("POST", { id: job.id }),
+          signal: AbortSignal.timeout(300_000),
+        });
+        const data = await response.json();
+        if (!response.ok && !data.jobId) throw new Error(data.error || "Processing unavailable");
+      } catch (error) {
+        blocked.current = true;
+        setQueueError(error instanceof Error ? error.message : "Processing unavailable");
+      } finally {
+        running.current = false;
+        if (active) await refreshQueue();
+      }
     };
-
-    fetchQueue();
-    const interval = setInterval(fetchQueue, 3000);
-    return () => clearInterval(interval);
-  }, [pollingEnabled]);
-
-  useEffect(() => {
-    // Only auto-start if processing was not intentionally paused
-    if (processingPaused) return;
-    // Only auto-start if there are pending jobs AND nothing is currently processing
-    const hasProcessing = queue.some((j) =>
-      ["tailoring-resume", "tailoring-cover-letter"].includes(j.status),
-    );
-    const hasPending = queue.some((j) => j.status === "pending");
-    // Start if pending jobs exist AND nothing is currently processing AND not already started
-    if (hasPending && !hasProcessing && !isProcessing) {
-      Promise.resolve().then(() => setIsProcessing(true));
-    }
-    // If nothing is processing and no pending, ensure isProcessing is false
-    if (!hasPending && !hasProcessing && isProcessing) {
-      Promise.resolve().then(() => setIsProcessing(false));
-    }
-  }, [queue, isProcessing, processingPaused]);
-
-  const generateId = () => `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-  const addJob = useCallback((job: Omit<QueuedJob, "id" | "status" | "progress" | "addedAt">) => {
-    const id = generateId();
-    const newJob: QueuedJob = { ...job, id, status: "pending", progress: 0, addedAt: Date.now() };
-    setQueue((prev) => [...prev, newJob]);
-    fetch("/api/queue", {
-      method: "POST",
-      headers: HEADERS,
-      body: JSON.stringify(newJob),
-    }).catch((err) => {
-      console.error("Failed to sync addJob:", err);
-      // Rollback on failure — remove phantom job from local state so polling
-      // doesn't need to correct it. Next poll will restore if server DID persist it.
-      setQueue((prev) => prev.filter((j) => j.id !== id));
-    });
-    return id;
-  }, []);
-
+    void tick();
+    const timer = setInterval(() => void tick(), 3000);
+    const retry = () => {
+      blocked.current = false;
+      void tick();
+    };
+    for (const event of ["fd-access-key", "fd-ai-settings", "online"])
+      window.addEventListener(event, retry);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      for (const event of ["fd-access-key", "fd-ai-settings", "online"])
+        window.removeEventListener(event, retry);
+    };
+  }, [pollingEnabled, refreshQueue]);
   const addJobs = useCallback(
-    (jobs: Omit<QueuedJob, "id" | "status" | "progress" | "addedAt">[]) => {
-      const newJobs: QueuedJob[] = jobs.map((job) => ({
-        ...job,
-        id: generateId(),
-        status: "pending" as JobStatus,
-        progress: 0,
-        addedAt: Date.now(),
-      }));
-      setQueue((prev) => [...prev, ...newJobs]);
-      // Use batch PUT endpoint for atomic server-side add (no race conditions)
-      fetch("/api/queue", {
-        method: "PUT",
-        headers: HEADERS,
-        body: JSON.stringify({ jobs: newJobs }),
-      }).catch((err) => {
-        console.error("Failed to sync addJobs batch:", err);
-        // Rollback all phantom jobs on failure
-        const phantomIds = new Set(newJobs.map((j) => j.id));
-        setQueue((prev) => prev.filter((j) => !phantomIds.has(j.id)));
-      });
-      return newJobs.map((j) => j.id);
-    },
-    [],
-  );
-
-  const removeJob = useCallback((id: string) => {
-    setQueue((prev) => prev.filter((j) => j.id !== id));
-    fetch(`/api/queue?id=${id}`, { method: "DELETE" }).catch(console.error);
-  }, []);
-
-  const updateJob = useCallback(
-    (
-      id: string,
-      updates: Partial<
-        Pick<
-          QueuedJob,
-          | "companyName"
-          | "companyUrl"
-          | "positionTitle"
-          | "jobDescription"
-          | "personalDetails"
-          | "includeCoverLetter"
-        >
-      > & { profileId?: string; profileName?: string; profileColor?: string },
-      resetProcessing = true,
-    ) => {
-      if (resetProcessing) {
-        const fullUpdates = {
-          ...updates,
-          status: "pending" as JobStatus,
-          progress: 0,
-          error: undefined,
-          startedAt: undefined,
-          completedAt: undefined,
-          companyResearch: undefined,
-          tailoredResume: undefined,
-          tailoredCoverLetter: undefined,
-          jobCountry: undefined,
-          jobWorkMode: undefined,
-        };
-        setQueue((prev) => prev.map((job) => (job.id === id ? { ...job, ...fullUpdates } : job)));
-        fetch("/api/queue", {
-          method: "PATCH",
-          headers: HEADERS,
-          body: JSON.stringify({ id, updates: fullUpdates }),
-        }).catch(console.error);
-      } else {
-        setQueue((prev) => prev.map((job) => (job.id === id ? { ...job, ...updates } : job)));
-        fetch("/api/queue", {
-          method: "PATCH",
-          headers: HEADERS,
-          body: JSON.stringify({ id, updates }),
-        }).catch(console.error);
-      }
-    },
-    [],
-  );
-
-  const clearQueue = useCallback(() => {
-    setQueue([]);
-    setIsProcessing(false);
-    setCurrentJobId(null);
-    fetch("/api/queue", { method: "DELETE" }).catch(console.error);
-  }, []);
-
-  const clearCompleted = useCallback(() => {
-    const completedIds: string[] = [];
-    setQueue((prev) => {
-      // Just filter local state in the updater (pure)
-      completedIds.length = 0;
-      for (const job of prev) {
-        if (job.status === "completed") completedIds.push(job.id);
-      }
-      return prev.filter((j) => j.status !== "completed");
-    });
-    // Fire server deletions outside the updater (side-effect)
-    completedIds.forEach((id) => {
-      fetch(`/api/queue?id=${id}`, { method: "DELETE" }).catch(console.error);
-    });
-  }, []);
-
-  const updateJobStatus = useCallback((id: string, status: JobStatus, progress?: number) => {
-    const baseUpdates: Partial<QueuedJob> = { status };
-    if (progress !== undefined) baseUpdates.progress = progress;
-
-    const serverUpdates: Partial<QueuedJob> = { ...baseUpdates };
-
-    setQueue((prev) =>
-      prev.map((job) => {
-        if (job.id !== id) return job;
-        const updates: Partial<QueuedJob> = { ...baseUpdates };
-        if (["tailoring-resume", "tailoring-cover-letter"].includes(status)) {
-          if (!job.startedAt) {
-            const now = Date.now();
-            updates.startedAt = now;
-            serverUpdates.startedAt = now;
-          }
-        }
-        if (status === "completed" || status === "failed") {
-          const now = Date.now();
-          updates.completedAt = now;
-          serverUpdates.completedAt = now;
-        }
-        return { ...job, ...updates };
-      }),
-    );
-
-    fetch("/api/queue", {
-      method: "PATCH",
-      headers: HEADERS,
-      body: JSON.stringify({ id, updates: serverUpdates }),
-    }).catch(console.error);
-  }, []);
-
-  const updateJobResults = useCallback((id: string, results: Partial<QueuedJob>) => {
-    setQueue((prev) => prev.map((job) => (job.id === id ? { ...job, ...results } : job)));
-    fetch("/api/queue", {
-      method: "PATCH",
-      headers: HEADERS,
-      body: JSON.stringify({ id, updates: results }),
-    }).catch(console.error);
-  }, []);
-
-  const setJobError = useCallback((id: string, error: string) => {
-    const updates = { status: "failed" as JobStatus, error, completedAt: Date.now() };
-    setQueue((prev) => prev.map((job) => (job.id === id ? { ...job, ...updates } : job)));
-    fetch("/api/queue", {
-      method: "PATCH",
-      headers: HEADERS,
-      body: JSON.stringify({ id, updates }),
-    }).catch(console.error);
-  }, []);
-
-  const startProcessing = useCallback(() => {
-    setIsProcessing(true);
-  }, []);
-  const stopProcessing = useCallback(() => {
-    setIsProcessing(false);
-    setCurrentJobId(null);
-  }, []);
-
-  const cancelJob = useCallback((id: string) => {
-    const updates = { status: "cancelled" as JobStatus, progress: 0, completedAt: Date.now() };
-    setQueue((prev) => prev.map((job) => (job.id === id ? { ...job, ...updates } : job)));
-    fetch("/api/queue", {
-      method: "PATCH",
-      headers: HEADERS,
-      body: JSON.stringify({ id, updates }),
-    }).catch(console.error);
-  }, []);
-
-  const retryJob = useCallback((id: string) => {
-    let newRetryCount = 0;
-    setQueue((prev) => {
-      const job = prev.find((j) => j.id === id);
-      newRetryCount = (job?.retryCount || 0) + 1;
-      return prev.map((job) =>
-        job.id === id
-          ? {
-              ...job,
-              status: "pending" as JobStatus,
-              progress: 0,
-              error: undefined,
-              startedAt: undefined,
-              completedAt: undefined,
-              retryCount: newRetryCount,
-            }
-          : job,
+    async (jobs: NewJob[]) => {
+      const fingerprint = JSON.stringify(jobs);
+      const ids = batchSubmissions.current.get(fingerprint) || jobs.map(() => crypto.randomUUID());
+      batchSubmissions.current.set(fingerprint, ids);
+      const input = jobs.map((job, index) => ({ ...job, id: ids[index] }));
+      const result = await mutate<{ jobs: QueuedJob[]; errors?: unknown[] }>(
+        "queue",
+        "/api/queue",
+        json("PUT", { jobs: input }),
       );
-    });
-    fetch("/api/queue", {
-      method: "PATCH",
-      headers: HEADERS,
-      body: JSON.stringify({
-        id,
-        updates: {
-          status: "pending",
-          progress: 0,
-          error: undefined,
-          retryCount: newRetryCount,
-        },
-      }),
-    }).catch(console.error);
-  }, []);
-
-  const counts = useMemo(() => {
-    let completed = 0,
-      failed = 0,
-      pending = 0,
-      cancelled = 0;
-    for (const job of queue) {
-      if (job.status === "completed") completed++;
-      else if (job.status === "failed") failed++;
-      else if (job.status === "pending") pending++;
-      else if (job.status === "cancelled") cancelled++;
-    }
-    return { completed, failed, pending, cancelled, total: queue.length };
-  }, [queue]);
-
-  const completedCount = counts.completed;
-  const failedCount = counts.failed;
-  const pendingCount = counts.pending;
-  const cancelledCount = counts.cancelled;
-  const totalCount = counts.total;
-
-  return (
-    <JobQueueContext.Provider
-      value={{
-        queue,
-        isProcessing,
-        currentJobId,
-        setCurrentJobId,
-        addJob,
-        addJobs,
-        removeJob,
-        updateJob,
-        clearQueue,
-        clearCompleted,
-        startProcessing,
-        stopProcessing,
-        cancelJob,
-        retryJob,
-        updateJobStatus,
-        updateJobResults,
-        setJobError,
-        completedCount,
-        failedCount,
-        pendingCount,
-        cancelledCount,
-        totalCount,
-        pollingEnabled,
-        setPollingEnabled,
-        processingPaused,
-        setProcessingPaused,
-      }}
-    >
-      {children}
-    </JobQueueContext.Provider>
+      if (result?.errors?.length)
+        setQueueError("Some jobs were rejected. Check the queue before retrying.");
+      else if (result) {
+        batchSubmissions.current.delete(fingerprint);
+        return ids;
+      }
+      return result?.jobs.map((job) => job.id) ?? [];
+    },
+    [mutate],
   );
+  const addJob = useCallback(
+    async (job: NewJob) => {
+      const fingerprint = JSON.stringify(job);
+      const id = submissions.current.get(fingerprint) || crypto.randomUUID();
+      submissions.current.set(fingerprint, id);
+      const result = await mutate<{ job: QueuedJob }>(
+        "queue",
+        "/api/queue",
+        json("POST", { ...job, id }),
+      );
+      if (result) submissions.current.delete(fingerprint);
+      return result?.job.id ?? null;
+    },
+    [mutate],
+  );
+  const patch = useCallback(
+    async (id: string, updates: Partial<QueuedJob>, action?: string) =>
+      !!(await mutate(id, "/api/queue", json("PATCH", { id, updates, action }))),
+    [mutate],
+  );
+  const removeJob = useCallback(
+    async (id: string) =>
+      !!(await mutate(id, `/api/queue?id=${encodeURIComponent(id)}`, json("DELETE"))),
+    [mutate],
+  );
+  const clearQueue = useCallback(
+    async () => !!(await mutate("queue", "/api/queue", json("DELETE"))),
+    [mutate],
+  );
+  const clearCompleted = useCallback(
+    async () => !!(await mutate("queue", "/api/queue?status=completed", json("DELETE"))),
+    [mutate],
+  );
+  const updateJob = useCallback(
+    (id: string, edits: Edits, reset = true) => patch(id, edits, reset ? "edit" : undefined),
+    [patch],
+  );
+  const retryJob = useCallback((id: string) => patch(id, {}, "retry"), [patch]);
+  const cancelJob = useCallback((id: string) => patch(id, {}, "cancel"), [patch]);
+  const setProcessingPaused = useCallback(
+    async (paused: boolean) =>
+      !!(await mutate(
+        "queue",
+        "/api/queue",
+        json("PATCH", { action: paused ? "pause" : "resume" }),
+      )),
+    [mutate],
+  );
+  const startProcessing = useCallback(() => setProcessingPaused(false), [setProcessingPaused]);
+  const stopProcessing = useCallback(() => setProcessingPaused(true), [setProcessingPaused]);
+  const retryConnection = useCallback(async () => {
+    blocked.current = false;
+    setQueueError("");
+    await refreshQueue();
+  }, [refreshQueue]);
+  const queue = state.jobs,
+    activeJobs = queue.filter(isActiveJob);
+  const value = {
+    queue,
+    loading,
+    queueError,
+    busyIds,
+    retryConnection,
+    refreshQueue: retryConnection,
+    isProcessing: activeJobs.some((job) => !isClaimable(job)),
+    currentJobId: activeJobs.find((job) => !isClaimable(job))?.id ?? null,
+    processingPaused: state.paused,
+    pollingEnabled,
+    setPollingEnabled,
+    setProcessingPaused,
+    activeCount: activeJobs.length,
+    completedCount: queue.filter((job) => job.status === "completed").length,
+    failedCount: queue.filter((job) => job.status === "failed").length,
+    pendingCount: queue.filter((job) => job.status === "pending").length,
+    cancelledCount: queue.filter((job) => job.status === "cancelled").length,
+    totalCount: queue.length,
+    addJob,
+    addJobs,
+    removeJob,
+    updateJob,
+    clearQueue,
+    clearCompleted,
+    retryJob,
+    cancelJob,
+    startProcessing,
+    stopProcessing,
+  };
+  return <JobQueueContext.Provider value={value}>{children}</JobQueueContext.Provider>;
 }
-
 export function useJobQueue() {
   const context = useContext(JobQueueContext);
-  if (context === undefined) {
-    throw new Error("useJobQueue must be used within a JobQueueProvider");
-  }
+  if (!context) throw new Error("useJobQueue must be used within a JobQueueProvider");
   return context;
 }

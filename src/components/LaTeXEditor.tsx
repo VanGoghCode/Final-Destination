@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/client-api";
+
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import CopyButton from "./CopyButton";
 import Button from "./Button";
@@ -78,7 +80,7 @@ export default function LaTeXEditor({
       setCompileError(null);
 
       try {
-        const response = await fetch("/api/latex-preview", {
+        const response = await apiFetch("/api/latex-preview", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ latex: latexCode }),

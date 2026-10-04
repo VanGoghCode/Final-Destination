@@ -1,4 +1,5 @@
-import type { Job, ScrapeResult } from "./types";
+import type { ScrapeResult } from "./types";
+import { fetchJobs } from "./fetch-jobs";
 
 const ASHBY_API_BASE = "https://api.ashbyhq.com/posting-api/job-board";
 
@@ -22,45 +23,26 @@ export async function scrapeAshby(
   orgName: string,
   companyId: string,
   companyName: string,
+  signal?: AbortSignal,
 ): Promise<ScrapeResult> {
-  try {
-    const url = `${ASHBY_API_BASE}/${orgName}`;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      return {
-        success: false,
-        jobs: [],
-        error: `Ashby API error: ${response.status} ${response.statusText}`,
-      };
-    }
-
-    const data: AshbyResponse = await response.json();
-
-    const jobs: Job[] = data.jobs.map((job) => ({
-      id: `ashby-${orgName}-${job.id}`,
-      companyId,
-      companyName,
-      title: job.title,
-      location: job.location,
-      department: job.department,
-      url: job.jobUrl,
-      postedAt: job.publishedAt,
-      scrapedAt: new Date().toISOString(),
-      platform: "ashby",
-    }));
-
-    return {
-      success: true,
-      jobs,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      jobs: [],
-      error: `Failed to scrape Ashby: ${error instanceof Error ? error.message : "Unknown error"}`,
-    };
-  }
+  return fetchJobs<AshbyResponse>(
+    "ashby",
+    "Ashby",
+    `${ASHBY_API_BASE}/${orgName}`,
+    companyId,
+    companyName,
+    (data, metadata) =>
+      data.jobs.map((job) => ({
+        ...metadata,
+        id: `ashby-${orgName}-${job.id}`,
+        title: job.title,
+        location: job.location,
+        department: job.department,
+        url: job.jobUrl,
+        postedAt: job.publishedAt,
+      })),
+    { signal },
+  );
 }
 
 /**
