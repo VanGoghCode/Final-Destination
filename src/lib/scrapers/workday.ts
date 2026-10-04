@@ -95,6 +95,7 @@ export async function scrapeWorkday(
 
     while (hasMore) {
       const response = await fetch(baseUrl, {
+        signal: AbortSignal.timeout(10_000),
         method: "POST",
         headers: {
           "Content-Type": "application/json",

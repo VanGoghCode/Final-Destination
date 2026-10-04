@@ -1,26 +1,22 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { apiJSON } from "@/lib/client-api";
+import { isActiveJob } from "@/lib/queue";
+
+import { useState, useEffect, useCallback, useMemo, type ComponentProps } from "react";
 import { useRouter } from "next/navigation";
 import { useJobQueue, QueuedJob } from "@/context/JobQueueContext";
-import { useAppContext } from "@/context/AppContext";
 import Button from "@/components/Button";
 import JobQueueCard from "@/components/JobQueueCard";
 import QueueProgress from "@/components/QueueProgress";
 import {
   getDefaultResumeTemplate,
   getDefaultCoverLetterTemplate,
-  getResumeTemplates,
-  getCoverLetterTemplates,
-  getProfiles,
-  getMasterContext,
-  cleanupStaleMasterContextKeys,
-  cleanupResearchCache,
   Template,
   Profile,
 } from "@/lib/storage";
-import { extractApiError } from "@/lib/api-error";
 import JobForm from "@/components/JobForm";
+import ModelSelector from "@/components/ModelSelector";
 
 interface Activity {
   id: string;
@@ -28,239 +24,99 @@ interface Activity {
   timestamp: number;
 }
 
-// Add Job Modal Component with Profile Selection
-function AddJobModal({
-  isOpen,
-  onClose,
-  onAdd,
-  profiles,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onAdd: (job: {
-    companyName: string;
-    companyUrl: string;
-    positionTitle: string;
-    jobDescription: string;
-    personalDetails: string;
-    profileId?: string;
-    profileName?: string;
-    profileColor?: string;
-  }) => void;
-  profiles: Profile[];
-}) {
-  if (!isOpen) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="border-b border-gray-100 p-6">
-          <h2 className="text-lg font-semibold">Add Job to Queue</h2>
-          <p className="text-muted mt-1 text-sm">Job will start processing automatically</p>
-        </div>
-        <JobForm
-          profiles={profiles}
-          onCancel={onClose}
-          onSubmit={(data) => {
-            onAdd(data);
-            onClose();
-          }}
-          submitLabel={
-            <>
-              <svg className="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              Add & Start
-            </>
-          }
-        />
-      </div>
-    </div>
-  );
-}
-
-// Edit Job Modal Component
-function EditJobModal({
+function QueueJobModal({
   job,
   onClose,
-  onSave,
+  onSubmit,
   profiles,
 }: {
-  job: QueuedJob;
+  job?: QueuedJob;
   onClose: () => void;
-  onSave: (updates: {
-    companyName: string;
-    companyUrl: string;
-    positionTitle: string;
-    jobDescription: string;
-    personalDetails: string;
-    includeCoverLetter: boolean;
-    profileId?: string;
-    profileName?: string;
-    profileColor?: string;
-  }) => void;
+  onSubmit: ComponentProps<typeof JobForm>["onSubmit"];
   profiles: Profile[];
 }) {
-  const isProcessing = ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(
-    job.status,
-  );
-
+  const active = !!job && isActiveJob(job);
   useEffect(() => {
-    if (isProcessing) {
-      onClose();
-    }
-  }, [isProcessing, onClose]);
-
-  if (isProcessing) {
-    return null;
-  }
-
+    if (active) onClose();
+  }, [active, onClose]);
+  if (active) return null;
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={job ? "Edit job" : "Add job to queue"}
         className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
         <div className="border-b border-gray-100 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">Edit Job</h2>
-              <p className="text-muted mt-1 text-sm">
-                {isProcessing
-                  ? "Job will restart from the beginning after saving"
-                  : "Update job details"}
-              </p>
-            </div>
-            {isProcessing && (
-              <span className="rounded bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-700">
-                Currently Processing
-              </span>
-            )}
-          </div>
+          <h2 className="text-lg font-semibold">{job ? "Edit Job" : "Add Job to Queue"}</h2>
+          <p className="text-muted mt-1 text-sm">
+            {job
+              ? "Saving clears previous results and requeues this job. Resume the queue when ready."
+              : "Added jobs wait if the queue is paused"}
+          </p>
         </div>
         <JobForm
           profiles={profiles}
-          initialValues={{
-            companyName: job.companyName,
-            companyUrl: job.companyUrl,
-            positionTitle: job.positionTitle,
-            jobDescription: job.jobDescription,
-            personalDetails: job.personalDetails,
-            profileId: job.profileId || "",
-            includeCoverLetter: job.includeCoverLetter || false,
-          }}
+          initialValues={job ? { ...job, profileId: job.profileId || "" } : undefined}
           onCancel={onClose}
-          onSubmit={(data) => {
-            onSave(data);
-            onClose();
+          onSubmit={async (data) => {
+            const saved = await onSubmit(data);
+            if (saved !== false) onClose();
+            return saved;
           }}
-          isProcessing={isProcessing}
-          submitLabel={
-            <>
-              <svg className="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              Save Changes
-            </>
-          }
+          submitLabel={job ? "Save & requeue" : "Add to queue"}
         />
       </div>
     </div>
   );
 }
 
-// Helper to get activity color based on type
-function getActivityColor(activity: string): { border: string; text: string } {
-  if (activity.startsWith("[Research]"))
-    return { border: "border-l-blue-500", text: "text-blue-700" };
-  if (activity.startsWith("[Tailor]") || activity.startsWith("[Resume]"))
-    return { border: "border-l-purple-500", text: "text-purple-700" };
-  if (activity.startsWith("[Cover]"))
-    return { border: "border-l-indigo-500", text: "text-indigo-700" };
-  if (activity.startsWith("[Complete]") || activity.startsWith("[Done]"))
-    return { border: "border-l-green-500", text: "text-green-700" };
-  if (activity.startsWith("[Error]") || activity.startsWith("[Failed]"))
-    return { border: "border-l-red-500", text: "text-red-600" };
-  if (activity.startsWith("[Paused]") || activity.startsWith("[Cancelled]"))
-    return { border: "border-l-orange-500", text: "text-orange-600" };
-  if (activity.startsWith("[Added]")) return { border: "border-l-gray-400", text: "text-gray-600" };
-  if (activity.startsWith("[Started]") || activity.startsWith("[Profile]"))
-    return { border: "border-l-gray-500", text: "text-gray-600" };
-  if (activity.startsWith("[Context]"))
-    return { border: "border-l-blue-400", text: "text-blue-600" };
-  if (activity.startsWith("[Skip]")) return { border: "border-l-gray-400", text: "text-gray-500" };
-  return { border: "border-l-gray-300", text: "text-gray-500" };
-}
-
-// Live Activity Feed Component
+const activityColors = [
+  { prefixes: ["Research", "Context"], classes: "border-l-blue-500 text-blue-700" },
+  { prefixes: ["Tailor", "Resume"], classes: "border-l-purple-500 text-purple-700" },
+  { prefixes: ["Cover"], classes: "border-l-indigo-500 text-indigo-700" },
+  { prefixes: ["Complete", "Done"], classes: "border-l-green-500 text-green-700" },
+  { prefixes: ["Error", "Failed"], classes: "border-l-red-500 text-red-600" },
+  { prefixes: ["Paused", "Cancelled"], classes: "border-l-orange-500 text-orange-600" },
+];
 function ActivityFeed({
   currentJob,
   recentActivities,
-  currentJobStartTime,
 }: {
   currentJob: QueuedJob | null;
   recentActivities: Activity[];
-  currentJobStartTime: number | null;
 }) {
+  const entries = currentJob
+    ? [
+        {
+          id: currentJob.id,
+          timestamp: currentJob.startedAt || currentJob.addedAt,
+          message: `[Resume] Processing: ${currentJob.companyName} (${currentJob.progress}%)`,
+        },
+        ...recentActivities,
+      ]
+    : recentActivities;
   return (
     <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 font-mono text-xs">
-      <div className="mb-2 flex items-center gap-2 border-b border-gray-200 pb-2">
-        {currentJob ? (
-          <div className="h-2 w-2 animate-pulse rounded-full bg-gray-900" />
-        ) : (
-          <div className="h-2 w-2 rounded-full bg-gray-400" />
-        )}
-        <span className="font-medium text-gray-700">Activity Log</span>
-        {currentJob && (
-          <span className="ml-auto text-[10px] text-gray-500">{currentJob.progress}%</span>
-        )}
-      </div>
-      <div className="max-h-32 space-y-1 overflow-y-auto">
-        {currentJob && (
-          <div className="flex gap-2 border-l-2 border-l-purple-500 bg-purple-50/50 py-0.5 pl-2 text-gray-700">
-            <span className="text-gray-400">
-              [
-              {currentJobStartTime
-                ? new Date(currentJobStartTime).toLocaleTimeString()
-                : "--:--:--"}
-              ]
+      <p className="mb-2 border-b border-gray-200 pb-2 font-medium text-gray-700">Activity Log</p>
+      <div className="max-h-32 space-y-1 overflow-y-auto" aria-live="polite">
+        {entries.map((activity) => (
+          <div
+            key={activity.id}
+            className={`flex gap-2 border-l-2 py-0.5 pl-2 ${activityColors.find(({ prefixes }) => prefixes.some((prefix) => activity.message.startsWith(`[${prefix}]`)))?.classes || "border-l-gray-400 text-gray-600"}`}
+          >
+            <span className="shrink-0 text-gray-400">
+              [{new Date(activity.timestamp).toLocaleTimeString()}]
             </span>
-            <span className="text-purple-700">Processing: {currentJob.companyName}</span>
+            <span>{activity.message}</span>
           </div>
-        )}
-        {recentActivities.map((activity) => {
-          const colors = getActivityColor(activity.message);
-          return (
-            <div key={activity.id} className={`flex gap-2 border-l-2 pl-2 ${colors.border} py-0.5`}>
-              <span className="shrink-0 text-gray-400">
-                [{new Date(activity.timestamp).toLocaleTimeString()}]
-              </span>
-              <span className={colors.text}>{activity.message}</span>
-            </div>
-          );
-        })}
-        {!currentJob && recentActivities.length === 0 && (
-          <div className="text-gray-400 italic">Waiting for jobs...</div>
-        )}
+        ))}
+        {!entries.length && <p className="text-gray-400 italic">Waiting for jobs...</p>}
       </div>
     </div>
   );
@@ -272,7 +128,6 @@ export default function BatchProcessPage() {
     queue,
     isProcessing,
     currentJobId,
-    setCurrentJobId,
     addJob,
     removeJob,
     updateJob,
@@ -281,43 +136,41 @@ export default function BatchProcessPage() {
     startProcessing,
     stopProcessing,
     retryJob,
-    updateJobStatus,
-    updateJobResults,
-    setJobError,
     completedCount,
     failedCount,
     pendingCount,
     cancelledCount,
     totalCount,
     setPollingEnabled,
-    setProcessingPaused,
+    processingPaused,
+    activeCount,
+    cancelJob,
+    busyIds,
+    queueError,
+    loading,
+    retryConnection,
   } = useJobQueue();
-
-  const { personalDetails: globalPersonalDetails } = useAppContext();
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingJob, setEditingJob] = useState<QueuedJob | null>(null);
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
-  const [currentJobStartTime, setCurrentJobStartTime] = useState<number | null>(null);
   const [resumeTemplate, setResumeTemplate] = useState<Template | null>(null);
   const [coverLetterTemplate, setCoverLetterTemplate] = useState<Template | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [extensionOpen, setExtensionOpen] = useState(false);
+  const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<
-    "all" | "pending" | "processing" | "completed" | "failed"
+    "all" | "pending" | "processing" | "completed" | "failed" | "cancelled"
   >("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const processingRef = useRef(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const queueRef = useRef<QueuedJob[]>([]);
-  const intentionalCancelRef = useRef(false);
-
-  // Keep queueRef in sync
   useEffect(() => {
-    queueRef.current = queue;
-  }, [queue]);
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileControlsOpen(false);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, []);
 
   // Enable queue polling only on this page
   useEffect(() => {
@@ -325,36 +178,33 @@ export default function BatchProcessPage() {
     return () => setPollingEnabled(false);
   }, [setPollingEnabled]);
 
-  // Load templates and profiles on mount
   useEffect(() => {
-    const loadData = async () => {
-      // Clean up stale per-profile keys from prior schema version
-      try {
-        cleanupStaleMasterContextKeys();
-        cleanupResearchCache();
-      } catch {
-        // Non-critical
-      }
-
-      const defaultResume = await getDefaultResumeTemplate();
-      const defaultCoverLetter = await getDefaultCoverLetterTemplate();
-      if (defaultResume) setResumeTemplate(defaultResume);
-      if (defaultCoverLetter) setCoverLetterTemplate(defaultCoverLetter);
-
-      // Get profiles and sync to server
-      const localProfiles = await getProfiles();
-      setProfiles(localProfiles);
-
-      // Sync profiles to server so extension can access them
-      if (localProfiles.length > 0) {
-        fetch("/api/profiles", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(localProfiles),
-        }).catch((err) => console.error("Failed to sync profiles:", err));
-      }
+    let active = true;
+    const load = () => {
+      void Promise.all([
+        getDefaultResumeTemplate(),
+        getDefaultCoverLetterTemplate(),
+        apiJSON<Profile[]>("/api/profiles"),
+      ])
+        .then(([resume, cover, savedProfiles]) => {
+          if (active) {
+            setResumeTemplate(resume);
+            setCoverLetterTemplate(cover);
+            setProfiles(savedProfiles);
+          }
+        })
+        .catch(() => {
+          /* The queue connection banner handles access errors. */
+        });
     };
-    loadData();
+    load();
+    window.addEventListener("fd-access-key", load);
+    window.addEventListener("focus", load);
+    return () => {
+      active = false;
+      window.removeEventListener("fd-access-key", load);
+      window.removeEventListener("focus", load);
+    };
   }, []);
 
   // Add activity log
@@ -369,423 +219,30 @@ export default function BatchProcessPage() {
     ]);
   }, []);
 
-  // Process a single job
-  const processJob = useCallback(
-    async (job: QueuedJob, signal: AbortSignal) => {
-      // Mark this job as the current one being processed
-      setCurrentJobId(job.id);
-
-      // Resolve the correct template — priority: baked-in > profile > default
-      let jobResumeTemplate: Template | null = null;
-      let jobCoverLetterTemplate: Template | null = null;
-
-      // Priority 1: Baked-in template from import time (highest authority)
-      if (job.resumeLatex) {
-        jobResumeTemplate = {
-          id: "",
-          name: "",
-          content: job.resumeLatex,
-          createdAt: 0,
-          updatedAt: 0,
-        };
-        if (job.coverLetterLatex) {
-          jobCoverLetterTemplate = {
-            id: "",
-            name: "",
-            content: job.coverLetterLatex,
-            createdAt: 0,
-            updatedAt: 0,
-          };
-        }
-      }
-
-      // Priority 2: Resolve from profile (extension-added jobs without baked-in template)
-      if (!jobResumeTemplate && job.profileId) {
-        const profile = profiles.find((p) => p.id === job.profileId);
-        if (!profile) {
-          setJobError(
-            job.id,
-            `Profile "${job.profileName || job.profileId}" not found. The profile may have been deleted. Edit the job and select a different profile.`,
-          );
-          setCurrentJobId(null);
-          return;
-        }
-
-        if (profile.defaultResumeId) {
-          const allResumeTemplates = await getResumeTemplates();
-          const profileResume = allResumeTemplates.find((t) => t.id === profile.defaultResumeId);
-          if (profileResume) {
-            jobResumeTemplate = profileResume;
-          }
-        }
-
-        if (!jobResumeTemplate) {
-          setJobError(
-            job.id,
-            `Profile "${profile.name}" has no resume template assigned. Select a template in profile settings.`,
-          );
-          setCurrentJobId(null);
-          return;
-        }
-
-        if (profile.defaultCoverLetterId) {
-          const allCoverLetterTemplates = await getCoverLetterTemplates();
-          const profileCoverLetter = allCoverLetterTemplates.find(
-            (t) => t.id === profile.defaultCoverLetterId,
-          );
-          if (profileCoverLetter) {
-            jobCoverLetterTemplate = profileCoverLetter;
-          }
-        }
-
-        addActivity(`[Profile] Using "${profile.name}" templates`);
-      }
-
-      // Priority 3: Global default template
-      if (!jobResumeTemplate) {
-        if (!resumeTemplate) {
-          setJobError(
-            job.id,
-            "No resume template available. Save a default resume template first.",
-          );
-          setCurrentJobId(null);
-          return;
-        }
-        jobResumeTemplate = resumeTemplate;
-        if (!jobCoverLetterTemplate && coverLetterTemplate) {
-          jobCoverLetterTemplate = coverLetterTemplate;
-        }
-      }
-
-      // Load master context
-      let jobMasterContext = "";
-      try {
-        const saved = await getMasterContext();
-        if (saved) {
-          jobMasterContext = saved;
-          addActivity(`[Context] Loaded master context`);
-        }
-      } catch {
-        // Non-critical — proceed without master context if fetch fails
-      }
-
-      // Include API key as explicit header (more reliable than cookie across all scenarios)
-      const fetchHeaders: Record<string, string> = { "Content-Type": "application/json" };
-      const storedKey =
-        typeof window !== "undefined" ? window.localStorage.getItem("fd_deepseek_api_key") : null;
-      if (storedKey) {
-        fetchHeaders["x-deepseek-api-key"] = storedKey;
-      }
-
-      try {
-        // Step 1: Tailor resume
-        updateJobStatus(job.id, "tailoring-resume", 5);
-        addActivity(`[Tailor] Tailoring resume for ${job.positionTitle}...`);
-
-        const tailorResponse = await fetch("/api/tailor", {
-          method: "POST",
-          headers: fetchHeaders,
-          body: JSON.stringify({
-            resumeLatex: jobResumeTemplate.content,
-            jobDescription: job.jobDescription,
-            personalDetails: job.personalDetails || globalPersonalDetails,
-            masterContext: jobMasterContext,
-            companyName: job.companyName,
-            companyWebsite: job.companyWebsite,
-          }),
-          signal,
-        });
-
-        if (!tailorResponse.ok) {
-          throw new Error(await extractApiError(tailorResponse, "Resume tailoring failed"));
-        }
-
-        const tailorData = await tailorResponse.json();
-        updateJobResults(job.id, {
-          tailoredResume: tailorData.tailoredResume,
-          resumeLatex: jobResumeTemplate.content,
-          coverLetterLatex: jobCoverLetterTemplate?.content,
-          jobCountry: tailorData.jobCountry,
-          jobWorkMode: tailorData.jobWorkMode,
-        });
-        updateJobStatus(job.id, "tailoring-resume", 60);
-        addActivity(`[Done] Resume tailored for ${job.companyName}`);
-
-        // Step 2: Tailor cover letter
-        if (job.includeCoverLetter && jobCoverLetterTemplate) {
-          updateJobStatus(job.id, "tailoring-cover-letter", 70);
-          addActivity(`[Cover] Generating cover letter for ${job.positionTitle}...`);
-
-          const coverLetterResponse = await fetch("/api/tailor-cover-letter", {
-            method: "POST",
-            headers: fetchHeaders,
-            body: JSON.stringify({
-              coverLetterLatex: jobCoverLetterTemplate.content,
-              jobDescription: job.jobDescription,
-              personalDetails: job.personalDetails || globalPersonalDetails,
-              masterContext: jobMasterContext,
-              companyName: job.companyName,
-            }),
-            signal,
-          });
-
-          if (!coverLetterResponse.ok) {
-            throw new Error(
-              await extractApiError(coverLetterResponse, "Cover letter generation failed"),
-            );
-          }
-
-          const coverLetterData = await coverLetterResponse.json();
-          updateJobResults(job.id, {
-            tailoredCoverLetter: coverLetterData.tailoredCoverLetter,
-          });
-          addActivity(`[Done] Cover letter generated for ${job.companyName}`);
-        } else if (job.includeCoverLetter && !jobCoverLetterTemplate) {
-          addActivity(
-            "[Error] Cover letter requested but no cover letter template found for " +
-              job.companyName,
-          );
-        } else if (jobCoverLetterTemplate) {
-          addActivity(`[Skip] Cover letter skipped for ${job.companyName} (default)`);
-        }
-
-        // Mark completed
-        updateJobStatus(job.id, "completed", 100);
-        addActivity(`[Complete] ${job.companyName} - ${job.positionTitle}`);
-      } catch (error) {
-        if ((error as Error).name === "AbortError") {
-          if (intentionalCancelRef.current) {
-            updateJobStatus(job.id, "cancelled");
-            addActivity(`[Cancelled] Stopped: ${job.companyName}`);
-          } else {
-            // Unintentional abort (page nav, effect re-run) — revert to pending
-            addActivity(`[Paused] Interrupted: ${job.companyName}`);
-            updateJobStatus(job.id, "pending", 0);
-          }
-        } else {
-          const message = error instanceof Error ? error.message : "Unknown error";
-          setJobError(job.id, message);
-          addActivity(`[Error] Failed: ${job.companyName} - ${message}`);
-        }
-      } finally {
-        // Clear current job tracking after completion/error/cancel
-        setCurrentJobId(null);
-      }
-    },
-    [
-      resumeTemplate,
-      coverLetterTemplate,
-      profiles,
-      globalPersonalDetails,
-      updateJobStatus,
-      updateJobResults,
-      setJobError,
-      setCurrentJobId,
-      addActivity,
-    ],
-  );
-
-  // Main processing loop - continuous auto processing
-  // Processes jobs one at a time, strictly sequential.
-  // Only starts when isProcessing is true and no other loop is running.
-  // Uses a ref guard (processingRef) to prevent concurrent loops.
-  useEffect(() => {
-    if (!isProcessing || processingRef.current) return;
-
-    // Don't start processing until templates are loaded
-    if (!resumeTemplate) {
-      addActivity("[Error] Resume template not loaded yet. Waiting...");
-      return;
-    }
-
-    const myController = new AbortController();
-    abortControllerRef.current = myController;
-
-    const processQueue = async () => {
-      processingRef.current = true;
-      intentionalCancelRef.current = false;
-
-      try {
-        while (!myController.signal.aborted) {
-          // Use ref to get current queue state (avoids stale closure)
-          const currentQueue = queueRef.current;
-          const pendingJobs = currentQueue.filter((j) => j.status === "pending");
-
-          if (pendingJobs.length === 0) {
-            addActivity("[Done] Queue empty — processing complete");
-            break;
-          }
-
-          // FIFO: take the first pending job
-          const job = pendingJobs[0];
-          if (!job) break;
-
-          await processJob(job, myController.signal);
-
-          // Stop conditions
-          if (myController.signal.aborted) break;
-          if (intentionalCancelRef.current) break;
-
-          // Delay between jobs to avoid rate limits
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-        }
-      } finally {
-        // Only clear our own ref — another loop may have started
-        if (abortControllerRef.current === myController) {
-          processingRef.current = false;
-        }
-        // On natural drain (not intentional cancel), clear pause so new jobs auto-start
-        if (!intentionalCancelRef.current && !myController.signal.aborted) {
-          setProcessingPaused(false);
-        }
-      }
-    };
-
-    processQueue();
-
-    return () => {
-      // Only abort if we're still the active controller
-      if (abortControllerRef.current === myController) {
-        myController.abort();
-        processingRef.current = false;
-      }
-    };
-  }, [
-    isProcessing,
-    processJob,
-    resumeTemplate,
-    addActivity,
-    setProcessingPaused,
-    startProcessing,
-    stopProcessing,
-  ]);
-
-  // Handle stop processing
-  const handleStopProcessing = () => {
-    // Mark as intentional cancel so processJob abort handler doesn't revert to pending
-    intentionalCancelRef.current = true;
-
-    // Set processing paused flag to prevent auto-restart
-    setProcessingPaused(true);
-
-    // Abort the current fetch request first — this triggers processJob's catch
-    // which respects intentionalCancelRef and sets the job to cancelled.
-    abortControllerRef.current?.abort();
-
-    stopProcessing();
-    processingRef.current = false;
-    addActivity(`[Cancelled] Processing stopped by user`);
+  const handleStopProcessing = async () => {
+    if (await stopProcessing())
+      addActivity("[Paused] Queue paused; the current job will finish. New jobs will wait.");
+  };
+  const handleAddJob = async (jobData: Parameters<typeof addJob>[0]) => {
+    const id = await addJob(jobData);
+    if (id) addActivity(`[Added] ${jobData.companyName} - ${jobData.positionTitle}`);
+    return !!id;
   };
 
-  // Handle add job - auto starts processing
-  const handleAddJob = (jobData: {
-    companyName: string;
-    companyUrl: string;
-    positionTitle: string;
-    jobDescription: string;
-    personalDetails: string;
-    profileId?: string;
-    profileName?: string;
-    profileColor?: string;
-    includeCoverLetter?: boolean;
-  }) => {
-    // Clear paused state when adding new jobs
-    setProcessingPaused(false);
-
-    addJob({
-      ...jobData,
-      includeCoverLetter: jobData.includeCoverLetter || false,
-    });
-    addActivity(`[Added] ${jobData.companyName} - ${jobData.positionTitle}`);
-
-    // Auto-start processing if not already running
-    // Use setTimeout to ensure state is updated before starting
-    setTimeout(() => {
-      if (!processingRef.current && resumeTemplate) {
-        startProcessing();
-        addActivity(`[Started] Auto-started processing queue`);
-      }
-    }, 100);
+  const handleViewResults = (job: QueuedJob) => {
+    const slug =
+      job.companyName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "") || "job";
+    router.push(`/tailored/${slug}?jobId=${encodeURIComponent(job.id)}`);
   };
 
-  // Handle view results - open in new tab
-  const handleViewResults = async (job: QueuedJob) => {
-    // Get profile firstName and lastName if available
-    let profileFirstName = "";
-    let profileLastName = "";
-    let jobMasterContext = "";
-    if (job.profileId) {
-      const profile = profiles.find((p) => p.id === job.profileId);
-      if (profile) {
-        profileFirstName = profile.firstName;
-        profileLastName = profile.lastName;
-      }
-    }
-    try {
-      const ctx = await getMasterContext();
-      if (ctx) jobMasterContext = ctx;
-    } catch {
-      // Non-critical
-    }
-
-    // Save job data to sessionStorage for the new tab to read
-    const jobKey = `batch_job_${job.id}`;
-    sessionStorage.setItem(
-      jobKey,
-      JSON.stringify({
-        tailoredResume: job.tailoredResume,
-        tailoredCoverLetter: job.tailoredCoverLetter,
-        resumeLatex: job.resumeLatex,
-        coverLetterLatex: job.coverLetterLatex,
-        companyName: job.companyName,
-        companyUrl: job.companyUrl,
-        positionTitle: job.positionTitle,
-        jobDescription: job.jobDescription,
-        masterContext: jobMasterContext,
-        jobCountry: job.jobCountry,
-        jobWorkMode: job.jobWorkMode,
-        profileFirstName,
-        profileLastName,
-      }),
-    );
-
-    // Navigate to tailored view in same tab
-    const companySlug = job.companyName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-    window.location.href = `/tailored/${companySlug}?jobId=${job.id}`;
-  };
-
-  // Handle edit job - restarts processing only when profile changes
-  const handleEditJob = (updates: {
-    companyName: string;
-    companyUrl: string;
-    positionTitle: string;
-    jobDescription: string;
-    personalDetails: string;
-    includeCoverLetter: boolean;
-    profileId?: string;
-    profileName?: string;
-    profileColor?: string;
-  }) => {
-    if (editingJob) {
-      const profileChanged = editingJob.profileId !== updates.profileId;
-
-      if (profileChanged) {
-        updateJob(editingJob.id, updates, true);
-        addActivity(`✏️ Edited: ${updates.companyName} - ${updates.positionTitle} (restarting)`);
-
-        setTimeout(() => {
-          if (!processingRef.current && resumeTemplate) {
-            startProcessing();
-          }
-        }, 100);
-      } else {
-        updateJob(editingJob.id, updates, false);
-        addActivity(`✏️ Edited: ${updates.companyName} - ${updates.positionTitle}`);
-      }
-    }
+  const handleEditJob = async (updates: Parameters<typeof updateJob>[1]) => {
+    if (!editingJob) return false;
+    const saved = await updateJob(editingJob.id, updates, true);
+    if (saved) addActivity(`[Added] Updated and requeued: ${updates.companyName}`);
+    return saved;
   };
 
   // Handle export all completed jobs as CSV
@@ -816,52 +273,31 @@ export default function BatchProcessPage() {
   // This is the single source of truth — only one job processes at a time
   const currentJob = currentJobId ? queue.find((j) => j.id === currentJobId) : null;
 
-  // Track current job start time — reset on job change
-  useEffect(() => {
-    setCurrentJobStartTime(currentJob ? Date.now() : null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentJob?.id]);
-
-  // Filter jobs by status
-  // Only show 1 active job — only one job processes at a time
-  const getProcessingCount = () => (currentJobId ? 1 : 0);
-
   const filteredQueue = useMemo(() => {
-    let filtered = queue;
-
-    // Apply search filter
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (j) =>
-          j.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          j.positionTitle.toLowerCase().includes(searchQuery.toLowerCase()),
-      );
-    }
-
-    // Apply status filter
-    switch (statusFilter) {
-      case "pending":
-        return filtered.filter((j) => j.status === "pending");
-      case "processing":
-        return filtered.filter((j) =>
-          ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(j.status),
-        );
-      case "completed":
-        return filtered.filter((j) => j.status === "completed");
-      case "failed":
-        return filtered.filter((j) => j.status === "failed");
-      default:
-        return filtered;
-    }
+    const query = searchQuery.toLowerCase();
+    return queue.filter(
+      (job) =>
+        (job.companyName.toLowerCase().includes(query) ||
+          job.positionTitle.toLowerCase().includes(query)) &&
+        (statusFilter === "all" ||
+          (statusFilter === "processing" ? isActiveJob(job) : job.status === statusFilter)),
+    );
   }, [queue, searchQuery, statusFilter]);
 
   return (
     <div className="flex h-screen overflow-hidden">
+      {mobileControlsOpen && (
+        <button
+          aria-label="Close queue controls"
+          onClick={() => setMobileControlsOpen(false)}
+          className="fixed inset-0 z-30 bg-black/30 md:hidden"
+        />
+      )}
       {/* Smart Sidebar */}
       <div
-        className={`h-screen shrink-0 transition-all duration-300 ${sidebarCollapsed ? "w-16" : "w-80"}`}
+        className={`${mobileControlsOpen ? "fixed inset-y-0 left-0 z-40 block w-80 max-w-[90vw]" : "hidden"} h-screen shrink-0 overflow-y-auto bg-white transition-all duration-300 md:relative md:block ${sidebarCollapsed ? "md:w-16" : "md:w-80"}`}
       >
-        <div className="flex h-full flex-col border-r border-gray-200 bg-white">
+        <div className="flex min-h-full flex-col border-r border-gray-200 bg-white">
           {/* Header */}
           <div className="flex h-14 items-center justify-between border-b border-gray-100 px-3">
             <div className={`flex items-center gap-2 ${sidebarCollapsed ? "hidden" : ""}`}>
@@ -880,11 +316,25 @@ export default function BatchProcessPage() {
               </div>
               <div>
                 <span className="text-sm font-bold">Batch Mode</span>
-                <p className="text-muted text-[10px]">Auto-processing</p>
+                <p className="text-muted text-[10px]">
+                  {loading
+                    ? "Connecting"
+                    : queueError
+                      ? "Needs attention"
+                      : processingPaused
+                        ? "Paused"
+                        : isProcessing
+                          ? "Processing"
+                          : "Ready"}
+                </p>
               </div>
             </div>
             <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              aria-label="Toggle queue controls"
+              onClick={() => {
+                if (mobileControlsOpen) setMobileControlsOpen(false);
+                else setSidebarCollapsed(!sidebarCollapsed);
+              }}
               className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
             >
               <svg
@@ -951,6 +401,9 @@ export default function BatchProcessPage() {
             </div>
           ) : (
             <>
+              <div className="border-b border-gray-100 p-3">
+                <ModelSelector />
+              </div>
               {/* Navigation */}
               <div className="border-b border-gray-100 p-3">
                 <button
@@ -978,6 +431,9 @@ export default function BatchProcessPage() {
 
               {/* Templates Status - Compact */}
               <div className="border-b border-gray-100 px-4 py-3">
+                <p className="mb-2 text-[10px] text-gray-500">
+                  Default templates; assigned profile and imported templates take priority.
+                </p>
                 <div className="flex items-center gap-2 text-xs">
                   <div
                     className={`h-2 w-2 rounded-full ${resumeTemplate ? "bg-green-500" : "bg-red-500"}`}
@@ -999,7 +455,7 @@ export default function BatchProcessPage() {
                     onClick={() => router.push("/")}
                     className="text-primary mt-2 text-xs hover:underline"
                   >
-                    Set up templates first →
+                    Manage default templates →
                   </button>
                 )}
               </div>
@@ -1011,19 +467,6 @@ export default function BatchProcessPage() {
                   variant="primary"
                   className="w-full justify-center"
                 >
-                  <svg
-                    className="mr-2 h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
                   Add Job
                 </Button>
 
@@ -1031,69 +474,31 @@ export default function BatchProcessPage() {
                   href="/batch/import"
                   className="text-muted hover:text-foreground flex w-full items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm transition-colors hover:bg-gray-50"
                 >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path
-                      strokeWidth="2"
-                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                    />
-                  </svg>
                   Import from AI
                 </a>
 
-                {isProcessing ? (
-                  <Button
-                    onClick={handleStopProcessing}
-                    variant="secondary"
-                    className="w-full justify-center border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
-                  >
-                    <svg
-                      className="mr-2 h-4 w-4 animate-pulse"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      <path
-                        strokeWidth="2"
-                        d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
-                      />
-                    </svg>
-                    Stop Processing
-                  </Button>
-                ) : pendingCount > 0 && resumeTemplate ? (
-                  <Button
-                    onClick={() => {
-                      setProcessingPaused(false);
-                      startProcessing();
-                    }}
-                    variant="secondary"
-                    className="w-full justify-center"
-                  >
-                    <svg
-                      className="mr-2 h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeWidth="2"
-                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                      />
-                      <path strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Resume ({pendingCount})
-                  </Button>
-                ) : null}
+                <Button
+                  onClick={processingPaused ? () => void startProcessing() : handleStopProcessing}
+                  disabled={loading || busyIds.includes("queue")}
+                  variant="secondary"
+                  className="w-full justify-center"
+                >
+                  {processingPaused ? "Resume queue" : "Pause queue"}
+                </Button>
 
                 {/* Quick Actions */}
                 <div className="flex flex-col gap-2 pt-2">
                   <div className="flex gap-2">
                     {completedCount > 0 && (
                       <button
-                        onClick={clearCompleted}
+                        onClick={() => {
+                          if (window.confirm("Remove all completed jobs and their saved results?"))
+                            void clearCompleted();
+                        }}
+                        disabled={busyIds.length > 0}
                         className="text-muted hover:text-foreground flex-1 rounded-lg py-2 text-xs transition-colors hover:bg-gray-50"
                       >
-                        Clear done ({completedCount})
+                        Remove completed ({completedCount})
                       </button>
                     )}
                     {completedCount > 0 && (
@@ -1101,27 +506,36 @@ export default function BatchProcessPage() {
                         onClick={handleExportAll}
                         className="text-muted hover:text-foreground flex-1 rounded-lg py-2 text-xs transition-colors hover:bg-gray-50"
                       >
-                        Export all ({completedCount})
+                        Export completed CSV ({completedCount})
                       </button>
                     )}
                   </div>
                   <div className="flex gap-2">
                     {failedCount > 0 && (
                       <button
-                        onClick={() =>
-                          queue.filter((j) => j.status === "failed").forEach((j) => retryJob(j.id))
-                        }
+                        onClick={() => {
+                          void Promise.all(
+                            queue.filter((j) => j.status === "failed").map((j) => retryJob(j.id)),
+                          );
+                        }}
+                        disabled={busyIds.length > 0}
                         className="flex-1 rounded-lg py-2 text-xs text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
                       >
                         Retry all failed ({failedCount})
                       </button>
                     )}
-                    {totalCount > 0 && !isProcessing && (
+                    {totalCount > 0 && activeCount === 0 && (
                       <button
-                        onClick={clearQueue}
+                        onClick={() => {
+                          if (
+                            window.confirm("Remove every job and its saved results from the queue?")
+                          )
+                            void clearQueue();
+                        }}
+                        disabled={busyIds.length > 0}
                         className="flex-1 rounded-lg py-2 text-xs text-red-500 transition-colors hover:bg-red-50 hover:text-red-700"
                       >
-                        Clear all
+                        Remove all jobs
                       </button>
                     )}
                   </div>
@@ -1144,14 +558,23 @@ export default function BatchProcessPage() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-gray-50/50 p-6">
+      <main className="min-w-0 flex-1 overflow-y-auto bg-gray-50/50 p-3 sm:p-6">
         <div className="mx-auto max-w-4xl space-y-6">
+          <button
+            onClick={() => {
+              setSidebarCollapsed(false);
+              setMobileControlsOpen(true);
+            }}
+            className="rounded-lg border bg-white px-3 py-2 text-sm md:hidden"
+          >
+            Queue controls
+          </button>
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold">Batch Processing</h1>
               <p className="text-muted mt-1 text-sm">
-                Add jobs anytime - they process automatically
+                Jobs process automatically while this page is open. Pausing keeps new jobs waiting.
               </p>
             </div>
             {isProcessing && currentJob && (
@@ -1163,107 +586,63 @@ export default function BatchProcessPage() {
             )}
           </div>
 
-          {/* Extension Guide */}
-          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-            <button
-              type="button"
-              onClick={() => setExtensionOpen(!extensionOpen)}
-              className="flex w-full items-center gap-2 text-left"
-            >
-              <svg
-                className={`h-3 w-3 text-blue-600 transition-transform ${extensionOpen ? "rotate-90" : ""}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="3"
-              >
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-              <svg
-                className="h-4 w-4 shrink-0 text-blue-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-              </svg>
-              <h2 className="text-sm font-bold text-blue-800">
-                Use the Chrome Extension for faster batch processing
-              </h2>
-            </button>
-            {extensionOpen && (
-              <div className="mt-3">
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="rounded-lg bg-white p-3">
-                    <div className="mb-1 flex h-6 w-6 items-center justify-center rounded bg-blue-100 text-xs font-bold text-blue-700">
-                      1
-                    </div>
-                    <p className="text-xs font-medium text-gray-800">Install the Extension</p>
-                    <p className="text-muted mt-0.5 text-[10px]">
-                      Go to{" "}
-                      <code className="rounded bg-gray-100 px-1 text-[10px]">
-                        chrome://extensions
-                      </code>
-                      , enable Developer mode, click Load unpacked, and select the{" "}
-                      <code className="rounded bg-gray-100 px-1 text-[10px]">extension/</code>{" "}
-                      folder
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-white p-3">
-                    <div className="mb-1 flex h-6 w-6 items-center justify-center rounded bg-blue-100 text-xs font-bold text-blue-700">
-                      2
-                    </div>
-                    <p className="text-xs font-medium text-gray-800">Set Your Server URL</p>
-                    <p className="text-muted mt-0.5 text-[10px]">
-                      In the extension popup, enter your server URL. For local dev use{" "}
-                      <code className="rounded bg-gray-100 px-1 text-[10px]">
-                        http://localhost:3000
-                      </code>
-                      . For production, use your deployed URL. A green dot means connected.
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-white p-3">
-                    <div className="mb-1 flex h-6 w-6 items-center justify-center rounded bg-blue-100 text-xs font-bold text-blue-700">
-                      3
-                    </div>
-                    <p className="text-xs font-medium text-gray-800">Scrape & Queue Jobs</p>
-                    <p className="text-muted mt-0.5 text-[10px]">
-                      Browse job listings on any site, click the extension icon, select a profile,
-                      fill in the details, and click Add to Queue. The job auto-processes here on
-                      this page.
-                    </p>
-                  </div>
-                </div>
-                <details className="mt-3">
-                  <summary className="cursor-pointer text-xs font-medium text-blue-700 hover:text-blue-800">
-                    Pro tips for developers
-                  </summary>
-                  <div className="mt-2 space-y-1 text-[10px] text-gray-600">
-                    <p>• The extension auto-detects company name and job title from the page URL</p>
-                    <p>
-                      • Select text on the job page before opening the extension — it auto-fills the
-                      description
-                    </p>
-                    <p>
-                      • Use Copy/Paste buttons in the extension header to transfer company data
-                      between tabs
-                    </p>
-                    <p>• The green dot shows connection status — red means check your server URL</p>
-                    <p>• Extension works with both local dev and deployed instances</p>
-                  </div>
-                </details>
-              </div>
-            )}
-          </div>
+          <details className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <summary className="cursor-pointer text-sm font-bold text-blue-800">
+              Use the Chrome Extension for faster batch processing
+            </summary>
+            <ol className="mt-3 space-y-3 text-xs text-gray-700">
+              <li>
+                <strong>1. Install the extension.</strong> Open <code>chrome://extensions</code>,
+                enable Developer mode, choose Load unpacked and select the <code>extension/</code>{" "}
+                folder.
+              </li>
+              <li>
+                <strong>2. Connect your app.</strong> Enter this app&apos;s server URL and app
+                access key in the extension. The green dot confirms authenticated access. Your AI
+                key belongs in the app&apos;s model settings.
+              </li>
+              <li>
+                <strong>3. Add jobs.</strong> Open a job listing, select a profile or default
+                templates, check the details and choose Add to queue. Jobs process here while the
+                queue is resumed.
+              </li>
+            </ol>
+            <details className="mt-3 text-xs text-gray-600">
+              <summary className="cursor-pointer font-medium text-blue-700">Tips</summary>
+              <ul className="mt-2 list-disc space-y-1 pl-4">
+                <li>The extension detects company and job title from the URL.</li>
+                <li>Select text before opening the extension to fill the description.</li>
+                <li>Copy/Paste transfers company data between tabs.</li>
+                <li>A red connection dot means check the URL and app access key.</li>
+                <li>Both local and deployed servers are supported.</li>
+              </ul>
+            </details>
+          </details>
 
+          {queueError && (
+            <div
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+            >
+              {queueError}{" "}
+              <button onClick={() => void retryConnection()} className="ml-2 underline">
+                Reconnect / retry
+              </button>
+            </div>
+          )}
+          {processingPaused && (
+            <p
+              role="status"
+              className="rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm"
+            >
+              Queue paused.{" "}
+              {isProcessing
+                ? "The current job is finishing; waiting jobs stay queued."
+                : "New and waiting jobs stay queued until you resume."}
+            </p>
+          )}
           {/* Activity Feed */}
-          <ActivityFeed
-            currentJob={currentJob || null}
-            recentActivities={recentActivities}
-            currentJobStartTime={currentJobStartTime}
-          />
+          <ActivityFeed currentJob={currentJob || null} recentActivities={recentActivities} />
 
           {/* Queue List */}
           <div className="space-y-4">
@@ -1282,10 +661,11 @@ export default function BatchProcessPage() {
                 {
                   id: "processing",
                   label: "Processing",
-                  count: getProcessingCount(),
+                  count: activeCount,
                 },
                 { id: "completed", label: "Done", count: completedCount },
                 { id: "failed", label: "Failed", count: failedCount },
+                { id: "cancelled", label: "Cancelled", count: cancelledCount },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -1318,7 +698,9 @@ export default function BatchProcessPage() {
               />
             )}
 
-            {queue.length === 0 ? (
+            {loading ? (
+              <p role="status">Loading queue...</p>
+            ) : queue.length === 0 ? (
               <div className="rounded-xl border border-gray-200 bg-white py-12 text-center">
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
                   <svg
@@ -1339,16 +721,53 @@ export default function BatchProcessPage() {
                   Add Job
                 </Button>
               </div>
+            ) : filteredQueue.length === 0 ? (
+              <p role="status" className="rounded-lg border bg-white p-6 text-sm">
+                No jobs match this filter.{" "}
+                <button
+                  className="underline"
+                  onClick={() => {
+                    setStatusFilter("all");
+                    setSearchQuery("");
+                  }}
+                >
+                  Show all jobs
+                </button>
+              </p>
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
                 {filteredQueue.map((job) => (
                   <JobQueueCard
                     key={job.id}
                     job={job}
-                    onRemove={() => removeJob(job.id)}
-                    onRetry={() => retryJob(job.id)}
+                    onRemove={() => {
+                      if (
+                        !isActiveJob(job) ||
+                        window.confirm("Cancel processing and remove this job and its results?")
+                      )
+                        return removeJob(job.id);
+                      return false;
+                    }}
+                    onRetry={() => {
+                      if (
+                        ["failed", "cancelled"].includes(job.status) ||
+                        window.confirm("Clear previous results and process this job again?")
+                      )
+                        return retryJob(job.id);
+                      return false;
+                    }}
                     onView={() => handleViewResults(job)}
-                    onEdit={() => setEditingJob(job)}
+                    onEdit={
+                      !isActiveJob(job)
+                        ? () => {
+                            void stopProcessing().then((saved) => {
+                              if (saved) setEditingJob(job);
+                            });
+                          }
+                        : undefined
+                    }
+                    onCancel={() => cancelJob(job.id)}
+                    busy={busyIds.includes(job.id) || busyIds.includes("queue")}
                     isCurrentJob={currentJob?.id === job.id}
                   />
                 ))}
@@ -1358,20 +777,18 @@ export default function BatchProcessPage() {
         </div>
       </main>
 
-      {/* Add Job Modal */}
-      <AddJobModal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onAdd={handleAddJob}
-        profiles={profiles}
-      />
-
-      {/* Edit Job Modal */}
+      {showAddModal && (
+        <QueueJobModal
+          onClose={() => setShowAddModal(false)}
+          onSubmit={handleAddJob}
+          profiles={profiles}
+        />
+      )}
       {editingJob && (
-        <EditJobModal
-          job={editingJob}
+        <QueueJobModal
+          job={queue.find((job) => job.id === editingJob.id) || editingJob}
           onClose={() => setEditingJob(null)}
-          onSave={handleEditJob}
+          onSubmit={handleEditJob}
           profiles={profiles}
         />
       )}

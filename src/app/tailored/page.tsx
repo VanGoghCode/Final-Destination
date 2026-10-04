@@ -1,9 +1,10 @@
 "use client";
 
+import { apiFetch } from "@/lib/client-api";
+
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
-import { getAdminHeaders } from "@/lib/client-admin";
 import LaTeXEditor from "@/components/LaTeXEditor";
 import Sidebar from "@/components/Sidebar";
 import Button from "@/components/Button";
@@ -128,9 +129,9 @@ export default function TailoredPage() {
     const finalPositionTitle = editablePositionTitle || positionTitle;
 
     try {
-      const response = await fetch("/api/sheets", {
+      const response = await apiFetch("/api/sheets", {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAdminHeaders() },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           companyName: finalCompanyName,
           positionTitle: finalPositionTitle,
@@ -176,7 +177,7 @@ export default function TailoredPage() {
   const handleRegenerateResume = async (comment: string) => {
     setIsRegeneratingResume(true);
     try {
-      const response = await fetch("/api/regenerate", {
+      const response = await apiFetch("/api/regenerate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -202,7 +203,7 @@ export default function TailoredPage() {
   const handleRegenerateCoverLetter = async (comment: string) => {
     setIsRegeneratingCoverLetter(true);
     try {
-      const response = await fetch("/api/regenerate", {
+      const response = await apiFetch("/api/regenerate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -234,7 +235,7 @@ export default function TailoredPage() {
 
     setIsGeneratingCoverLetter(true);
     try {
-      const response = await fetch("/api/tailor-cover-letter", {
+      const response = await apiFetch("/api/tailor-cover-letter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -568,7 +569,7 @@ export default function TailoredPage() {
                 if (!generalQuestion.trim()) return;
                 setIsAskingQuestion(true);
                 try {
-                  const response = await fetch("/api/ask", {
+                  const response = await apiFetch("/api/ask", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({

@@ -2,6 +2,7 @@
 // Protects sensitive API routes with an API key
 
 import { NextResponse } from "next/server";
+import { corsHeaders } from "./cors";
 
 /**
  * Validates admin API key from request headers.
@@ -33,6 +34,6 @@ export function validateAdminRequest(request: Request): boolean {
 export function adminUnauthorizedResponse() {
   return NextResponse.json(
     { error: "Unauthorized. Provide a valid x-api-key or Authorization header." },
-    { status: 401 },
+    { status: 401, headers: corsHeaders() },
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { apiJSON } from "@/lib/client-api";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/Button";
@@ -35,11 +37,10 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      const res = await fetch("/api/admin/users");
-      const json = await res.json();
-      setData(json);
-    } catch {
-      setError("Failed to fetch admin data");
+      setData(await apiJSON<AdminData>("/api/admin/users"));
+      setError("");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to fetch admin data");
     } finally {
       setLoading(false);
     }
@@ -50,8 +51,9 @@ export default function AdminDashboard() {
 
     setClearing(true);
     try {
-      const res = await fetch("/api/admin/users", { method: "DELETE" });
-      const json = await res.json();
+      const json = await apiJSON<{ success: boolean; error?: string }>("/api/admin/users", {
+        method: "DELETE",
+      });
       if (json.success) {
         await fetchData();
       } else {

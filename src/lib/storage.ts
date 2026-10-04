@@ -1,5 +1,5 @@
-// Hybrid Storage: localStorage (primary) + cloud sync (background)
-// localStorage is always the source of truth. Cloud sync is fire-and-forget.
+import { apiFetch, apiJSON } from "./client-api";
+// Cloud storage with a local backup. Writes resolve only after the server acknowledges them.
 
 // Storage Keys
 const STORAGE_KEYS = {
@@ -68,15 +68,14 @@ function localRemove(key: string): void {
 }
 
 // Try cloud GET. If cloud has data, sync to localStorage and return it.
-// If cloud fails or returns null/empty, stick with localStorage.
+// If cloud fails or returns null, stick with localStorage.
 async function cloudGet<T>(key: string): Promise<T | null> {
   const local = localGet<T>(key);
   try {
-    const response = await fetch(`/api/storage?key=${encodeURIComponent(key)}`);
+    const response = await apiFetch(`/api/storage?key=${encodeURIComponent(key)}`);
     if (!response.ok) return local;
     const { data } = await response.json();
-    // Only use cloud data if it's meaningful (not null, not empty array)
-    if (data != null && !(Array.isArray(data) && data.length === 0)) {
+    if (data != null) {
       localSet(key, data);
       return data as T | null;
     }
@@ -86,29 +85,21 @@ async function cloudGet<T>(key: string): Promise<T | null> {
   return local;
 }
 
-// Save locally first (always), then sync to cloud in background
+// Keep a local backup, then await the cloud save.
 async function cloudSet<T>(key: string, value: T): Promise<void> {
   localSet(key, value);
-  try {
-    await fetch("/api/storage", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key, value }),
-    });
-  } catch {
-    // Cloud sync failed — local already saved, no problem
-  }
+  await apiJSON("/api/storage", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, value }),
+  });
 }
 
 async function cloudRemove(key: string): Promise<void> {
   localRemove(key);
-  try {
-    await fetch(`/api/storage?key=${encodeURIComponent(key)}`, {
-      method: "DELETE",
-    });
-  } catch {
-    // Cloud sync failed — local already removed
-  }
+  await apiJSON(`/api/storage?key=${encodeURIComponent(key)}`, {
+    method: "DELETE",
+  });
 }
 
 // ============ Personal Details ============

@@ -1,4 +1,5 @@
-import type { Job, ScrapeResult } from "./types";
+import type { ScrapeResult } from "./types";
+import { fetchJobs } from "./fetch-jobs";
 
 const LEVER_API_BASE = "https://api.lever.co/v0/postings";
 
@@ -27,49 +28,26 @@ export async function scrapeLever(
   company: string,
   companyId: string,
   companyName: string,
+  signal?: AbortSignal,
 ): Promise<ScrapeResult> {
-  try {
-    const url = `${LEVER_API_BASE}/${company}?mode=json`;
-    const response = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      return {
-        success: false,
-        jobs: [],
-        error: `Lever API error: ${response.status} ${response.statusText}`,
-      };
-    }
-
-    const data: LeverJob[] = await response.json();
-
-    const jobs: Job[] = data.map((job) => ({
-      id: `lever-${company}-${job.id}`,
-      companyId,
-      companyName,
-      title: job.text,
-      location: job.categories?.location || "Remote",
-      department: job.categories?.team || job.categories?.department,
-      url: job.hostedUrl,
-      postedAt: new Date(job.createdAt).toISOString(),
-      scrapedAt: new Date().toISOString(),
-      platform: "lever",
-    }));
-
-    return {
-      success: true,
-      jobs,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      jobs: [],
-      error: `Failed to scrape Lever: ${error instanceof Error ? error.message : "Unknown error"}`,
-    };
-  }
+  return fetchJobs<LeverJob[]>(
+    "lever",
+    "Lever",
+    `${LEVER_API_BASE}/${company}?mode=json`,
+    companyId,
+    companyName,
+    (data, metadata) =>
+      data.map((job) => ({
+        ...metadata,
+        id: `lever-${company}-${job.id}`,
+        title: job.text,
+        location: job.categories?.location || "Remote",
+        department: job.categories?.team || job.categories?.department,
+        url: job.hostedUrl,
+        postedAt: new Date(job.createdAt).toISOString(),
+      })),
+    { headers: { Accept: "application/json" }, signal },
+  );
 }
 
 /**

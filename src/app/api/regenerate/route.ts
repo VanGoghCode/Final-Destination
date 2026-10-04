@@ -99,9 +99,9 @@ export async function POST(request: Request) {
         break;
 
       case "answers":
-        if (!tailoredResume || !tailoredCoverLetter || !questions) {
+        if (!tailoredResume || !questions) {
           return NextResponse.json(
-            { error: "Tailored resume, cover letter, and questions are required" },
+            { error: "Tailored resume and questions are required" },
             { status: 400 },
           );
         }
@@ -110,7 +110,7 @@ export async function POST(request: Request) {
           comment,
           questions,
           tailoredResume,
-          tailoredCoverLetter,
+          tailoredCoverLetter || "",
           jobDescription || "",
           masterContext || "",
         );
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
 
       case "coldEmail":
       case "referenceEmail":
-        if (!tailoredResume || !tailoredCoverLetter) {
+        if (!tailoredResume) {
           return NextResponse.json(
             { error: "Tailored resume and cover letter are required" },
             { status: 400 },
@@ -129,7 +129,7 @@ export async function POST(request: Request) {
           currentContent,
           comment,
           tailoredResume,
-          tailoredCoverLetter,
+          tailoredCoverLetter || "",
           jobDescription || "",
           masterContext || "",
           positionTitle || "",

@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       companyName,
     } = body;
 
-    if (!tailoredResume || !tailoredCoverLetter || !positionTitle || !companyName) {
+    if (!tailoredResume || !positionTitle || !companyName) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     if (type === "cold") {
       email = await generateColdEmail(
         tailoredResume,
-        tailoredCoverLetter,
+        tailoredCoverLetter || "",
         jobDescription,
         masterContext || "",
         positionTitle,
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     } else if (type === "reference") {
       email = await generateReferenceEmail(
         tailoredResume,
-        tailoredCoverLetter,
+        tailoredCoverLetter || "",
         jobDescription,
         masterContext || "",
         positionTitle,

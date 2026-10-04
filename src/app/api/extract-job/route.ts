@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { DeepSeekProvider } from "@/lib/ai-providers/deepseek";
+import { getSelectedAIProvider } from "@/lib/ai-providers";
 import { corsHeaders } from "@/lib/cors";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
 
@@ -73,7 +73,7 @@ Return ONLY a JSON object:
 Be accurate and truthful. Do NOT use markdown formatting. Output ONLY the JSON.`;
 
     // Use fast provider (no thinking needed for extraction, deterministic output)
-    const fastProvider = DeepSeekProvider.createFast();
+    const fastProvider = await getSelectedAIProvider("extract-job", true);
     const text = await fastProvider.generateContent(prompt);
 
     // Parse JSON from response

@@ -1,3 +1,4 @@
+import { apiFetch, apiJSON } from "./client-api";
 // Cloud Storage Wrapper for Upstash Redis
 // Drop-in replacement for localStorage that syncs with cloud
 
@@ -13,7 +14,8 @@ export async function initializeCloudStorage(): Promise<void> {
 
   initPromise = (async () => {
     try {
-      const response = await fetch("/api/storage");
+      const response = await apiFetch("/api/storage");
+      if (!response.ok) throw new Error(`Storage unavailable (${response.status})`);
       if (response.ok) {
         const { data } = await response.json();
         cache = data || {};
@@ -44,7 +46,9 @@ export async function initializeCloudStorage(): Promise<void> {
         });
       }
     }
-  })();
+  })().finally(() => {
+    initPromise = null;
+  });
 
   return initPromise;
 }
@@ -59,32 +63,21 @@ export async function cloudGet<T>(key: string): Promise<T | null> {
 // Set value in cloud storage
 export async function cloudSet<T>(key: string, value: T): Promise<void> {
   await initializeCloudStorage();
+  await apiJSON("/api/storage", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, value }),
+  });
   cache[key] = value;
-
-  // Sync to cloud
-  try {
-    await fetch("/api/storage", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key, value }),
-    });
-  } catch (error) {
-    console.error("Failed to sync to cloud:", error);
-  }
 }
 
 // Remove value from cloud storage
 export async function cloudRemove(key: string): Promise<void> {
   await initializeCloudStorage();
+  await apiJSON(`/api/storage?key=${encodeURIComponent(key)}`, {
+    method: "DELETE",
+  });
   delete cache[key];
-
-  try {
-    await fetch(`/api/storage?key=${encodeURIComponent(key)}`, {
-      method: "DELETE",
-    });
-  } catch (error) {
-    console.error("Failed to remove from cloud:", error);
-  }
 }
 
 // Export all data (for backup)
@@ -132,7 +125,7 @@ export async function migrateFromLocalStorage(): Promise<{
   }
 
   try {
-    const response = await fetch("/api/storage", {
+    const response = await apiFetch("/api/storage", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ data }),
@@ -154,7 +147,7 @@ export async function migrateFromLocalStorage(): Promise<{
 // Check if cloud storage is configured
 export async function isCloudStorageConfigured(): Promise<boolean> {
   try {
-    const response = await fetch("/api/storage");
+    const response = await apiFetch("/api/storage");
     return response.ok;
   } catch {
     return false;

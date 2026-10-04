@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/client-api";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
@@ -535,7 +537,7 @@ export default function Home() {
     setIsGeneratingTailored(true);
 
     try {
-      const response = await fetch("/api/tailor", {
+      const response = await apiFetch("/api/tailor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -48,9 +48,11 @@ export async function POST(request: Request) {
       lastName: p.lastName,
       color: p.color,
       avatarText: p.avatarText,
+      defaultResumeId: p.defaultResumeId,
+      defaultCoverLetterId: p.defaultCoverLetterId,
     }));
 
-    await setProfiles(profiles);
+    if (!(await setProfiles(profiles))) throw new Error("Failed to persist profiles");
     return NextResponse.json({ success: true }, { headers: h() });
   } catch (error) {
     console.error("Profiles POST error:", error);

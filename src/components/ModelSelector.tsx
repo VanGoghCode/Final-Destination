@@ -1,355 +1,216 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useAISettings } from "@/context/AISettingsContext";
+import {
+  isAIProvider,
+  PROVIDER_DISPLAY_NAMES,
+  PROVIDER_MODELS,
+  PROVIDER_SETTINGS,
+  type AIProvider,
+} from "@/lib/ai-providers/types";
+import { removeAIKey, saveAISettings, setAICookie } from "@/lib/client-ai";
+import { getAdminKey, setAdminKey } from "@/lib/client-admin";
 
-const STORAGE_KEY = "fd_deepseek_api_key";
-const COOKIE_NAME = "fd_api_key";
-
-function setCookie(value: string) {
-  // Set cookie with 1 year expiry. Lax (not Strict) so it's sent on top-level
-  // navigations from other sites. Secure required for Vercel HTTPS.
-  const maxAge = 365 * 24 * 60 * 60;
-  document.cookie = `${COOKIE_NAME}=${encodeURIComponent(value)};path=/;max-age=${maxAge};SameSite=Lax;Secure`;
-}
-
-function clearCookie() {
-  document.cookie = `${COOKIE_NAME}=;path=/;max-age=0`;
-}
+const inputClass =
+  "w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-[13px] text-gray-900 outline-none focus:border-gray-500";
+const buttonClass = "rounded-lg border px-3.5 py-1.5 text-xs font-semibold";
 
 export default function ModelSelector() {
-  const [hasKey, setHasKey] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return !!localStorage.getItem(STORAGE_KEY);
-  });
+  const defaults = useAISettings();
+  const [provider, setProvider] = useState(defaults.provider);
+  const [draftProvider, setDraftProvider] = useState(defaults.provider);
+  const [model, setModel] = useState(defaults.modelId);
+  const [hasKey, setHasKey] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [inputKey, setInputKey] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [accessKey, setAccessKey] = useState("");
 
   useEffect(() => {
-    // Defer to next tick to avoid synchronous setState in effect
-    const id = setTimeout(() => setMounted(true), 0);
+    const id = setTimeout(() => {
+      const selected = localStorage.getItem("fd_ai_provider");
+      const current = isAIProvider(selected) ? selected : defaults.provider;
+      setProvider(current);
+      setHasKey(!!localStorage.getItem(PROVIDER_SETTINGS[current].storageKey));
+      // Restore cookies cleared since the last visit without overwriting server defaults.
+      for (const name of ["deepseek", "openai"] as const) {
+        const key = localStorage.getItem(PROVIDER_SETTINGS[name].storageKey);
+        if (key) setAICookie(PROVIDER_SETTINGS[name].cookie, key);
+      }
+      if (isAIProvider(selected)) {
+        setAICookie("fd_ai_provider", selected);
+        const storedModel = localStorage.getItem("fd_openai_model");
+        if (storedModel) setAICookie("fd_openai_model", storedModel);
+      }
+    }, 0);
     return () => clearTimeout(id);
-  }, []);
+  }, [defaults.provider]);
 
-  const handleSave = () => {
-    const trimmed = inputKey.trim();
-    if (!trimmed) return;
-
-    setSaving(true);
-    localStorage.setItem(STORAGE_KEY, trimmed);
-    setCookie(trimmed);
-    setHasKey(true);
-    setInputKey("");
-    setSaving(false);
-    setShowModal(false);
-  };
-
-  const handleRemove = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    clearCookie();
-    setHasKey(false);
-    setInputKey("");
-    setShowModal(false);
-  };
-
-  const handleOpen = () => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    setInputKey(stored || "");
-    setShowModal(true);
-  };
-
-  // Avoid hydration mismatch
-  if (!mounted) {
-    return (
-      <div className="model-selector">
-        <div className="model-selector__header">
-          <span className="model-selector__title">AI Model</span>
-        </div>
-        <div className="model-selector__info">
-          <span className="model-selector__provider">DeepSeek V4 Flash</span>
-        </div>
-        <style jsx>{`
-          .model-selector {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            width: 100%;
-          }
-          .model-selector__header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 2px;
-          }
-          .model-selector__title {
-            font-size: 10px;
-            font-weight: 700;
-            color: #9ca3af;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-          }
-          .model-selector__info {
-            padding: 6px 10px;
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 6px;
-          }
-          .model-selector__provider {
-            font-size: 12px;
-            font-weight: 600;
-            color: #374151;
-          }
-        `}</style>
-      </div>
+  const selectDraft = (next: AIProvider) => {
+    setDraftProvider(next);
+    setInputKey(localStorage.getItem(PROVIDER_SETTINGS[next].storageKey) || "");
+    setModel(
+      next === "openai"
+        ? localStorage.getItem("fd_openai_model") ||
+            (defaults.provider === "openai" ? defaults.modelId : PROVIDER_MODELS.openai.default)
+        : PROVIDER_MODELS.deepseek.default,
     );
-  }
+  };
+  const save = () => {
+    setAdminKey(accessKey);
+    saveAISettings(draftProvider, inputKey, model);
+    setProvider(draftProvider);
+    setHasKey(!!localStorage.getItem(PROVIDER_SETTINGS[draftProvider].storageKey));
+    setInputKey("");
+    setShowModal(false);
+  };
+  const configured = hasKey || defaults.configured[provider];
+  const draftHasKey =
+    showModal && !!localStorage.getItem(PROVIDER_SETTINGS[draftProvider].storageKey);
 
   return (
     <>
-      <div className="model-selector">
-        <div className="model-selector__header">
-          <span className="model-selector__title">AI Model</span>
-          <span className={`model-selector__indicator ${hasKey ? "active" : "inactive"}`} />
+      <div className="flex w-full flex-col gap-1.5">
+        <div className="mb-0.5 flex items-center justify-between">
+          <span className="text-[10px] font-bold tracking-wider text-gray-400 uppercase">
+            AI Model
+          </span>
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${configured ? "bg-green-500" : "bg-red-500"}`}
+          />
         </div>
-
         <button
           type="button"
-          className={`model-selector__info ${hasKey ? "clickable" : "clickable-warn"}`}
-          onClick={handleOpen}
-          title={hasKey ? "Click to replace API key" : "Click to add API key"}
+          className="flex w-full items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5 hover:bg-gray-100"
+          onClick={() => {
+            setAccessKey(getAdminKey() || "");
+            selectDraft(provider);
+            setShowModal(true);
+          }}
+          title="Configure AI provider and API key"
         >
-          <span className="model-selector__provider">DeepSeek V4 Flash</span>
-          <span className={`model-selector__status ${hasKey ? "active" : "inactive"}`}>
-            {hasKey ? "Key configured" : "No API key"}
+          <span className="text-xs font-semibold text-gray-700">
+            {PROVIDER_DISPLAY_NAMES[provider]}
+          </span>
+          <span
+            className={`text-[10px] font-medium ${configured ? "text-green-600" : "text-red-600"}`}
+          >
+            {hasKey ? "Key configured" : configured ? "Server key configured" : "No API key"}
           </span>
         </button>
       </div>
-
       {showModal &&
         createPortal(
-          <div className="model-selector__overlay" onClick={() => setShowModal(false)}>
-            <div className="model-selector__modal" onClick={(e) => e.stopPropagation()}>
-              <h3 className="model-selector__modal-title">DeepSeek API Key</h3>
-              <p className="model-selector__modal-desc">
-                Enter your DeepSeek API key. Get one at{" "}
-                <a href="https://api.deepseek.com" target="_blank" rel="noopener noreferrer">
-                  api.deepseek.com
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-xs"
+            onClick={() => setShowModal(false)}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="ai-settings-title"
+              className="w-[400px] max-w-[90vw] rounded-xl border border-gray-200 bg-white p-6 shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <h3 id="ai-settings-title" className="mb-2 text-base font-bold text-gray-900">
+                AI Provider &amp; API Key
+              </h3>
+              <label className="mb-3 block text-xs text-gray-600">
+                App access key
+                <input
+                  aria-label="App access key"
+                  type="password"
+                  className={`${inputClass} mt-1`}
+                  value={accessKey}
+                  onChange={(event) => setAccessKey(event.target.value)}
+                  placeholder="ADMIN_API_KEY from your server"
+                />
+              </label>
+              <label className="mb-3 block text-xs text-gray-600">
+                Provider
+                <select
+                  aria-label="AI provider"
+                  className={`${inputClass} mt-1`}
+                  value={draftProvider}
+                  onChange={(event) => selectDraft(event.target.value as AIProvider)}
+                >
+                  {Object.entries(PROVIDER_DISPLAY_NAMES).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {draftProvider === "openai" && (
+                <label className="mb-3 block text-xs text-gray-600">
+                  Model ID
+                  <input
+                    aria-label="OpenAI model ID"
+                    className={`${inputClass} mt-1 font-mono`}
+                    value={model}
+                    onChange={(event) => setModel(event.target.value)}
+                    placeholder="gpt-6-luna"
+                  />
+                </label>
+              )}
+              <p className="mb-4 text-xs leading-relaxed text-gray-500">
+                Get a key at{" "}
+                <a
+                  className="text-blue-600 underline"
+                  href={PROVIDER_SETTINGS[draftProvider].keyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {draftProvider === "openai" ? "OpenAI" : "DeepSeek"}
                 </a>
-                . Your key is stored locally in your browser and never sent to our servers.
+                . Your browser key is stored locally and sent to this app’s server to call the AI
+                provider. Leave it blank to use a configured server key.
               </p>
-
               <input
+                aria-label="API key"
                 type="password"
-                className="model-selector__input"
+                className={`${inputClass} font-mono`}
                 placeholder="sk-your-api-key"
                 value={inputKey}
-                onChange={(e) => setInputKey(e.target.value)}
+                onChange={(event) => setInputKey(event.target.value)}
                 autoFocus
-                onKeyDown={(e) => e.key === "Enter" && handleSave()}
+                onKeyDown={(event) => event.key === "Enter" && save()}
               />
-
-              <div className="model-selector__actions">
-                {hasKey && (
+              <div className="mt-4 flex justify-end gap-2">
+                {draftHasKey && (
                   <button
                     type="button"
-                    className="model-selector__btn model-selector__btn--danger"
-                    onClick={handleRemove}
+                    className={`${buttonClass} mr-auto border-red-300 text-red-600`}
+                    onClick={() => {
+                      removeAIKey(draftProvider);
+                      if (draftProvider === provider) setHasKey(false);
+                      setInputKey("");
+                      setShowModal(false);
+                    }}
                   >
                     Remove
                   </button>
                 )}
                 <button
                   type="button"
-                  className="model-selector__btn model-selector__btn--secondary"
+                  className={`${buttonClass} border-gray-300 text-gray-700`}
                   onClick={() => setShowModal(false)}
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  className="model-selector__btn model-selector__btn--primary"
-                  onClick={handleSave}
-                  disabled={!inputKey.trim() || saving}
+                  className={`${buttonClass} border-transparent bg-gray-900 text-white hover:bg-gray-800`}
+                  onClick={save}
                 >
-                  {saving ? "Saving..." : hasKey ? "Update" : "Save"}
+                  Save
                 </button>
               </div>
             </div>
           </div>,
           document.body,
         )}
-
-      <style jsx>{`
-        .model-selector {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          width: 100%;
-        }
-        .model-selector__header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 2px;
-        }
-        .model-selector__title {
-          font-size: 10px;
-          font-weight: 700;
-          color: #9ca3af;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-        .model-selector__indicator {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          flex-shrink: 0;
-        }
-        .model-selector__indicator.active {
-          background: #22c55e;
-          box-shadow: 0 0 4px rgba(34, 197, 94, 0.4);
-        }
-        .model-selector__indicator.inactive {
-          background: #ef4444;
-          box-shadow: 0 0 4px rgba(239, 68, 68, 0.4);
-        }
-        .model-selector__info {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 6px 10px;
-          background: #f9fafb;
-          border: 1px solid #e5e7eb;
-          border-radius: 6px;
-          width: 100%;
-          font: inherit;
-          cursor: pointer;
-        }
-        .model-selector__info.clickable:hover {
-          border-color: #d1d5db;
-          background: #f3f4f6;
-        }
-        .model-selector__info.clickable-warn:hover {
-          border-color: #fca5a5;
-          background: #fef2f2;
-        }
-        .model-selector__provider {
-          font-size: 12px;
-          font-weight: 600;
-          color: #374151;
-        }
-        .model-selector__status {
-          font-size: 10px;
-          font-weight: 500;
-        }
-        .model-selector__status.active {
-          color: #16a34a;
-        }
-        .model-selector__status.inactive {
-          color: #dc2626;
-        }
-
-        /* Modal */
-        .model-selector__overlay {
-          position: fixed;
-          inset: 0;
-          z-index: 9999;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(0, 0, 0, 0.4);
-          backdrop-filter: blur(2px);
-        }
-        .model-selector__modal {
-          background: white;
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 24px;
-          width: 400px;
-          max-width: 90vw;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-        }
-        .model-selector__modal-title {
-          font-size: 16px;
-          font-weight: 700;
-          color: #111827;
-          margin: 0 0 8px;
-        }
-        .model-selector__modal-desc {
-          font-size: 12px;
-          color: #6b7280;
-          margin: 0 0 16px;
-          line-height: 1.5;
-        }
-        .model-selector__modal-desc a {
-          color: #2563eb;
-          text-decoration: underline;
-        }
-        .model-selector__input {
-          width: 100%;
-          padding: 8px 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-          font-size: 13px;
-          font-family: monospace;
-          outline: none;
-          transition: border-color 0.15s;
-          color: #111827;
-          background: #f9fafb;
-        }
-        .model-selector__input:focus {
-          border-color: #6b7280;
-          background: white;
-        }
-        .model-selector__input::placeholder {
-          color: #9ca3af;
-        }
-        .model-selector__actions {
-          display: flex;
-          gap: 8px;
-          justify-content: flex-end;
-          margin-top: 16px;
-        }
-        .model-selector__btn {
-          padding: 6px 14px;
-          border-radius: 8px;
-          font-size: 12px;
-          font-weight: 600;
-          cursor: pointer;
-          border: 1px solid transparent;
-          transition: all 0.15s;
-        }
-        .model-selector__btn--primary {
-          background: #111827;
-          color: white;
-        }
-        .model-selector__btn--primary:hover:not(:disabled) {
-          background: #1f2937;
-        }
-        .model-selector__btn--primary:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-        .model-selector__btn--secondary {
-          background: white;
-          color: #374151;
-          border-color: #d1d5db;
-        }
-        .model-selector__btn--secondary:hover {
-          background: #f9fafb;
-        }
-        .model-selector__btn--danger {
-          background: white;
-          color: #dc2626;
-          border-color: #fca5a5;
-          margin-right: auto;
-        }
-        .model-selector__btn--danger:hover {
-          background: #fef2f2;
-        }
-      `}</style>
     </>
   );
 }

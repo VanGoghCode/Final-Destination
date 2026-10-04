@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/client-api";
+
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/Button";
@@ -34,6 +36,7 @@ interface ProfileData {
   coverLetterLatex: string | null;
 }
 
+const queueSubmissionIds = new Map<string, string>();
 const profileCacheRef = { current: {} as Record<string, ProfileData> };
 
 /** Synthesize a job description from structured extraction fields */
@@ -367,8 +370,10 @@ export default function AIImportPage() {
         let profileColor: string | undefined;
 
         if (pId && cached) {
-          resumeLatex = cached.resumeLatex || resumeLatex;
-          coverLetterLatex = cached.coverLetterLatex ?? coverLetterLatex;
+          if (!cached.resumeLatex)
+            throw new Error("The selected profile has no assigned resume template.");
+          resumeLatex = cached.resumeLatex;
+          coverLetterLatex = cached.coverLetterLatex || "";
           const p = profiles.find((p) => p.id === pId);
           if (p) {
             profileId = p.id;
@@ -393,10 +398,16 @@ export default function AIImportPage() {
         };
       });
 
-      const res = await fetch("/api/queue", {
+      const submitted = jobs.map((job) => {
+        const key = JSON.stringify(job);
+        const id = queueSubmissionIds.get(key) || crypto.randomUUID();
+        queueSubmissionIds.set(key, id);
+        return { ...job, id };
+      });
+      const res = await apiFetch("/api/queue", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobs }),
+        body: JSON.stringify({ jobs: submitted }),
       });
 
       const data = await res.json();
@@ -407,7 +418,12 @@ export default function AIImportPage() {
         );
       }
 
-      setAddedCount(data.added || valid.length);
+      if (data.errors?.length)
+        throw new Error(
+          `${data.added ?? 0} jobs saved; some entries were rejected. Check the queue before retrying.`,
+        );
+      jobs.forEach((job) => queueSubmissionIds.delete(JSON.stringify(job)));
+      setAddedCount(data.added ?? 0);
 
       // Navigate to batch page after a brief delay
       setTimeout(() => {

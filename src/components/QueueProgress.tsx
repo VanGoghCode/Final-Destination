@@ -19,11 +19,6 @@ export default function QueueProgress({
 }: QueueProgressProps) {
   const inProgress = total - completed - failed - pending - cancelled;
 
-  // Calculate segment widths
-  const completedWidth = total > 0 ? (completed / total) * 100 : 0;
-  const failedWidth = total > 0 ? (failed / total) * 100 : 0;
-  const inProgressWidth = total > 0 ? (inProgress / total) * 100 : 0;
-
   if (total === 0) {
     return (
       <div className="text-muted py-4 text-center">
@@ -47,21 +42,17 @@ export default function QueueProgress({
 
         {/* Segmented progress bar */}
         <div className="flex h-1.5 overflow-hidden rounded-full bg-gray-100">
-          {/* Completed segment */}
-          <div
-            className="h-full bg-gray-600 transition-all duration-500"
-            style={{ width: `${completedWidth}%` }}
-          />
-          {/* In progress segment */}
-          <div
-            className="h-full bg-gray-400 transition-all duration-500"
-            style={{ width: `${inProgressWidth}%` }}
-          />
-          {/* Failed segment */}
-          <div
-            className="h-full bg-gray-300 transition-all duration-500"
-            style={{ width: `${failedWidth}%` }}
-          />
+          {[
+            { count: completed, color: "bg-gray-600" },
+            { count: inProgress, color: "bg-gray-400" },
+            { count: failed, color: "bg-gray-300" },
+          ].map(({ count, color }) => (
+            <div
+              key={color}
+              className={`h-full ${color} transition-all duration-500`}
+              style={{ width: `${total > 0 ? (count / total) * 100 : 0}%` }}
+            />
+          ))}
         </div>
       </div>
 
@@ -71,6 +62,7 @@ export default function QueueProgress({
         <span>{inProgress} active</span>
         <span>{completed} done</span>
         {failed > 0 && <span>{failed} failed</span>}
+        {cancelled > 0 && <span>{cancelled} cancelled</span>}
       </div>
     </div>
   );

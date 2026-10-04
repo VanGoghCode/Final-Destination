@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Button from "@/components/Button";
 import { migrateFromLocalStorage, isCloudStorageConfigured } from "@/lib/cloudStorage";
 
 export default function MigratePage() {
+  const router = useRouter();
   const [status, setStatus] = useState<"checking" | "ready" | "migrating" | "done" | "error">(
     "checking",
   );
@@ -164,19 +166,11 @@ export default function MigratePage() {
             </Button>
           )}
           {status === "done" && (
-            <Button
-              onClick={() => (window.location.href = "/")}
-              variant="primary"
-              className="flex-1"
-            >
+            <Button onClick={() => router.push("/")} variant="primary" className="flex-1">
               Go to Home
             </Button>
           )}
-          <Button
-            onClick={() => (window.location.href = "/")}
-            variant="secondary"
-            className="flex-1"
-          >
+          <Button onClick={() => router.push("/")} variant="secondary" className="flex-1">
             Cancel
           </Button>
         </div>

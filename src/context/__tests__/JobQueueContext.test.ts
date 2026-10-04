@@ -1,450 +1,250 @@
-import { describe, it, expect } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { Window } from "happy-dom";
+import { act, createElement, useEffect } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { JobQueueProvider, useJobQueue } from "../JobQueueContext";
+import { fakeRedis, job } from "@/lib/__tests__/redis";
+import { setRedisInstance, getQueue } from "@/lib/db";
+import * as routes from "@/app/api/queue/route";
+import { POST as processQueue } from "@/app/api/process-queue/route";
+import * as keys from "@/lib/api-key";
+import * as ai from "@/lib/ai";
 
-// ========================================
-// Pure logic tests mirroring context mutations
-// No DOM dependency — test the actual functions
-// ========================================
-
-// Reproduce the exact state management logic from JobQueueContext
-type JobStatus =
-  | "pending"
-  | "researching"
-  | "tailoring-resume"
-  | "tailoring-cover-letter"
-  | "completed"
-  | "failed"
-  | "cancelled";
-
-interface Job {
-  id: string;
-  status: JobStatus;
-  progress: number;
-  error?: string;
-  retryCount?: number;
-  startedAt?: number;
-  completedAt?: number;
-  addedAt: number;
+let root: Root, api: ReturnType<typeof useJobQueue>, fixture: ReturnType<typeof fakeRedis>;
+let requests: Array<{ url: string; init?: RequestInit }>, fail: boolean;
+const spies: Array<ReturnType<typeof spyOn>> = [];
+const globals = [
+  "window",
+  "document",
+  "localStorage",
+  "HTMLElement",
+  "IS_REACT_ACT_ENVIRONMENT",
+  "fetch",
+] as const;
+let original: Array<PropertyDescriptor | undefined>;
+function Probe() {
+  const context = useJobQueue();
+  useEffect(() => {
+    api = context;
+  }, [context]);
+  return null;
 }
-
-let idCounter = 0;
-const nextId = () => `job_test_${++idCounter}`;
-
-function addJob(queue: Job[], status: JobStatus = "pending"): Job[] {
-  const job: Job = { id: nextId(), status, progress: 0, addedAt: Date.now() };
-  return [...queue, job];
-}
-
-function addJobs(queue: Job[], n: number, status: JobStatus = "pending"): Job[] {
-  const ids: string[] = [];
-  const newJobs: Job[] = Array.from({ length: n }, () => {
-    const job: Job = { id: nextId(), status, progress: 0, addedAt: Date.now() };
-    ids.push(job.id);
-    return job;
+const flush = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 5)));
+beforeEach(async () => {
+  fixture = fakeRedis();
+  fixture.store.set("data:queue:paused", true);
+  fixture.store.set("data:queue", [
+    job("done", {
+      status: "completed",
+      retryCount: 2,
+      resumeLatex: "old",
+      tailoredResume: "old",
+      startedAt: 1,
+      completedAt: 2,
+    }),
+  ]);
+  original = globals.map((key) => Object.getOwnPropertyDescriptor(globalThis, key));
+  const browser = new Window({ url: "http://localhost:3000" });
+  Object.assign(globalThis, {
+    window: browser,
+    document: browser.document,
+    localStorage: browser.localStorage,
+    HTMLElement: browser.HTMLElement,
+    IS_REACT_ACT_ENVIRONMENT: true,
   });
-  return [...queue, ...newJobs];
-}
-
-function removeJob(queue: Job[], id: string): Job[] {
-  return queue.filter((j) => j.id !== id);
-}
-
-function updateJobStatus(queue: Job[], id: string, newStatus: JobStatus, progress?: number): Job[] {
-  return queue.map((job) => {
-    if (job.id !== id) return job;
-    const updates: Partial<Job> = { status: newStatus };
-    if (progress !== undefined) updates.progress = progress;
-    if (["researching", "tailoring-resume", "tailoring-cover-letter"].includes(newStatus)) {
-      if (!job.startedAt) updates.startedAt = Date.now();
-    }
-    if (newStatus === "completed" || newStatus === "failed") updates.completedAt = Date.now();
-    return { ...job, ...updates };
-  });
-}
-
-function setJobError(queue: Job[], id: string, error: string): Job[] {
-  return queue.map((job) =>
-    job.id === id ? { ...job, status: "failed" as JobStatus, error, completedAt: Date.now() } : job,
+  localStorage.setItem("fd_admin_key", "owner");
+  requests = [];
+  fail = false;
+  spies.push(
+    spyOn(keys, "getApiKey").mockResolvedValue("fixture"),
+    spyOn(keys, "getAISelection").mockResolvedValue({ provider: "openai", modelId: "gpt-6-luna" }),
+    spyOn(ai, "tailorResume").mockResolvedValue("tailored"),
+    spyOn(ai, "extractJobLocationInfo").mockResolvedValue({ country: "US", workMode: "Remote" }),
   );
-}
-
-function cancelJob(queue: Job[], id: string): Job[] {
-  return queue.map((job) =>
-    job.id === id
-      ? { ...job, status: "cancelled" as JobStatus, progress: 0, completedAt: Date.now() }
-      : job,
-  );
-}
-
-function retryJob(queue: Job[], id: string): [Job[], number] {
-  let newRetryCount = 0;
-  const newQueue = queue.map((job) => {
-    if (job.id !== id) return job;
-    newRetryCount = (job.retryCount || 0) + 1;
-    return {
-      ...job,
-      status: "pending" as JobStatus,
-      progress: 0,
-      error: undefined,
-      startedAt: undefined,
-      completedAt: undefined,
-      retryCount: newRetryCount,
-    };
-  });
-  return [newQueue, newRetryCount];
-}
-
-function getCounts(queue: Job[]) {
-  return {
-    total: queue.length,
-    completed: queue.filter((j) => j.status === "completed").length,
-    failed: queue.filter((j) => j.status === "failed").length,
-    pending: queue.filter((j) => j.status === "pending").length,
-    cancelled: queue.filter((j) => j.status === "cancelled").length,
-  };
-}
-
-function clearCompleted(queue: Job[]): Job[] {
-  return queue.filter((j) => j.status !== "completed");
-}
-
-// ========================================
-// Tests
-// ========================================
-
-describe("JobQueue logic — all bugs", () => {
-  // ----------------------------------------------------------------
-  // Bug #3: addJobs must add to queue
-  // ----------------------------------------------------------------
-  describe("addJobs (bug #3)", () => {
-    it("should add multiple jobs to the queue", () => {
-      let q: Job[] = [];
-      q = addJobs(q, 3);
-      expect(q).toHaveLength(3);
-      expect(q.every((j) => j.status === "pending")).toBe(true);
-    });
-
-    it("should return all new job IDs", () => {
-      let q: Job[] = [];
-      q = addJobs(q, 2);
-      expect(q[0]?.id).toBeTruthy();
-      expect(q[1]?.id).toBeTruthy();
-      expect(q[0]?.id).not.toBe(q[1]?.id);
-    });
-
-    it("should accept empty input", () => {
-      let q: Job[] = [];
-      q = addJobs(q, 0);
-      expect(q).toHaveLength(0);
-    });
-  });
-
-  // ----------------------------------------------------------------
-  // Bug #8: retryJob increments retryCount
-  // ----------------------------------------------------------------
-  describe("retryJob increments retryCount (bug #8)", () => {
-    it("should increment retryCount on each retry", () => {
-      let q: Job[] = [];
-      q = addJob(q);
-      const id = q[0]!.id;
-
-      const [q1, c1] = retryJob(q, id);
-      expect(c1).toBe(1);
-      expect(q1[0]?.retryCount).toBe(1);
-
-      const [q2, c2] = retryJob(q1, id);
-      expect(c2).toBe(2);
-      expect(q2[0]?.retryCount).toBe(2);
-    });
-
-    it("should reset status to pending and clear error on retry", () => {
-      let q: Job[] = [];
-      q = addJob(q);
-      const id = q[0]!.id;
-
-      q = setJobError(q, id, "timeout");
-      expect(q[0]?.status).toBe("failed");
-
-      const [q2] = retryJob(q, id);
-      expect(q2[0]?.status).toBe("pending");
-      expect(q2[0]?.error).toBeUndefined();
-      expect(q2[0]?.startedAt).toBeUndefined();
-      expect(q2[0]?.completedAt).toBeUndefined();
-    });
-
-    it("should count retry from zero when job has no retryCount", () => {
-      let q: Job[] = [];
-      q = addJob(q);
-      const [, c] = retryJob(q, q[0]!.id);
-      expect(c).toBe(1);
-    });
-  });
-
-  // ----------------------------------------------------------------
-  // Bug #7: updateJobStatus sets startedAt
-  // ----------------------------------------------------------------
-  describe("updateJobStatus sets startedAt (bug #7)", () => {
-    it("should set startedAt on first processing transition", () => {
-      let q: Job[] = [];
-      q = addJob(q);
-      const id = q[0]!.id;
-      expect(q[0]?.startedAt).toBeUndefined();
-
-      q = updateJobStatus(q, id, "tailoring-resume", 30);
-      expect(q[0]?.startedAt).toBeGreaterThan(0);
-      expect(q[0]?.status).toBe("tailoring-resume");
-    });
-
-    it("should NOT override startedAt on subsequent transitions", () => {
-      let q: Job[] = [];
-      q = addJob(q);
-      const id = q[0]!.id;
-
-      q = updateJobStatus(q, id, "tailoring-resume", 30);
-      const startedAt = q[0]?.startedAt;
-
-      q = updateJobStatus(q, id, "tailoring-cover-letter", 70);
-      expect(q[0]?.startedAt).toBe(startedAt);
-    });
-
-    it("should set completedAt when completed or failed", () => {
-      let q: Job[] = [];
-      q = addJob(q);
-      const id = q[0]!.id;
-
-      q = updateJobStatus(q, id, "completed", 100);
-      expect(q[0]?.completedAt).toBeGreaterThan(0);
-
-      q = addJob(q);
-      q = updateJobStatus(q, q[1]!.id, "failed");
-      expect(q[1]?.completedAt).toBeGreaterThan(0);
-    });
-
-    it("should NOT set startedAt for pending/failed/completed status", () => {
-      let q: Job[] = [];
-      q = addJob(q);
-      const id = q[0]!.id;
-
-      q = updateJobStatus(q, id, "pending", 0);
-      expect(q[0]?.startedAt).toBeUndefined();
-
-      q = updateJobStatus(q, id, "failed");
-      expect(q[0]?.startedAt).toBeUndefined();
-    });
-  });
-
-  // ----------------------------------------------------------------
-  // Bug #6: researching is a valid processing status
-  // ----------------------------------------------------------------
-  describe("researching status (bug #6)", () => {
-    it("should accept researching as a valid processing status", () => {
-      let q: Job[] = [];
-      q = addJob(q);
-      q = updateJobStatus(q, q[0]!.id, "researching", 5);
-      expect(q[0]?.status).toBe("researching");
-      expect(q[0]?.progress).toBe(5);
-    });
-
-    it("should set startedAt when transitioning to researching", () => {
-      let q: Job[] = [];
-      q = addJob(q);
-      q = updateJobStatus(q, q[0]!.id, "researching", 5);
-      expect(q[0]?.startedAt).toBeGreaterThan(0);
-    });
-  });
-
-  // ----------------------------------------------------------------
-  // Bug #1: cancelJob sets to cancelled
-  // ----------------------------------------------------------------
-  describe("cancelJob (bug #1)", () => {
-    it("should set job to cancelled with completedAt", () => {
-      let q: Job[] = [];
-      q = addJob(q);
-      const id = q[0]!.id;
-
-      q = updateJobStatus(q, id, "tailoring-resume", 30);
-      q = cancelJob(q, id);
-
-      expect(q[0]?.status).toBe("cancelled");
-      expect(q[0]?.completedAt).toBeGreaterThan(0);
-      expect(q[0]?.progress).toBe(0);
-    });
-  });
-
-  // ----------------------------------------------------------------
-  // Bug #11: cancelledCount calculation
-  // ----------------------------------------------------------------
-  describe("cancelledCount (bug #11)", () => {
-    it("should count cancelled jobs correctly", () => {
-      let q: Job[] = [];
-
-      q = addJobs(q, 3);
-      q = cancelJob(q, q[0]!.id);
-      q = cancelJob(q, q[1]!.id);
-      expect(getCounts(q).cancelled).toBe(2);
-      expect(getCounts(q).total).toBe(3);
-    });
-
-    it("should include cancelled in total", () => {
-      let q: Job[] = [];
-      q = addJobs(q, 2);
-      q = cancelJob(q, q[0]!.id);
-      expect(getCounts(q).total).toBe(2);
-      expect(getCounts(q).pending).toBe(1);
-    });
-  });
-
-  // ----------------------------------------------------------------
-  // Bug #4: inProgress excludes cancelled
-  // ----------------------------------------------------------------
-  describe("inProgress excludes cancelled (bug #4)", () => {
-    function calcInProgress(q: Job[]) {
-      const counts = getCounts(q);
-      return counts.total - counts.completed - counts.failed - counts.pending - counts.cancelled;
+  globalThis.fetch = (async (input: string, init?: RequestInit) => {
+    requests.push({ url: input, init });
+    if (fail) return Response.json({ error: "Unavailable" }, { status: 503 });
+    const request = new Request("http://localhost" + input, init);
+    if (input.includes("process-queue")) return processQueue(request);
+    switch (init?.method) {
+      case "POST":
+        return routes.POST(request);
+      case "PUT":
+        return routes.PUT(request);
+      case "PATCH":
+        return routes.PATCH(request);
+      case "DELETE":
+        return routes.DELETE(request);
+      default:
+        return routes.GET(request);
     }
-
-    it("should not count cancelled jobs as in-progress", () => {
-      let q: Job[] = [];
-      q = addJobs(q, 3);
-      q = cancelJob(q, q[0]!.id);
-      q = updateJobStatus(q, q[1]!.id, "completed", 100);
-      q = updateJobStatus(q, q[2]!.id, "tailoring-resume", 30);
-
-      const inProgress = calcInProgress(q);
-      expect(inProgress).toBe(1); // only q[2] is in progress
-      expect(getCounts(q).cancelled).toBe(1);
-    });
-
-    it("should return 0 in-progress when all are cancelled", () => {
-      let q: Job[] = [];
-      q = addJobs(q, 3);
-      q.forEach((j) => {
-        q = cancelJob(q, j.id);
+  }) as typeof fetch;
+  root = createRoot(document.createElement("div"));
+  await act(() => root.render(createElement(JobQueueProvider, null, createElement(Probe))));
+  await act(() => api.setPollingEnabled(true));
+  await flush();
+  requests = [];
+});
+afterEach(async () => {
+  await act(() => root.unmount());
+  spies.splice(0).forEach((spy) => spy.mockRestore());
+  setRedisInstance(null);
+  globals.forEach((key, i) => {
+    if (original[i]) Object.defineProperty(globalThis, key, original[i]!);
+    else Reflect.deleteProperty(globalThis, key);
+  });
+});
+describe("queue UI connected to real queue routes", () => {
+  it.each([false, true])(
+    "retries an unacknowledged submission without duplicates (batch=%s)",
+    async (batch) => {
+      const fetch = globalThis.fetch;
+      let loseResponse = true;
+      globalThis.fetch = (async (input: string, init?: RequestInit) => {
+        const response = await fetch(input, init);
+        if (loseResponse && init?.method === (batch ? "PUT" : "POST")) {
+          loseResponse = false;
+          throw new Error("Response lost after save");
+        }
+        return response;
+      }) as typeof fetch;
+      await act(async () => {
+        if (batch) {
+          await api.addJobs([job("new")]);
+          await api.addJobs([job("new")]);
+        } else {
+          await api.addJob(job("new"));
+          await api.addJob(job("new"));
+        }
       });
-
-      expect(calcInProgress(q)).toBe(0);
+      expect((await getQueue()).filter((job) => job.status === "pending")).toHaveLength(1);
+    },
+  );
+  it("authenticates reads and every mutation", async () => {
+    await act(async () => {
+      await api.removeJob("done");
     });
-
-    it("should handle mixed statuses correctly", () => {
-      let q: Job[] = [];
-      q = addJobs(q, 10);
-
-      // 3 completed, 1 failed, 2 pending, 4 cancelled
-      q = updateJobStatus(q, q[0]!.id, "completed", 100);
-      q = updateJobStatus(q, q[1]!.id, "completed", 100);
-      q = updateJobStatus(q, q[2]!.id, "completed", 100);
-      q = setJobError(q, q[3]!.id, "error");
-      // q[4], q[5] stay pending
-      q = cancelJob(q, q[6]!.id);
-      q = cancelJob(q, q[7]!.id);
-      q = cancelJob(q, q[8]!.id);
-      q = cancelJob(q, q[9]!.id);
-
-      const counts = getCounts(q);
-      expect(counts.completed).toBe(3);
-      expect(counts.failed).toBe(1);
-      expect(counts.pending).toBe(2);
-      expect(counts.cancelled).toBe(4);
-      expect(counts.total).toBe(10);
-      expect(calcInProgress(q)).toBe(0); // all accounted
-    });
+    expect(requests.every((r) => new Headers(r.init?.headers).get("x-api-key") === "owner")).toBe(
+      true,
+    );
   });
-
-  // ----------------------------------------------------------------
-  // clearCompleted
-  // ----------------------------------------------------------------
-  describe("clearCompleted", () => {
-    it("should remove only completed jobs", () => {
-      let q: Job[] = [];
-      q = addJobs(q, 3);
-      q = updateJobStatus(q, q[0]!.id, "completed", 100);
-      q = setJobError(q, q[1]!.id, "fail");
-      // q[2] stays pending
-
-      q = clearCompleted(q);
-      expect(q).toHaveLength(2);
-      expect(q.every((j) => j.status !== "completed")).toBe(true);
+  it("shows only additions that the server accepted", async () => {
+    let id: string | null = null;
+    await act(async () => {
+      id = await api.addJob(job("new"));
     });
-
-    it("should leave cancelled jobs untouched", () => {
-      let q: Job[] = [];
-      q = addJobs(q, 2);
-      q = updateJobStatus(q, q[0]!.id, "completed", 100);
-      q = cancelJob(q, q[1]!.id);
-
-      q = clearCompleted(q);
-      expect(q).toHaveLength(1);
-      expect(q[0]?.status).toBe("cancelled");
-    });
+    expect(api.queue.some((j) => j.id === id)).toBe(true);
+    expect(api.pendingCount).toBe(1);
+    expect(api.processingPaused).toBe(true);
   });
-
-  // ----------------------------------------------------------------
-  // removeJob
-  // ----------------------------------------------------------------
-  describe("removeJob", () => {
-    it("should remove a specific job by id", () => {
-      let q: Job[] = [];
-      q = addJobs(q, 3);
-      const removed = q[1]!.id;
-      q = removeJob(q, removed);
-      expect(q).toHaveLength(2);
-      expect(q.find((j) => j.id === removed)).toBeUndefined();
+  it("keeps jobs and exposes an error when removal fails", async () => {
+    fail = true;
+    await act(async () => {
+      expect(await api.removeJob("done")).toBe(false);
     });
-
-    it("should do nothing when id not found", () => {
-      let q: Job[] = [];
-      q = addJobs(q, 2);
-      q = removeJob(q, "nonexistent");
-      expect(q).toHaveLength(2);
-    });
+    expect(api.queue).toHaveLength(1);
+    expect(api.queueError).toBe("Unavailable");
   });
-
-  // ----------------------------------------------------------------
-  // Full processing flow
-  // ----------------------------------------------------------------
-  describe("full processing flow", () => {
-    it("pending → researching → tailoring-resume → completed", () => {
-      let q: Job[] = [];
-      q = addJob(q);
-      const id = q[0]!.id;
-
-      expect(q[0]?.status).toBe("pending");
-
-      q = updateJobStatus(q, id, "researching", 5);
-      expect(q[0]?.status).toBe("researching");
-
-      q = updateJobStatus(q, id, "tailoring-resume", 30);
-      expect(q[0]?.status).toBe("tailoring-resume");
-
-      q = updateJobStatus(q, id, "completed", 100);
-      expect(q[0]?.status).toBe("completed");
-      expect(q[0]?.completedAt).toBeGreaterThan(0);
+  it("does not report failed additions or resets as saved", async () => {
+    fail = true;
+    await act(async () => {
+      expect(await api.addJob(job("new"))).toBeNull();
+      expect(await api.updateJob("done", { companyName: "new" })).toBe(false);
     });
-
-    it("pending → tailoring-resume → failed", () => {
-      let q: Job[] = [];
-      q = addJob(q);
-      const id = q[0]!.id;
-
-      q = updateJobStatus(q, id, "tailoring-resume", 30);
-      q = setJobError(q, id, "API error");
-
-      expect(q[0]?.status).toBe("failed");
-      expect(q[0]?.error).toBe("API error");
+    expect(api.queue[0]?.companyName).toBe("Acme");
+    expect(api.totalCount).toBe(1);
+  });
+  it("serializes retries and uses server retry counts", async () => {
+    await act(async () => {
+      await Promise.all([api.retryJob("done"), api.retryJob("done")]);
     });
-
-    it("should track counts per status accurately after processing", () => {
-      let q: Job[] = [];
-      q = addJobs(q, 5);
-      q = updateJobStatus(q, q[0]!.id, "completed", 100);
-      q = setJobError(q, q[1]!.id, "fail");
-      q = cancelJob(q, q[2]!.id);
-
-      const counts = getCounts(q);
-      expect(counts.completed).toBe(1);
-      expect(counts.failed).toBe(1);
-      expect(counts.cancelled).toBe(1);
-      expect(counts.pending).toBe(2);
-      expect(counts.total).toBe(5);
+    expect(api.queue[0]?.retryCount).toBe(4);
+    expect(api.queue[0]?.startedAt).toBeUndefined();
+    expect(api.queue[0]?.tailoredResume).toBeUndefined();
+  });
+  it("resets edited results, clears a removed profile, and preserves imported templates", async () => {
+    await act(async () => {
+      await api.updateJob("done", { jobDescription: "Changed" });
     });
+    expect(api.queue[0]).toMatchObject({
+      status: "pending",
+      resumeLatex: "old",
+      jobDescription: "Changed",
+    });
+    expect(api.queue[0]?.tailoredResume).toBeUndefined();
+    await act(async () => {
+      await api.updateJob("done", { profileId: "new" });
+    });
+    expect(api.queue[0]?.resumeLatex).toBeUndefined();
+    await act(async () => {
+      await api.updateJob("done", { profileId: "", profileName: "" });
+    });
+    expect(api.queue[0]?.profileId).toBe("");
+  });
+  it("cancels, removes and clears jobs using saved state", async () => {
+    await act(async () => {
+      await api.cancelJob("done");
+    });
+    expect(api.cancelledCount).toBe(1);
+    await act(async () => {
+      await api.clearCompleted();
+    });
+    expect(api.totalCount).toBe(1);
+    await act(async () => {
+      await api.clearQueue();
+    });
+    expect(api.totalCount).toBe(0);
+  });
+  it("keeps a paused queue paused when extension jobs arrive", async () => {
+    await routes.POST(
+      new Request("http://localhost/api/queue", {
+        method: "POST",
+        body: JSON.stringify(job("extension", { resumeLatex: "assigned" })),
+      }),
+    );
+    await act(async () => {
+      await api.refreshQueue();
+    });
+    expect(api.pendingCount).toBe(1);
+    expect(api.processingPaused).toBe(true);
+    expect(requests.some((r) => r.url.includes("process-queue"))).toBe(false);
+  });
+  it("processes extension jobs on the server without loading default templates", async () => {
+    fixture.store.set("data:queue", [job("extension", { resumeLatex: "assigned" })]);
+    fixture.store.set("data:queue:paused", false);
+    await act(() => api.setPollingEnabled(false));
+    await act(() => api.setPollingEnabled(true));
+    await flush();
+    expect((await getQueue())[0]?.status).toBe("completed");
+    expect(requests.find((r) => r.url.includes("process-queue"))?.init?.body).toBe(
+      JSON.stringify({ id: "extension" }),
+    );
+  });
+  it("does not let stale polling resurrect a removed job", async () => {
+    const fetch = globalThis.fetch;
+    let release = () => {},
+      captured = false;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    globalThis.fetch = (async (input: string, init?: RequestInit) => {
+      const response = await fetch(input, init);
+      if (!init?.method && !captured) {
+        captured = true;
+        await gate;
+      }
+      return response;
+    }) as typeof fetch;
+    let refresh: Promise<void>;
+    await act(async () => {
+      refresh = api.refreshQueue();
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      await api.removeJob("done");
+    });
+    await act(async () => {
+      release();
+      await refresh!;
+    });
+    expect(api.queue).toHaveLength(0);
   });
 });

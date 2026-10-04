@@ -9,12 +9,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   const jobDescriptionInput = document.getElementById("jobDescription");
   const profileIdInput = document.getElementById("profileId");
   const serverUrlInput = document.getElementById("serverUrl");
+  const serverKeyInput = document.getElementById("serverKey");
+  const requestHeaders = () => ({
+    "Content-Type": "application/json",
+    "x-api-key": serverKeyInput?.value?.trim() || "",
+  });
   const connectionDot = document.getElementById("connectionDot");
   const openBatchBtn = document.getElementById("openBatchBtn");
   const copyBtn = document.getElementById("copyBtn");
   const pasteBtn = document.getElementById("pasteBtn");
 
   let statusTimeout = null;
+  let submission = null;
+  let submitting = false;
 
   if (!container || !addBtn) {
     console.error("Required elements not found");
@@ -34,23 +41,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     return "http://localhost:3000";
   }
 
-  async function checkConnection() {
-    const base = getBaseUrl();
-    try {
-      const res = await fetch(`${base}/api/health`);
-      if (res.ok) {
-        connectionDot.className = "dot online";
-        return true;
-      }
-    } catch {}
-    connectionDot.className = "dot offline";
-    return false;
-  }
-
   // Load saved server URL
   if (hasStorage && serverUrlInput) {
     try {
-      const result = await chrome.storage.local.get(SERVER_URL_KEY);
+      const result = await chrome.storage.local.get([SERVER_URL_KEY, "fd_server_key"]);
+      if (serverKeyInput) serverKeyInput.value = result.fd_server_key || "";
       if (result[SERVER_URL_KEY]) {
         serverUrlInput.value = result[SERVER_URL_KEY];
       }
@@ -63,12 +58,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (hasStorage) {
         chrome.storage.local.set({ [SERVER_URL_KEY]: serverUrlInput.value.trim() });
       }
-      checkConnection();
     });
   }
 
   // Check connection on load
-  checkConnection();
 
   // ======== Copy/Paste ========
 
@@ -155,7 +148,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   } catch {}
 
   const tabUrl = tab?.url || "default";
-  const storageKey = `form_data_${btoa(unescape(encodeURIComponent(tabUrl))).slice(0, 50)}`;
+  const storageKey = `form_data_${encodeURIComponent(tabUrl)}`;
 
   // ======== Restore Saved Form Data ========
 
@@ -164,6 +157,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const result = await chrome.storage.local.get(storageKey);
       const savedData = result[storageKey];
       if (savedData) {
+        submission = savedData.submission || null;
         if (savedData.companyName) companyNameInput.value = savedData.companyName;
         if (savedData.positionTitle) positionTitleInput.value = savedData.positionTitle;
         if (savedData.companyUrl) companyUrlInput.value = savedData.companyUrl;
@@ -266,6 +260,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       jobDescription: jobDescriptionInput.value,
       profileId: profileIdInput.value,
       includeCoverLetter: document.getElementById("includeCoverLetter").checked,
+      submission,
     };
     chrome.storage.local.set({ [storageKey]: data }).catch(() => {});
   };
@@ -281,22 +276,45 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ======== Load Profiles ========
 
   let profiles = [];
+  let profileRequest = 0;
 
   const loadProfiles = async () => {
     const base = getBaseUrl();
+    const version = ++profileRequest;
+    profiles = [];
     container.innerHTML = '<span style="font-size:11px;color:#999;">Loading profiles...</span>';
 
     try {
-      const res = await fetch(`${base}/api/profiles`);
+      const res = await fetch(`${base}/api/profiles`, {
+        headers: requestHeaders(),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (version !== profileRequest) return;
       if (res.ok) {
         profiles = await res.json();
+        if (!Array.isArray(profiles)) throw new Error("Invalid profiles response");
+        connectionDot.className = "dot online";
         container.innerHTML = "";
+        if (profileIdInput.value && !profiles.some((p) => p.id === profileIdInput.value)) {
+          profileIdInput.value = "";
+          statusEl.textContent =
+            "Saved profile is unavailable. Choose a profile or use default templates.";
+          saveFormData();
+        }
+        const defaultItem = document.createElement("button");
+        defaultItem.type = "button";
+        defaultItem.className = "profile" + (!profileIdInput.value ? " selected" : "");
+        defaultItem.dataset.id = "";
+        defaultItem.textContent = "Default templates";
+        defaultItem.onclick = () => updateSelection("");
+        container.appendChild(defaultItem);
 
         if (profiles.length > 0) {
           const savedProfileId = profileIdInput.value;
 
           profiles.forEach((p) => {
-            const item = document.createElement("div");
+            const item = document.createElement("button");
+            item.type = "button";
             const isSelected = savedProfileId === p.id;
             item.className = "profile" + (isSelected ? " selected" : "");
             item.dataset.id = p.id;
@@ -326,14 +344,18 @@ document.addEventListener("DOMContentLoaded", async () => {
             item.appendChild(name);
             container.appendChild(item);
           });
-        } else {
-          container.innerHTML =
-            '<span style="font-size:11px;color:#666;">No profiles — create one in the app first</span>';
         }
       } else {
-        container.innerHTML = '<span style="font-size:11px;color:#999;">Server unreachable</span>';
+        connectionDot.className = "dot offline";
+        profiles = [];
+        profileIdInput.value = "";
+        container.textContent =
+          res.status === 401 ? "Enter your app access key" : "Server unreachable";
       }
     } catch {
+      if (version !== profileRequest) return;
+      profiles = [];
+      connectionDot.className = "dot offline";
       container.innerHTML =
         '<span style="font-size:11px;color:#999;">Offline — check server URL</span>';
     }
@@ -350,6 +372,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   await loadProfiles();
+  serverKeyInput?.addEventListener("input", () => {
+    if (hasStorage) chrome.storage.local.set({ fd_server_key: serverKeyInput.value.trim() });
+  });
+  for (const input of [serverUrlInput, serverKeyInput])
+    input?.addEventListener("change", () => {
+      profileIdInput.value = "";
+      void loadProfiles();
+    });
 
   // ======== Auto-extract from URL ========
 
@@ -450,6 +480,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ======== Add to Queue ========
 
   addBtn.addEventListener("click", async () => {
+    if (submitting) return;
     const selectedProfileId = profileIdInput.value;
     const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
 
@@ -476,10 +507,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     jobDescriptionInput.style.borderColor = "#E5E5E5";
     container.style.border = "";
 
-    if (!selectedProfileId) {
+    if (selectedProfileId && !selectedProfile) {
       container.style.border = "2px solid #ef4444";
       container.style.borderRadius = "8px";
-      statusEl.textContent = "Select a profile";
+      statusEl.textContent =
+        "This profile is unavailable. Reload profiles or choose default templates.";
       statusEl.className = "error";
       hasErrors = true;
     }
@@ -509,35 +541,54 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     addBtn.disabled = true;
+    submitting = true;
     addBtn.textContent = "Adding...";
     statusEl.textContent = "";
 
     const base = getBaseUrl();
 
     try {
+      const fingerprint = JSON.stringify(job);
+      if (!submission || submission.fingerprint !== fingerprint)
+        submission = { id: crypto.randomUUID(), fingerprint };
+      if (hasStorage)
+        await chrome.storage.local.set({
+          [storageKey]: {
+            companyName: companyNameInput.value,
+            positionTitle: positionTitleInput.value,
+            companyUrl: companyUrlInput.value,
+            jobUrl: jobUrlInput.value,
+            jobDescription: jobDescriptionInput.value,
+            profileId: selectedProfileId,
+            includeCoverLetter: job.includeCoverLetter,
+            submission,
+          },
+        });
       const response = await fetch(`${base}/api/queue`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(job),
+        headers: requestHeaders(),
+        body: JSON.stringify({ ...job, id: submission.id }),
+        signal: AbortSignal.timeout(15_000),
       });
 
       if (response.ok) {
         if (hasStorage) {
-          await chrome.storage.local.remove(storageKey);
+          await chrome.storage.local.remove(storageKey).catch(() => {});
         }
-        statusEl.textContent = "✓ Added to queue!";
+        statusEl.textContent = "✓ Saved to queue. Open the queue to process or view this job.";
+        addBtn.textContent = "Saved to queue";
         statusEl.className = "success";
         clearTimeout(statusTimeout);
-        setTimeout(() => window.close(), 1200);
       } else {
-        const err = await response.json();
-        throw new Error(err.error || "Server error");
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `Server error (${response.status})`);
       }
     } catch (e) {
       console.error(e);
       statusEl.textContent = "Error: " + (e.message || "Connection failed");
       statusEl.className = "error";
       addBtn.disabled = false;
+      submitting = false;
       addBtn.textContent = "Add to Queue";
     }
   });

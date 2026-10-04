@@ -1,5 +1,8 @@
 "use client";
 
+import { apiFetch } from "@/lib/client-api";
+import { useJobContext } from "@/lib/use-job-context";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppContext } from "@/context/AppContext";
@@ -38,6 +41,7 @@ export default function QuestionsPage() {
   const [nextId, setNextId] = useState(2);
 
   const [error, setError] = useState<string | null>(null);
+  useJobContext(setError);
   const [questionsCompanyInfo, setQuestionsCompanyInfo] = useState(masterContext || "");
   const [coldEmail, setColdEmail] = useState("");
   const [referenceEmail, setReferenceEmail] = useState("");
@@ -106,7 +110,7 @@ export default function QuestionsPage() {
     setIsGeneratingAnswers(true);
 
     try {
-      const response = await fetch("/api/answers", {
+      const response = await apiFetch("/api/answers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -145,7 +149,7 @@ export default function QuestionsPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/emails", {
+      const response = await apiFetch("/api/emails", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -182,7 +186,7 @@ export default function QuestionsPage() {
     if (!answersComment.trim()) return;
     setIsRegeneratingAnswers(true);
     try {
-      const response = await fetch("/api/regenerate", {
+      const response = await apiFetch("/api/regenerate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
