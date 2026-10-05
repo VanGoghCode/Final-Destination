@@ -7,7 +7,7 @@ import {
 } from "./prompts/index";
 
 describe("Prompts", () => {
-  it("keeps resume instructions short, minimal and grounded in both original sources", () => {
+  it("tailors for the role's recruiter while preserving facts and the one-page format", () => {
     const pair = buildResumePrompt({
       masterContext: "Experienced dev",
       resumeLatex: "\\documentclass{article}",
@@ -17,14 +17,14 @@ describe("Prompts", () => {
 
     expect(pair.user).toContain("\\documentclass{article}");
     expect(pair.user).toContain("ORIGINAL RESUME");
-    expect(pair.system.split(/\s+/).length).toBeLessThan(130);
-    expect(pair.system).toContain("minimal");
+    expect(pair.system.split(/\s+/).length).toBeLessThan(200);
+    expect(pair.system).toContain("recruiter for this JD");
     expect(pair.system).toContain("ONLY the original resume and master context");
     expect(pair.system).toContain("Never invent");
-    expect(pair.system).toContain("unchanged");
+    expect(pair.system).toContain("Rewrite and reorder skills and bullets within entries");
     expect(pair.system).toContain("one page with similar word count and density");
-    expect(pair.user).not.toContain("Floor:");
-    expect(pair.user).not.toContain("INSTRUCTIONS:");
+    expect(pair.system).toContain("Make meaningful edits where fit is unclear");
+    expect(pair.system).not.toMatch(/minimal edits|prefer small wording changes/);
   });
 
   it("regeneration uses the same short rules and does not trust previous generated claims", () => {
