@@ -62,28 +62,26 @@ export default function Sidebar({
               <Image src="/logo.png" alt="Logo" width={32} height={32} className="rounded-lg" />
               <span className="gradient-text text-sm font-bold">{title}</span>
             </div>
-            {!isMobile && (
-              <Button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                variant="ghost"
-                className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
-                title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+            <Button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              variant="ghost"
+              className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
+              title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+            >
+              <svg
+                className={`h-4 w-4 text-gray-600 transition-transform ${sidebarOpen ? "" : "rotate-180"}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  className={`h-4 w-4 text-gray-600 transition-transform ${sidebarOpen ? "" : "rotate-180"}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </Button>
-            )}
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </Button>
           </div>
 
           {/* AI Provider Selection */}
@@ -119,6 +117,7 @@ export default function Sidebar({
       {/* Mobile Sidebar Toggle */}
       {isMobile && (
         <button
+          aria-label="Open sidebar"
           onClick={() => setSidebarOpen(true)}
           className="bg-primary hover:bg-primary/90 fixed bottom-6 left-6 z-30 flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg transition-colors"
         >
