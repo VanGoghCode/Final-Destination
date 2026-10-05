@@ -127,11 +127,16 @@ it("does not undo a manual pause when a bot replays only existing jobs", async (
   expect(readState().paused).toBe(true);
 });
 it("does not save jobs or unpause the queue when browser storage is full", async () => {
-  const saved = localStorage.setItem.bind(localStorage);
-  localStorage.setItem = (key, value) => {
-    if (key === "fd_queue_state") throw Error("Storage quota exceeded");
-    saved(key, value);
-  };
+  const storage = localStorage;
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: {
+      getItem: storage.getItem.bind(storage),
+      setItem: () => {
+        throw Error("Storage quota exceeded");
+      },
+    },
+  });
   await expect(submitJobBatch(input([job]))).rejects.toThrow("quota exceeded");
   expect(readState()).toEqual({ jobs: [], paused: true });
 });
