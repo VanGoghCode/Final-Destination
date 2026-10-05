@@ -1,104 +1,60 @@
-// ========================================
-// COMPREHENSIVE TEST SUITE — Custom Hooks (Logic Only)
-// ========================================
-//
-// NOTE: Full React hook testing requires jsdom + React testing utilities.
-// These tests validate the underlying logic patterns and non-React utilities.
-// For component-level hook testing, use React Testing Library with jsdom.
-// ========================================
+import { beforeEach, afterEach, describe, it, expect } from "bun:test";
+import { act, createElement } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { openBrowser } from "./__tests__/browser";
+import { useAutoSave, useDebouncedCallback } from "./hooks";
 
-import { describe, it, expect } from "bun:test";
-
-// Mock localStorage for cache logic testing
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (key: string) => store[key] ?? null,
-    setItem: (key: string, value: string) => {
-      store[key] = value;
-    },
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-    clear: () => {
-      store = {};
-    },
-    get length() {
-      return Object.keys(store).length;
-    },
-    key: (index: number) => Object.keys(store)[index] ?? null,
-  };
-})();
-
-Object.defineProperty(globalThis, "localStorage", {
-  value: localStorageMock,
-  writable: true,
+let root: Root, close: () => void;
+beforeEach(() => {
+  close = openBrowser().close;
+  root = createRoot(document.createElement("div"));
 });
-
-describe("Cache Logic (localStorage wrapper)", () => {
-  it("should store and retrieve values from localStorage", () => {
-    localStorage.setItem("test_key", JSON.stringify({ data: "hello" }));
-    const stored = localStorage.getItem("test_key");
-    expect(stored).not.toBeNull();
-    expect(JSON.parse(stored!)).toEqual({ data: "hello" });
+afterEach(async () => {
+  await act(() => root.unmount());
+  close();
+});
+const wait = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 25)));
+describe("browser draft hooks", () => {
+  it("does not overwrite existing data on first render and saves the latest edit", async () => {
+    localStorage.setItem("draft", JSON.stringify("existing"));
+    function Draft({ value }: { value: string }) {
+      useAutoSave("draft", value, 5);
+      return null;
+    }
+    await act(async () => root.render(createElement(Draft, { value: "initial" })));
+    await wait();
+    expect(JSON.parse(localStorage.getItem("draft")!)).toBe("existing");
+    await act(async () => root.render(createElement(Draft, { value: "edit" })));
+    await wait();
+    expect(JSON.parse(localStorage.getItem("draft")!)).toBe("edit");
   });
-
-  it("should remove values from localStorage", () => {
-    localStorage.setItem("tmp_key", "value");
-    localStorage.removeItem("tmp_key");
-    expect(localStorage.getItem("tmp_key")).toBeNull();
+  it("flushes an unsaved draft when leaving the page", async () => {
+    function Draft({ value }: { value: string }) {
+      useAutoSave("draft", value, 1000);
+      return null;
+    }
+    await act(async () => root.render(createElement(Draft, { value: "initial" })));
+    await act(async () => root.render(createElement(Draft, { value: "latest edit" })));
+    await act(() => root.unmount());
+    expect(localStorage.getItem("draft")).toBe(JSON.stringify("latest edit"));
   });
-
-  it("should return null for missing keys", () => {
-    expect(localStorage.getItem("nonexistent")).toBeNull();
-  });
-
-  it("should clear all entries", () => {
-    localStorage.setItem("a", "1");
-    localStorage.setItem("b", "2");
-    localStorage.clear();
-    expect(localStorage.getItem("a")).toBeNull();
-    expect(localStorage.getItem("b")).toBeNull();
+  it("debounces callbacks and cancels them when leaving the page", async () => {
+    let callback!: () => void,
+      calls = 0;
+    function Probe() {
+      callback = useDebouncedCallback(() => {
+        calls++;
+      }, 5);
+      return null;
+    }
+    await act(async () => root.render(createElement(Probe)));
+    callback();
+    callback();
+    await wait();
+    expect(calls).toBe(1);
+    callback();
+    await act(() => root.unmount());
+    await wait();
+    expect(calls).toBe(1);
   });
 });
-
-describe("Retry Logic Pattern", () => {
-  it("should succeed on first attempt", async () => {
-    const fn = async () => "success";
-    const result = await fn();
-    expect(result).toBe("success");
-  });
-
-  it("should demonstrate exponential backoff pattern", async () => {
-    // Verify the exponential backoff math
-    const baseDelay = 1000;
-    const delays = [0, 1, 2, 3].map((i) => baseDelay * Math.pow(2, i));
-    expect(delays).toEqual([1000, 2000, 4000, 8000]);
-  });
-
-  it("should retry up to max attempts", async () => {
-    let attempts = 0;
-    const maxRetries = 3;
-
-    const tryFn = async () => {
-      for (let i = 0; i <= maxRetries; i++) {
-        attempts++;
-        if (i < 2) continue; // simulate failure
-        return "recovered";
-      }
-      throw new Error("exhausted");
-    };
-
-    const result = await tryFn();
-    expect(result).toBe("recovered");
-    expect(attempts).toBe(3); // failed 2 times, succeeded on 3rd
-  });
-});
-
-// ========================================
-// NOTE: Full React hook tests (useRetryWithBackoff, useDebouncedCallback,
-// useAutoSave, useLocalStorageLoad) require jsdom + @testing-library/react.
-//
-// The hooks themselves are well-structured — add these tests when
-// React Testing Library is added as a dev dependency.
-// ========================================

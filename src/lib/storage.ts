@@ -1,5 +1,4 @@
-import { apiFetch, apiJSON } from "./client-api";
-// Cloud storage with a local backup. Writes resolve only after the server acknowledges them.
+// Templates and background information stay in this browser.
 
 // Storage Keys
 const STORAGE_KEYS = {
@@ -49,11 +48,14 @@ export const generateId = (): string => {
 
 function localGet<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
   try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
+    return JSON.parse(raw);
   } catch {
-    return null;
+    throw new Error(
+      `Saved browser data is invalid (${key}). Restore your backup before editing it.`,
+    );
   }
 }
 
@@ -67,49 +69,18 @@ function localRemove(key: string): void {
   localStorage.removeItem(key);
 }
 
-// Try cloud GET. If cloud has data, sync to localStorage and return it.
-// If cloud fails or returns null, stick with localStorage.
-async function cloudGet<T>(key: string): Promise<T | null> {
-  const local = localGet<T>(key);
-  try {
-    const response = await apiFetch(`/api/storage?key=${encodeURIComponent(key)}`);
-    if (!response.ok) return local;
-    const { data } = await response.json();
-    if (data != null) {
-      localSet(key, data);
-      return data as T | null;
-    }
-  } catch {
-    // Cloud unreachable — local is fine
-  }
-  return local;
-}
-
-// Keep a local backup, then await the cloud save.
-async function cloudSet<T>(key: string, value: T): Promise<void> {
-  localSet(key, value);
-  await apiJSON("/api/storage", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ key, value }),
-  });
-}
-
-async function cloudRemove(key: string): Promise<void> {
-  localRemove(key);
-  await apiJSON(`/api/storage?key=${encodeURIComponent(key)}`, {
-    method: "DELETE",
-  });
-}
+const storedGet = async <T>(key: string): Promise<T | null> => localGet<T>(key);
+const storedSet = async <T>(key: string, value: T): Promise<void> => localSet(key, value);
+const storedRemove = async (key: string): Promise<void> => localRemove(key);
 
 // ============ Personal Details ============
 
 export const getPersonalDetails = async (): Promise<PersonalDetails | null> => {
-  return cloudGet<PersonalDetails>(STORAGE_KEYS.PERSONAL_DETAILS);
+  return storedGet<PersonalDetails>(STORAGE_KEYS.PERSONAL_DETAILS);
 };
 
 export const savePersonalDetails = async (details: PersonalDetails): Promise<void> => {
-  await cloudSet(STORAGE_KEYS.PERSONAL_DETAILS, details);
+  await storedSet(STORAGE_KEYS.PERSONAL_DETAILS, details);
 };
 
 export const hasPersonalDetails = async (): Promise<boolean> => {
@@ -120,12 +91,12 @@ export const hasPersonalDetails = async (): Promise<boolean> => {
 // ============ Resume Templates ============
 
 export const getResumeTemplates = async (): Promise<Template[]> => {
-  const data = await cloudGet<Template[]>(STORAGE_KEYS.RESUME_TEMPLATES);
+  const data = await storedGet<Template[]>(STORAGE_KEYS.RESUME_TEMPLATES);
   return data || [];
 };
 
 export const saveResumeTemplates = async (templates: Template[]): Promise<void> => {
-  await cloudSet(STORAGE_KEYS.RESUME_TEMPLATES, templates);
+  await storedSet(STORAGE_KEYS.RESUME_TEMPLATES, templates);
 };
 
 export const addResumeTemplate = async (name: string, content: string): Promise<Template> => {
@@ -170,16 +141,16 @@ export const deleteResumeTemplate = async (id: string): Promise<void> => {
   if (defaultId === id && templates.length > 0 && firstTemplate) {
     await setDefaultResumeId(firstTemplate.id);
   } else if (templates.length === 0) {
-    await cloudRemove(STORAGE_KEYS.DEFAULT_RESUME);
+    await storedRemove(STORAGE_KEYS.DEFAULT_RESUME);
   }
 };
 
 export const getDefaultResumeId = async (): Promise<string | null> => {
-  return cloudGet<string>(STORAGE_KEYS.DEFAULT_RESUME);
+  return storedGet<string>(STORAGE_KEYS.DEFAULT_RESUME);
 };
 
 export const setDefaultResumeId = async (id: string): Promise<void> => {
-  await cloudSet(STORAGE_KEYS.DEFAULT_RESUME, id);
+  await storedSet(STORAGE_KEYS.DEFAULT_RESUME, id);
 };
 
 export const getDefaultResumeTemplate = async (): Promise<Template | null> => {
@@ -195,12 +166,12 @@ export const getDefaultResumeTemplate = async (): Promise<Template | null> => {
 // ============ Cover Letter Templates ============
 
 export const getCoverLetterTemplates = async (): Promise<Template[]> => {
-  const data = await cloudGet<Template[]>(STORAGE_KEYS.COVER_LETTER_TEMPLATES);
+  const data = await storedGet<Template[]>(STORAGE_KEYS.COVER_LETTER_TEMPLATES);
   return data || [];
 };
 
 export const saveCoverLetterTemplates = async (templates: Template[]): Promise<void> => {
-  await cloudSet(STORAGE_KEYS.COVER_LETTER_TEMPLATES, templates);
+  await storedSet(STORAGE_KEYS.COVER_LETTER_TEMPLATES, templates);
 };
 
 export const addCoverLetterTemplate = async (name: string, content: string): Promise<Template> => {
@@ -245,16 +216,16 @@ export const deleteCoverLetterTemplate = async (id: string): Promise<void> => {
   if (defaultId === id && templates.length > 0 && firstTemplate) {
     await setDefaultCoverLetterId(firstTemplate.id);
   } else if (templates.length === 0) {
-    await cloudRemove(STORAGE_KEYS.DEFAULT_COVER_LETTER);
+    await storedRemove(STORAGE_KEYS.DEFAULT_COVER_LETTER);
   }
 };
 
 export const getDefaultCoverLetterId = async (): Promise<string | null> => {
-  return cloudGet<string>(STORAGE_KEYS.DEFAULT_COVER_LETTER);
+  return storedGet<string>(STORAGE_KEYS.DEFAULT_COVER_LETTER);
 };
 
 export const setDefaultCoverLetterId = async (id: string): Promise<void> => {
-  await cloudSet(STORAGE_KEYS.DEFAULT_COVER_LETTER, id);
+  await storedSet(STORAGE_KEYS.DEFAULT_COVER_LETTER, id);
 };
 
 export const getDefaultCoverLetterTemplate = async (): Promise<Template | null> => {
@@ -270,7 +241,7 @@ export const getDefaultCoverLetterTemplate = async (): Promise<Template | null> 
 // ============ Utility Functions ============
 
 export const clearAllStorage = async (): Promise<void> => {
-  await Promise.all(Object.values(STORAGE_KEYS).map((key) => cloudRemove(key)));
+  await Promise.all(Object.values(STORAGE_KEYS).map((key) => storedRemove(key)));
 };
 
 export const hasAnyTemplates = async (): Promise<boolean> => {
@@ -295,12 +266,12 @@ const PROFILE_COLORS = [
 ];
 
 export const getProfiles = async (): Promise<Profile[]> => {
-  const data = await cloudGet<Profile[]>(STORAGE_KEYS.PROFILES);
+  const data = await storedGet<Profile[]>(STORAGE_KEYS.PROFILES);
   return data || [];
 };
 
 export const saveProfiles = async (profiles: Profile[]): Promise<void> => {
-  await cloudSet(STORAGE_KEYS.PROFILES, profiles);
+  await storedSet(STORAGE_KEYS.PROFILES, profiles);
 };
 
 export const addProfile = async (
@@ -358,16 +329,16 @@ export const deleteProfile = async (id: string): Promise<void> => {
   if (activeId === id && profiles.length > 0 && firstProfile) {
     await setActiveProfileId(firstProfile.id);
   } else if (profiles.length === 0) {
-    await cloudRemove(STORAGE_KEYS.ACTIVE_PROFILE);
+    await storedRemove(STORAGE_KEYS.ACTIVE_PROFILE);
   }
 };
 
 export const getActiveProfileId = async (): Promise<string | null> => {
-  return cloudGet<string>(STORAGE_KEYS.ACTIVE_PROFILE);
+  return storedGet<string>(STORAGE_KEYS.ACTIVE_PROFILE);
 };
 
 export const setActiveProfileId = async (id: string): Promise<void> => {
-  await cloudSet(STORAGE_KEYS.ACTIVE_PROFILE, id);
+  await storedSet(STORAGE_KEYS.ACTIVE_PROFILE, id);
 };
 
 export const getActiveProfile = async (): Promise<Profile | null> => {
@@ -397,15 +368,15 @@ export const getNextProfileColor = async (): Promise<string> => {
 const MC_KEY = STORAGE_KEYS.MASTER_CONTEXT;
 
 export const getMasterContext = async (): Promise<string | null> => {
-  return cloudGet<string>(MC_KEY);
+  return storedGet<string>(MC_KEY);
 };
 
 export const saveMasterContext = async (content: string): Promise<void> => {
-  await cloudSet(MC_KEY, content);
+  await storedSet(MC_KEY, content);
 };
 
 export const deleteMasterContext = async (): Promise<void> => {
-  await cloudRemove(MC_KEY);
+  await storedRemove(MC_KEY);
 };
 
 /** Remove stale profile-scoped master context keys from localStorage. */

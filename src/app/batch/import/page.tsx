@@ -92,83 +92,13 @@ function synthesizeJobDescription(job: {
 }
 
 function buildPrompt(days: number) {
-  const hours = days * 24;
-  return `I need you to find job listings matching a specific candidate profile and return them as structured JSON.
+  return `Find job postings from the last ${days} day${days > 1 ? "s" : ""} that match my background and preferences below. Return only JSON:
+{"jobs":[{"companyName":"Company","positionTitle":"Role","companyUrl":"https://example.com/job","jobDescriptionSummary":"Detailed description of the role and requirements","includeCoverLetter":false}]}
 
-## Candidate Profile
+Use real posting URLs and comprehensive summaries. Optional fields: extractedRequirements, extractedResponsibilities and techStack (arrays of strings); companyWebsite, jobLocation, compensation and whyMatch (strings).
 
-**Education:** M.S. Information Technology, top US university (graduated May 2026, GPA: 4.0/4.0). Prior B.E. in IT.
-**Location:** US-based, open to relocate anywhere (on-site, hybrid, or remote). Authorized to work in the US.
-
-**Target Roles (any of these):**
-- AI Engineer (agents, orchestration, LLM pipelines)
-- AI Infrastructure Engineer (model serving, eval systems, production reliability)
-- Solutions Engineer with heavy AI integration
-- Software Engineer with real AI/cloud component
-- Full-Stack Engineer with meaningful AI layer
-
-**Target Company Characteristics:**
-- AI problems are genuinely hard, not marketing-driven
-- Engineers are trusted to make architectural decisions
-- Reliability is treated as a feature, not a constraint
-- Ships real products to real users
-
-**Core Skills (AI/ML):** AI agent orchestration, RAG, prompt engineering, LLM evaluation pipelines, LangChain, LangGraph, MCP protocol, vector databases, Claude Code, Cursor, OpenAI APIs, Amazon Bedrock, Gemini API, DeepSeek
-
-**Core Skills (Engineering):** TypeScript, JavaScript, React, Next.js, Node.js, Python, PostgreSQL, Docker, Kubernetes, Terraform, AWS (EC2/S3/Lambda/RDS/ECS/IAM), GCP (Cloud Run/Cloud Build/GKE), CI/CD, GitHub Actions
-
-**Projects:** AI orchestration platform, govtech accessibility SaaS, GitHub Actions LLM evaluator, nonprofit rebuild
-
-**Key Differentiators:**
-- 3x hackathon winner (600+ participant event, nonprofit hackathon, university AI+elections)
-- Built systems that measure themselves (self-improving eval pipelines)
-- Ships to production — multiple projects live with real users
-- Owns full vertical — frontend to infrastructure
-
-**Not targeting:** Roles where AI is the marketing angle and not the actual job. Leadership/management-only roles.
-
-## Output Requirement
-
-Search the web for job listings matching the above profile. Only return jobs posted within the last ${days} day${days > 1 ? "s" : ""} (${hours} hours) — filter by posting date, do not include older listings. Focus on:
-- Companies doing real AI/LLM infrastructure work
-- Companies where your engineering team owns AI product decisions
-- Companies building developer tools, cloud platforms, or AI infrastructure
-- Startups to midsize companies where individual impact is high
-- Any location (on-site, hybrid, remote in US)
-
-For EACH matching job:
-1. Find the listing page
-2. Extract all information visible on the page
-3. Return as structured fields below
-
-Return ONLY this JSON structure — nothing before or after:
-
-{
-  "jobs": [
-    {
-      "companyName": "Exact company name from listing",
-      "positionTitle": "Exact job title from listing",
-      "companyUrl": "Direct URL to this specific job posting",
-      "companyWebsite": "Company's main website URL",
-      "includeCoverLetter": false,
-      "jobDescriptionSummary": "Comprehensive summary of the full job description — cover what the role does, team context, and impact. Write this as a cohesive paragraph that reads like a real job description, not bullet points.",
-      "extractedRequirements": ["Requirement 1", "Requirement 2"],
-      "extractedResponsibilities": ["Responsibility 1", "Responsibility 2"],
-      "techStack": ["Technology 1", "Technology 2"],
-      "jobLocation": "City, State or Remote",
-      "compensation": "Salary range if listed",
-      "whyMatch": "Why this specific role and company fit Kirtan's profile — skills overlap, company stage, engineering culture, AI focus"
-    }
-  ]
-}
-
-Rules:
-- Every job MUST have companyName, positionTitle, companyUrl, and jobDescriptionSummary
-- jobDescriptionSummary must be detailed and comprehensive — don't truncate
-- extractedRequirements and extractedResponsibilities should be thorough, list every one from the listing
-- includeCoverLetter: false by default (set to true only for roles where a cover letter genuinely adds value)
-- Return 5-10 jobs if possible, aim for quality matches over quantity
-- Prioritize roles where AI/ML/cloud engineering is the actual function, not a side requirement`;
+My background and preferences:
+[Paste your master context and preferred roles here.]`;
 }
 
 export default function AIImportPage() {

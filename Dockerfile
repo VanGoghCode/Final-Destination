@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Install dependencies first (better layer caching)
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 # Copy source and build
 COPY . .
@@ -28,7 +28,6 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/data ./data
 
 USER nextjs
 

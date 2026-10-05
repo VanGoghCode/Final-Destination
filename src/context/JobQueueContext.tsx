@@ -8,9 +8,11 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import type { QueuedJob } from "@/lib/db";
+import type { QueuedJob } from "@/lib/browser-queue";
 import { isClaimable, isActiveJob } from "@/lib/queue";
-import { apiJSON, apiFetch } from "@/lib/client-api";
+import { installExtensionBridge } from "@/lib/extension-bridge";
+import { processLocalQueue } from "@/lib/process-local-queue";
+import { apiJSON } from "@/lib/client-api";
 export type { QueuedJob };
 export type JobStatus = QueuedJob["status"];
 type NewJob = Omit<QueuedJob, "id" | "status" | "progress" | "addedAt">;
@@ -68,7 +70,7 @@ const JobQueueContext = createContext<QueueContext | undefined>(undefined);
 export function JobQueueProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<State>({ jobs: [], paused: true });
   const current = useRef(state);
-  const [pollingEnabled, setPollingEnabled] = useState(false);
+  const [pollingEnabled, setPollingEnabled] = useState(true);
   const [queueError, setQueueError] = useState("");
   const [loading, setLoading] = useState(true);
   const [busyIds, setBusyIds] = useState<string[]>([]);
@@ -142,6 +144,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
               next.splice(next.indexOf(id), 1);
               return next;
             });
+            if (!blocked.current) window.dispatchEvent(new window.Event("fd-queue"));
           }
         });
       writes.current = request;
@@ -151,10 +154,11 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
   );
   useEffect(() => {
     if (!pollingEnabled) return;
+    const controller = new AbortController();
     let active = true,
       polling = false;
     const tick = async () => {
-      if (polling) return;
+      if (polling || !active) return;
       polling = true;
       const synced = await refreshQueue();
       polling = false;
@@ -168,17 +172,10 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
       )
         return;
       const jobs = current.current.jobs;
-      if (jobs.some((job) => isActiveJob(job) && !isClaimable(job))) return;
-      const job = jobs.find((job) => isClaimable(job));
-      if (!job) return;
+      if (!jobs.some((job) => isClaimable(job) || isActiveJob(job))) return;
       running.current = true;
       try {
-        const response = await apiFetch("/api/process-queue", {
-          ...json("POST", { id: job.id }),
-          signal: AbortSignal.timeout(300_000),
-        });
-        const data = await response.json();
-        if (!response.ok && !data.jobId) throw new Error(data.error || "Processing unavailable");
+        await processLocalQueue(controller.signal);
       } catch (error) {
         blocked.current = true;
         setQueueError(error instanceof Error ? error.message : "Processing unavailable");
@@ -193,13 +190,17 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
       blocked.current = false;
       void tick();
     };
-    for (const event of ["fd-ai-settings", "online"]) window.addEventListener(event, retry);
+    for (const event of ["fd-ai-settings", "online", "storage", "fd-queue"])
+      window.addEventListener(event, retry);
     return () => {
       active = false;
+      controller.abort();
       clearInterval(timer);
-      for (const event of ["fd-ai-settings", "online"]) window.removeEventListener(event, retry);
+      for (const event of ["fd-ai-settings", "online", "storage", "fd-queue"])
+        window.removeEventListener(event, retry);
     };
   }, [pollingEnabled, refreshQueue]);
+  useEffect(() => installExtensionBridge(), []);
   const addJobs = useCallback(
     async (jobs: NewJob[]) => {
       const fingerprint = JSON.stringify(jobs);

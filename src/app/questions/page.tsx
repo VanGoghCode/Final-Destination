@@ -270,25 +270,7 @@ export default function QuestionsPage() {
         </div>
 
         {/* Navigation Actions */}
-        <div className="space-y-3 border-b border-gray-100 p-4">
-          <Button
-            onClick={() => router.push("/jobs")}
-            variant="secondary"
-            className="w-full py-2 text-xs"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M20 7h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM10 4h4v3h-4V4z" />
-            </svg>
-            View Companies
-          </Button>
-        </div>
+        <div className="space-y-3 border-b border-gray-100 p-4"></div>
 
         {/* Sidebar Content */}
         <div className="flex-1 space-y-5 overflow-y-auto p-4">

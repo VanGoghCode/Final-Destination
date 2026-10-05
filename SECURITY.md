@@ -30,8 +30,7 @@ Include in your report:
 
 - `src/app/api/` — all API route handlers
 - `src/lib/ai-providers/` — AI provider integrations
-- `src/lib/auth.ts` — credential handling
-- `src/lib/db.ts` — Redis interactions
+- `src/lib/api-key.ts` — AI credential handling
 - `src/lib/sanitize.ts` — input sanitation
 - `extension/` — browser extension
 
@@ -43,8 +42,7 @@ Include in your report:
 
 ## Security Best Practices for Deployers
 
-- Never commit `.env.local` or service account JSON files
+- Never commit `.env.local` or AI keys
 - Rotate API keys every 90 days
-- Deploy behind a VPN or use IP allowlists for admin routes
 - Keep dependencies updated (`npm audit`)
 - Use environment variable injection at runtime (Docker, Vercel)

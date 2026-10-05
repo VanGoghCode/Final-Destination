@@ -33,6 +33,23 @@ describe("browser AI requests", () => {
   it("throws on HTTP errors instead of silently accepting them", async () => {
     globalThis.fetch = (async () =>
       Response.json({ error: "Unauthorized" }, { status: 401 })) as unknown as typeof fetch;
-    await expect(apiJSON("/api/admin/users")).rejects.toThrow("Unauthorized");
+    await expect(apiJSON("/api/tailor")).rejects.toThrow("Unauthorized");
+  });
+  it("never forwards the saved AI key to another origin", async () => {
+    const browser = new Window({ url: "https://example.test" });
+    Object.assign(globalThis, {
+      window: browser,
+      document: browser.document,
+      localStorage: browser.localStorage,
+    });
+    localStorage.setItem("fd_ai_provider", "openai");
+    localStorage.setItem("fd_openai_api_key", "fixture");
+    let sent!: Headers;
+    globalThis.fetch = (async (_: unknown, init?: RequestInit) => {
+      sent = new Headers(init?.headers);
+      return Response.json({});
+    }) as typeof fetch;
+    await apiFetch("https://another.test/api/tailor");
+    expect(sent.get("x-openai-api-key")).toBeNull();
   });
 });

@@ -4,7 +4,7 @@ import { act, createElement, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { AppProvider, useAppContext } from "@/context/AppContext";
 import { useJobContext } from "./use-job-context";
-import { job } from "./__tests__/redis";
+import { job } from "./__tests__/job";
 
 const keys = [
   "window",
@@ -35,15 +35,20 @@ describe("questions job context", () => {
       });
       let state: ReturnType<typeof useAppContext>,
         error = "";
-      globalThis.fetch = (async (url: string) =>
-        Response.json(
-          url.includes("/api/queue")
-            ? [
-                job("other", { tailoredResume: "wrong" }),
-                job("selected", { tailoredResume: "right", companyName: "Selected" }),
-              ]
-            : { data: "master experience" },
-        )) as typeof fetch;
+      localStorage.setItem(
+        "fd_queue_state",
+        JSON.stringify({
+          jobs: [
+            job("other", { tailoredResume: "wrong" }),
+            job("selected", { tailoredResume: "right", companyName: "Selected" }),
+          ],
+          paused: true,
+        }),
+      );
+      localStorage.setItem("fd_master_context", JSON.stringify("master experience"));
+      globalThis.fetch = (async () => {
+        throw new Error("Storage should stay local");
+      }) as unknown as typeof fetch;
       const onError = (message: string) => {
         error = message;
       };

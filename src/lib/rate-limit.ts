@@ -1,14 +1,12 @@
-import { getRedis } from "./db";
-
 // Rate limiting utility for API routes
-// Uses Redis if available, falls back to in-memory storage
+// Temporary controls are local to this server process.
 
 interface RateLimitEntry {
   count: number;
   resetTime: number;
 }
 
-// In-memory store for rate limiting (fallback when Redis unavailable)
+// Temporary in-memory throttling.
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
 // Clean up old entries periodically
@@ -82,31 +80,12 @@ export function checkRateLimit(identifier: string, config: RateLimitConfig): Rat
   };
 }
 
-/**
- * Check rate limit using Redis if available, otherwise fall back to in-memory.
- * Redis-backed rate limiting survives server restarts and works across instances.
- */
+// Temporary process-local throttling; no persistent server state or external store.
 export async function checkRateLimitAsync(
   identifier: string,
   config: RateLimitConfig,
 ): Promise<RateLimitResult> {
-  if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN)
-    return checkRateLimit(identifier, config);
-  const now = Date.now(),
-    resetTime = (Math.floor(now / config.windowMs) + 1) * config.windowMs;
-  const key = `rl:${identifier}:${resetTime}`;
-  const count = await getRedis().eval<[number], number>(
-    "local n = redis.call('INCR', KEYS[1]); if n == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]) end; return n",
-    [key],
-    [resetTime - now],
-  );
-  const success = count <= config.maxRequests;
-  return {
-    success,
-    remaining: Math.max(0, config.maxRequests - count),
-    resetTime,
-    retryAfter: success ? undefined : Math.ceil((resetTime - now) / 1000),
-  };
+  return checkRateLimit(identifier, config);
 }
 
 // Preset configurations for different API endpoints

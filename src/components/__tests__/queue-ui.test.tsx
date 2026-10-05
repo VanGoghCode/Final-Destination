@@ -5,7 +5,7 @@ import { createRoot, type Root } from "react-dom/client";
 import JobQueueCard from "../JobQueueCard";
 import JobForm from "../JobForm";
 import QueueProgress from "../QueueProgress";
-import { job } from "@/lib/__tests__/redis";
+import { job } from "@/lib/__tests__/job";
 const names = [
   "window",
   "document",

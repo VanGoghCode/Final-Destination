@@ -2,7 +2,7 @@
 
 import { apiFetch, apiJSON } from "@/lib/client-api";
 
-import { useState, useRef, useEffect, use, useCallback } from "react";
+import { useState, useEffect, use, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LaTeXEditor from "@/components/LaTeXEditor";
 import Sidebar from "@/components/Sidebar";
@@ -60,20 +60,6 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
     "context",
   );
 
-  // Sheet logging state
-  const [showLogModal, setShowLogModal] = useState(false);
-  const [applicationLink, setApplicationLink] = useState("");
-  const [notes, setNotes] = useState("");
-  const [other, setOther] = useState("");
-  const [isLogging, setIsLogging] = useState(false);
-  const [logSuccess, setLogSuccess] = useState<false | "ok" | "duplicate">(false);
-  const [logError, setLogError] = useState("");
-  const [country, setCountry] = useState("");
-  const [workMode, setWorkMode] = useState<"" | "Remote" | "Hybrid" | "On-site">("");
-  const [editableCompanyName, setEditableCompanyName] = useState("");
-  const [editablePositionTitle, setEditablePositionTitle] = useState("");
-  const applicationLinkRef = useRef<HTMLInputElement>(null);
-
   // Collapsible sections state
   const [showFilenames, setShowFilenames] = useState(false);
 
@@ -89,10 +75,6 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
           setJobData(data);
           setTailoredResume(data.tailoredResume || "");
           setTailoredCoverLetter(data.tailoredCoverLetter || "");
-          setCountry(data.jobCountry || "");
-          setWorkMode(data.jobWorkMode || "");
-          setEditableCompanyName(data.companyName);
-          setEditablePositionTitle(data.positionTitle);
         })
         .catch((error) => {
           if (active)
@@ -103,21 +85,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
     };
   }, [jobId]);
 
-  // Focus on application link field after modal opens
-  useEffect(() => {
-    if (showLogModal) {
-      // Auto-fill from the job's URL if not already set
-      if (!applicationLink && jobData?.companyUrl) {
-        setApplicationLink(jobData.companyUrl);
-      }
-      setTimeout(() => {
-        applicationLinkRef.current?.focus();
-      }, 100);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showLogModal]);
-
-  // Beforeunload listener - remind user to log job before closing
+  // Protect unsaved result edits on navigation
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       // Show warning before closing if job Data exists
@@ -200,76 +168,13 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
     }
   };
 
-  const handleLogToSheet = async (shouldDelete = false) => {
-    setLogError("");
-    setIsLogging(true);
-    if (!applicationLink.trim()) {
-      setLogError("Application link is required — paste the URL where you applied");
-      setIsLogging(false);
-      return;
-    }
-
-    const noteParts: string[] = [];
-    if (country) noteParts.push(`Country: ${country}`);
-    if (workMode) noteParts.push(`Work Mode: ${workMode}`);
-    if (notes.trim()) noteParts.push(notes.trim());
-    const composedNotes = noteParts.join(" | ");
-
-    try {
-      const response = await apiFetch("/api/sheets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          companyName: editableCompanyName || companyName,
-          positionTitle: editablePositionTitle || positionTitle,
-          applicationLink: applicationLink.trim(),
-          notes: composedNotes,
-          other: other.trim() || "",
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to log application");
-
-      setLogSuccess(data.data?.status === "duplicate" ? "duplicate" : "ok");
-
-      if (shouldDelete) {
-        // Delete from batch after logging
-        try {
-          await apiJSON(`/api/queue?id=${encodeURIComponent(jobId || "")}`, { method: "DELETE" });
-          sessionStorage.removeItem(`batch_job_${jobId}`);
-        } catch {
-          // Log succeeded — non-critical if delete fails, job stays in queue
-          console.warn("Logged to sheet but failed to delete from queue");
-        }
-        setTimeout(() => {
-          setIsLogging(false);
-          setShowLogModal(false);
-          router.push("/batch");
-        }, 1500);
-      } else {
-        setTimeout(() => {
-          setShowLogModal(false);
-          setLogSuccess(false);
-          setApplicationLink("");
-          setNotes("");
-          setOther("");
-        }, 2000);
-      }
-    } catch (err) {
-      setLogError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setIsLogging(false);
-    }
-  };
-
   const regenerate = async (type: "resume" | "coverLetter", comment: string) => {
     if (!jobId) return;
     const setBusy = type === "resume" ? setIsRegeneratingResume : setIsRegeneratingCoverLetter;
     setBusy(true);
     setResultError("");
     try {
-      const content = await regenerateQueueResult(
+      const { content, completedAt } = await regenerateQueueResult(
         jobId,
         {
           type,
@@ -285,7 +190,11 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
       (type === "resume" ? setTailoredResume : setTailoredCoverLetter)(content);
       setJobData((job) =>
         job
-          ? { ...job, [type === "resume" ? "tailoredResume" : "tailoredCoverLetter"]: content }
+          ? {
+              ...job,
+              completedAt,
+              [type === "resume" ? "tailoredResume" : "tailoredCoverLetter"]: content,
+            }
           : job,
       );
     } catch (error) {
@@ -302,9 +211,15 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
     setResultError("");
     setResultsSaved(false);
     try {
-      await saveQueueResult(jobId, { tailoredResume, tailoredCoverLetter }, jobData?.completedAt);
+      const { job: saved } = await saveQueueResult(
+        jobId,
+        { tailoredResume, tailoredCoverLetter },
+        jobData?.completedAt,
+      );
       setResultsSaved(true);
-      setJobData((job) => (job ? { ...job, tailoredResume, tailoredCoverLetter } : job));
+      setJobData((job) =>
+        job ? { ...job, completedAt: saved.completedAt, tailoredResume, tailoredCoverLetter } : job,
+      );
     } catch (error) {
       setResultError(error instanceof Error ? error.message : "Could not save results");
     } finally {
@@ -462,25 +377,6 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
             </svg>
             Questions
           </Button>
-          <Button
-            onClick={() => setShowLogModal(true)}
-            variant="secondary"
-            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center p-0"
-            title="Log to Sheet"
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <line x1="3" y1="9" x2="21" y2="9" />
-              <line x1="9" y1="3" x2="9" y2="21" />
-            </svg>
-          </Button>
         </div>
 
         {/* Sidebar Content */}
@@ -523,7 +419,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
             </div>
           )}
 
-          {/* Delete from Batch - Solid Red UI */}
+          {/* Remove from queue - Solid Red UI */}
           {jobId && (
             <div className="cursor-default border-t border-gray-100">
               <Button
@@ -544,7 +440,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                   />
                 </svg>
-                {isDeletingFromBatch ? "Deleting..." : "Delete from Batch"}
+                {isDeletingFromBatch ? "Deleting..." : "Remove from queue"}
               </Button>
             </div>
           )}
@@ -749,140 +645,6 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
         />
       </main>
 
-      {/* Log to Sheet Modal */}
-      {showLogModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowLogModal(false);
-          }}
-        >
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
-            <div className="border-b border-gray-100 p-6">
-              <h2 className="text-lg font-semibold">Log Application</h2>
-              <p className="text-muted mt-1 text-sm">Record this application to your spreadsheet</p>
-            </div>
-
-            <div className="space-y-4 p-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-muted mb-1 block text-xs font-medium">Company</label>
-                  <input
-                    type="text"
-                    value={editableCompanyName}
-                    onChange={(e) => setEditableCompanyName(e.target.value)}
-                    className="border-card-border w-full rounded-lg border px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-muted mb-1 block text-xs font-medium">Position</label>
-                  <input
-                    type="text"
-                    value={editablePositionTitle}
-                    onChange={(e) => setEditablePositionTitle(e.target.value)}
-                    className="border-card-border w-full rounded-lg border px-3 py-2 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-muted mb-1 block text-xs font-medium">
-                  Application Link
-                </label>
-                <input
-                  ref={applicationLinkRef}
-                  type="url"
-                  value={applicationLink}
-                  onChange={(e) => setApplicationLink(e.target.value)}
-                  placeholder="https://..."
-                  className="border-card-border w-full rounded-lg border px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-muted mb-1 block text-xs font-medium">Country</label>
-                  <input
-                    type="text"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    placeholder="e.g. USA"
-                    className="border-card-border w-full rounded-lg border px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-muted mb-1 block text-xs font-medium">Work Mode</label>
-                  <select
-                    value={workMode}
-                    onChange={(e) =>
-                      setWorkMode(e.target.value as "" | "Remote" | "Hybrid" | "On-site")
-                    }
-                    className="border-card-border w-full rounded-lg border px-3 py-2 text-sm"
-                  >
-                    <option value="">Select...</option>
-                    <option value="Remote">Remote</option>
-                    <option value="Hybrid">Hybrid</option>
-                    <option value="On-site">On-site</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-muted mb-1 block text-xs font-medium">Notes</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any notes..."
-                  className="border-card-border w-full resize-none rounded-lg border px-3 py-2 text-sm"
-                  rows={2}
-                />
-              </div>
-
-              {logError && <p className="text-xs text-red-500">{logError}</p>}
-
-              <div className="flex gap-3 pt-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setShowLogModal(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => handleLogToSheet()}
-                  disabled={isLogging}
-                  variant="primary"
-                  className="flex-1"
-                >
-                  {isLogging && !logSuccess
-                    ? "Logging..."
-                    : logSuccess === "duplicate"
-                      ? "Already Logged"
-                      : logSuccess
-                        ? "✓ Logged!"
-                        : "Log Only"}
-                </Button>
-                {jobId && (
-                  <Button
-                    onClick={() => handleLogToSheet(true)}
-                    disabled={isLogging}
-                    className="flex-1 !border-red-600 !bg-red-600 !text-white hover:!border-red-700 hover:!bg-red-700"
-                  >
-                    {isLogging && !logSuccess
-                      ? "Processing..."
-                      : logSuccess === "duplicate"
-                        ? "Already Logged"
-                        : logSuccess
-                          ? "✓ Success!"
-                          : "Log & Delete"}
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       {/* Cover Letter Preview Modal */}
       {showCoverLetterPreview && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 sm:p-8">

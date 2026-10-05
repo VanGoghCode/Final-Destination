@@ -111,7 +111,7 @@ export default function JobForm({
                   : "text-muted bg-gray-100 hover:bg-gray-200"
               }`}
             >
-              Default
+              Default templates
             </button>
             {profiles.map((profile) => (
               <button

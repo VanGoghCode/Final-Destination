@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useAppContext } from "@/context/AppContext";
 import { apiJSON } from "./client-api";
 import { getMasterContext } from "./storage";
-import type { QueuedJob } from "./db";
+import type { QueuedJob } from "./browser-queue";
 
 export function useJobContext(onError: (message: string) => void) {
   const { loadJob } = useAppContext();
