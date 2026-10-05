@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, memo } from "react";
+import { memo } from "react";
 import Button from "./Button";
 
 interface PDFPreviewProps {
@@ -22,38 +22,6 @@ function PDFPreviewInner({
   onRetry,
   onDoubleClick,
 }: PDFPreviewProps) {
-  const [isVisible, setIsVisible] = useState(false);
-
-  // Delay rendering to improve initial load performance
-  useEffect(() => {
-    const timer = requestIdleCallback(() => {
-      setIsVisible(true);
-    });
-    return () => cancelIdleCallback(timer);
-  }, []);
-
-  if (!isVisible && !pdfBase64 && !compileError && !isCompiling) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
-        <div className="animate-pulse">
-          <svg
-            width="48"
-            height="48"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            className="text-muted mb-4"
-          >
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-          </svg>
-        </div>
-        <p className="text-muted text-sm">Loading preview...</p>
-      </div>
-    );
-  }
-
   if (compileError) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
@@ -136,11 +104,3 @@ function PDFPreviewInner({
 
 // Memoize to prevent unnecessary re-renders
 export const PDFPreview = memo(PDFPreviewInner);
-
-// requestIdleCallback polyfill for Safari
-if (typeof window !== "undefined" && !("requestIdleCallback" in window)) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).requestIdleCallback = (cb: () => void) => setTimeout(cb, 1);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).cancelIdleCallback = (id: number) => clearTimeout(id);
-}

@@ -1,25 +1,51 @@
 import { describe, it, expect } from "bun:test";
-import { buildResumePrompt, buildCoverLetterPrompt, buildExtractionPrompt } from "./prompts/index";
+import {
+  buildResumePrompt,
+  buildResumeRegenerationPrompt,
+  buildCoverLetterPrompt,
+  buildExtractionPrompt,
+} from "./prompts/index";
 
 describe("Prompts", () => {
-  it("buildResumePrompt should include resume latex and character budget", () => {
+  it("keeps resume instructions short, minimal and grounded in both original sources", () => {
     const pair = buildResumePrompt({
       masterContext: "Experienced dev",
       resumeLatex: "\\documentclass{article}",
       jobDescription: "Job Desc",
       personalDetails: "John Doe",
-      contentCharBudget: { floor: 425, target: 500, limit: 575 },
     });
 
     expect(pair.user).toContain("\\documentclass{article}");
     expect(pair.user).toContain("ORIGINAL RESUME");
-    expect(pair.user).toContain("CHARACTER BUDGET");
-    expect(pair.user).toContain("Floor:");
-    expect(pair.user).toContain("Hard cap:");
-    expect(pair.user).toContain("425");
-    expect(pair.user).toContain("500");
-    expect(pair.user).toContain("575");
-    expect(pair.system).toContain("resume writer");
+    expect(pair.system.split(/\s+/).length).toBeLessThan(130);
+    expect(pair.system).toContain("minimal");
+    expect(pair.system).toContain("ONLY the original resume and master context");
+    expect(pair.system).toContain("Never invent");
+    expect(pair.system).toContain("unchanged");
+    expect(pair.user).not.toContain("Floor:");
+    expect(pair.user).not.toContain("INSTRUCTIONS:");
+  });
+
+  it("regeneration uses the same short rules and does not trust previous generated claims", () => {
+    const pair = buildResumeRegenerationPrompt({
+      masterContext: "facts",
+      originalLatex: "original",
+      currentContent: "draft",
+      userComment: "feedback",
+      personalDetails: "preferences",
+      jobDescription: "JD",
+    });
+    expect(pair.system).toBe(
+      buildResumePrompt({
+        masterContext: "",
+        resumeLatex: "",
+        jobDescription: "",
+        personalDetails: "",
+      }).system,
+    );
+    expect(pair.user).toContain("draft");
+    expect(pair.user).toContain("feedback");
+    expect(pair.user).toContain("not a factual source");
   });
 
   it("buildResumePrompt should omit budget block when not provided", () => {

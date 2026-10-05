@@ -47,11 +47,9 @@ export interface PromptPair {
 }
 
 /** Resume tailoring: system persona + resume rules, user data */
-export function buildResumePrompt(
-  data: ResumeTailoringData & { contentCharBudget?: { target: number; limit: number } },
-): PromptPair {
+export function buildResumePrompt(data: ResumeTailoringData): PromptPair {
   return {
-    system: [SYSTEM_BASE_PERSONA, SYSTEM_RESUME_RULES].join("\n\n"),
+    system: SYSTEM_RESUME_RULES,
     user: buildResumeUserPrompt(data),
   };
 }
@@ -99,7 +97,7 @@ export function buildExtractionPrompt(data: LocationExtractionData): PromptPair 
 /** Resume regeneration: system persona + resume rules, user data with feedback */
 export function buildResumeRegenerationPrompt(data: RegenerationData): PromptPair {
   return {
-    system: [SYSTEM_BASE_PERSONA, SYSTEM_RESUME_RULES].join("\n\n"),
+    system: SYSTEM_RESUME_RULES,
     user: buildResumeRegenerationUserPrompt(data),
   };
 }

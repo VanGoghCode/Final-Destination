@@ -1,6 +1,7 @@
 "use client";
 
 import { apiFetch } from "@/lib/client-api";
+import { extractApiError } from "@/lib/api-error";
 
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import CopyButton from "./CopyButton";
@@ -59,6 +60,12 @@ export default function LaTeXEditor({
   const backdropRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const pdfContainerRef = useRef<HTMLDivElement>(null);
+  const compileRequestRef = useRef<AbortController | null>(null);
+  const pdfUrlRef = useRef<string | null>(null);
+  const compiledSourceRef = useRef<string | null>(null);
+  const editedSourceRef = useRef<string | null>(null);
+  const onCodeChangeRef = useRef(onCodeChange);
+  onCodeChangeRef.current = onCodeChange;
 
   // Sync with external code changes
   useEffect(() => {
@@ -68,62 +75,85 @@ export default function LaTeXEditor({
   }, [code, isEditing]);
 
   // Compile LaTeX to PDF
-  const compileLatex = useCallback(
-    async (latexCode: string) => {
-      if (!latexCode.trim()) {
-        setPdfUrl(null);
-        setPdfBase64(null);
-        return;
-      }
-
-      setIsCompiling(true);
+  const compileLatex = useCallback(async (latexCode: string) => {
+    compileRequestRef.current?.abort();
+    const controller = new AbortController();
+    compileRequestRef.current = controller;
+    if (!latexCode.trim()) {
+      if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
+      pdfUrlRef.current = null;
+      setPdfUrl(null);
+      setPdfBase64(null);
+      setIsCompiling(false);
       setCompileError(null);
+      return;
+    }
 
-      try {
-        const response = await apiFetch("/api/latex-preview", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ latex: latexCode }),
-        });
+    setIsCompiling(true);
+    setCompileError(null);
+    if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
+    pdfUrlRef.current = null;
+    setPdfUrl(null);
+    setPdfBase64(null);
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || "Compilation failed");
-        }
-
-        // Store base64 for Edge compatibility (data URL approach)
-        setPdfBase64(data.pdf);
-
-        // Create blob URL from base64 PDF (for Chrome/Firefox)
-        const binaryString = atob(data.pdf);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], { type: "application/pdf" });
-        const url = URL.createObjectURL(blob);
-
-        // Revoke old URL to prevent memory leak
-        if (pdfUrl) {
-          URL.revokeObjectURL(pdfUrl);
-        }
-
-        setPdfUrl(url);
-      } catch (err) {
-        setCompileError(err instanceof Error ? err.message : "Compilation failed");
-        setPdfUrl(null);
-        setPdfBase64(null);
-      } finally {
-        setIsCompiling(false);
+    try {
+      const response = await apiFetch("/api/latex-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ latex: latexCode }),
+        signal: controller.signal,
+      });
+      if (!response.ok)
+        throw new Error(await extractApiError(response, "Preview unavailable. Retry compilation."));
+      const data = await response.json();
+      if (controller.signal.aborted) return;
+      if (typeof data.pdf !== "string" || !atob(data.pdf).startsWith("%PDF-"))
+        throw new Error("The compiler returned an invalid PDF. Retry compilation.");
+      const compiledSource: string = typeof data.latex === "string" ? data.latex : latexCode;
+      compiledSourceRef.current = compiledSource;
+      if (compiledSource !== latexCode) {
+        setEditableCode(compiledSource);
+        onCodeChangeRef.current?.(compiledSource);
       }
-    },
-    [pdfUrl],
-  );
+
+      // Store base64 for Edge compatibility (data URL approach)
+      setPdfBase64(data.pdf);
+
+      // Create blob URL from base64 PDF (for Chrome/Firefox)
+      const binaryString = atob(data.pdf);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+
+      // Revoke old URL to prevent memory leak
+      if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
+      pdfUrlRef.current = url;
+      setPdfUrl(url);
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      setCompileError(err instanceof Error ? err.message : "Compilation failed");
+      if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
+      pdfUrlRef.current = null;
+      setPdfUrl(null);
+      setPdfBase64(null);
+    } finally {
+      if (compileRequestRef.current === controller) setIsCompiling(false);
+    }
+  }, []);
 
   // Debounced compilation on code change (only when auto-compile is enabled)
   const handleCodeChange = useCallback(
     (newCode: string) => {
+      editedSourceRef.current = newCode;
+      compileRequestRef.current?.abort();
+      setIsCompiling(false);
+      if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
+      pdfUrlRef.current = null;
+      setPdfUrl(null);
+      setPdfBase64(null);
       setEditableCode(newCode);
       setIsEditing(true);
       onCodeChange?.(newCode);
@@ -266,8 +296,7 @@ export default function LaTeXEditor({
     const after = editableCode.substring(matchPosition + searchQuery.length);
     const newCode = before + replaceQuery + after;
 
-    setEditableCode(newCode);
-    onCodeChange?.(newCode);
+    handleCodeChange(newCode);
 
     // Recalculate matches after replacement
     setTimeout(() => {
@@ -279,7 +308,7 @@ export default function LaTeXEditor({
     searchQuery,
     replaceQuery,
     editableCode,
-    onCodeChange,
+    handleCodeChange,
     findMatches,
   ]);
 
@@ -291,11 +320,10 @@ export default function LaTeXEditor({
     const regex = new RegExp(searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
     const newCode = editableCode.replace(regex, replaceQuery);
 
-    setEditableCode(newCode);
-    onCodeChange?.(newCode);
+    handleCodeChange(newCode);
     setSearchMatches([]);
     setCurrentMatchIndex(0);
-  }, [searchMatches, searchQuery, replaceQuery, editableCode, onCodeChange]);
+  }, [searchMatches, searchQuery, replaceQuery, editableCode, handleCodeChange]);
 
   // Search from PDF selection - tries to find text from clipboard
   const searchFromClipboard = async () => {
@@ -325,23 +353,27 @@ export default function LaTeXEditor({
 
   // Initial compile when component mounts or code changes significantly
   useEffect(() => {
-    if (showPreview && code && !pdfUrl && !isCompiling) {
+    if (
+      showPreview &&
+      !isEditing &&
+      code !== compiledSourceRef.current &&
+      (autoCompile || code !== editedSourceRef.current)
+    ) {
       compileLatex(code);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showPreview, code]);
+  }, [showPreview, code, isEditing, autoCompile, compileLatex]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      compileRequestRef.current?.abort();
       if (compileTimeoutRef.current) {
         clearTimeout(compileTimeoutRef.current);
       }
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
+      if (pdfUrlRef.current) {
+        URL.revokeObjectURL(pdfUrlRef.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRegenerate = async () => {
