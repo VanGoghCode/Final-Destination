@@ -18,9 +18,13 @@ describe("System Prompts", () => {
   });
 
   it("SYSTEM_RESUME_RULES should include critical instructions", () => {
-    expect(SYSTEM_RESUME_RULES).toContain("minimal edits");
-    expect(SYSTEM_RESUME_RULES).toContain("Never invent");
-    expect(SYSTEM_RESUME_RULES).toContain("Preserve identity");
+    expect(SYSTEM_RESUME_RULES).toContain(
+      "Rank the role's requirements and map them to candidate evidence",
+    );
+    expect(SYSTEM_RESUME_RULES).toContain(
+      "Preserve identity, links, entries, chronology, bullet counts",
+    );
+    expect(SYSTEM_RESUME_RULES).toContain("Never invent or exaggerate");
   });
 
   it("SYSTEM_RESUME_RULES should forbid markdown bold syntax", () => {
