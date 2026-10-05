@@ -69,20 +69,15 @@ const jobs = (count: number) =>
     applicationUrl: `https://example.com/apply/${index}`,
   }));
 
-it("does not silently choose a profile and exposes labeled bot controls", async () => {
-  expect(container.querySelector<HTMLSelectElement>("#batch-profile")?.value).toBe("");
+it("uses the personal template automatically and exposes labeled bot controls", async () => {
+  expect(container.querySelector("select")).toBeNull();
   expect(container.querySelector('label[for="jobs-json"]')?.textContent).toBe("Jobs JSON");
   await paste(jobs(1));
-  expect(container.querySelector('[role="alert"]')?.textContent).toContain(
-    "select an existing profile",
-  );
-  expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(true);
+  expect(container.querySelector('[role="alert"]')).toBeNull();
+  expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(false);
 });
 it("adds 15 jobs once with chosen profiles, full JDs and working application links", async () => {
   await paste(jobs(15));
-  await act(async () =>
-    fireEvent.change(container.querySelector("#batch-profile")!, { target: { value: "profile" } }),
-  );
   expect(container.querySelectorAll('a[target="_blank"]')).toHaveLength(15);
   expect(container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled).toBe(false);
   await act(async () => {
@@ -95,7 +90,7 @@ it("adds 15 jobs once with chosen profiles, full JDs and working application lin
   expect(
     saved.every(
       (job) =>
-        job.profileId === "profile" && job.companyUrl.includes("/apply/") && job.jobDescription,
+        job.profileId === "kirtan" && job.companyUrl.includes("/apply/") && job.jobDescription,
     ),
   ).toBe(true);
   expect(navigated).toBe("/batch");
@@ -105,17 +100,8 @@ it("rejects 16 jobs and exposes the batch limit", async () => {
   expect(container.querySelector('[role="alert"]')?.textContent).toContain("1–15");
   expect(await getQueue()).toEqual([]);
 });
-it("allows changing a named per-job profile before submitting", async () => {
+it("legacy profile input does not expose a selector", async () => {
   await paste([{ ...jobs(1)[0], profileName: "Engineer" }]);
-  await act(async () =>
-    fireEvent.change(container.querySelector('[aria-label="Profile for job 1"]')!, {
-      target: { value: "cloud" },
-    }),
-  );
+  expect(container.querySelector("select")).toBeNull();
   expect(container.querySelector('[role="alert"]')).toBeNull();
-  await act(async () => {
-    fireEvent.submit(container.querySelector("form")!);
-    await new Promise((resolve) => setTimeout(resolve, 20));
-  });
-  expect((await getQueue())[0]?.profileId).toBe("cloud");
 });

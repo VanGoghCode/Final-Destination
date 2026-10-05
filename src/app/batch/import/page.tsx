@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/Button";
 import ModelSelector from "@/components/ModelSelector";
-import { getProfiles, type Profile } from "@/lib/storage";
 import {
   gatewayInstructions,
   MAX_IMPORT_JOBS,
@@ -14,49 +13,26 @@ import {
 
 export default function AutomationGateway() {
   const router = useRouter();
-  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [json, setJson] = useState("");
-  const [profileId, setProfileId] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("https://final-destination-rose.vercel.app");
   const busy = useRef(false);
 
   useEffect(() => {
-    let mounted = true;
     setOrigin(window.location.origin);
-    const load = async () => {
-      try {
-        const profiles = await getProfiles();
-        if (mounted) setProfiles(profiles);
-      } catch (error) {
-        if (mounted)
-          setError(error instanceof Error ? error.message : "Profiles could not be loaded.");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    void load();
-    window.addEventListener("storage", load);
-    window.addEventListener("focus", load);
-    return () => {
-      mounted = false;
-      window.removeEventListener("storage", load);
-      window.removeEventListener("focus", load);
-    };
   }, []);
 
   const preview = useMemo(() => {
     if (!json.trim()) return { jobs: [], error: "" };
     try {
-      return { jobs: parseJobBatch(json, profiles, profileId), error: "" };
+      return { jobs: parseJobBatch(json), error: "" };
     } catch (error) {
       return { jobs: [], error: error instanceof Error ? error.message : "Invalid jobs JSON." };
     }
-  }, [json, profiles, profileId]);
-  const instructions = gatewayInstructions(profiles, origin);
+  }, [json]);
+  const instructions = gatewayInstructions([], origin);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -65,7 +41,7 @@ export default function AutomationGateway() {
     setAdding(true);
     setError("");
     try {
-      await submitJobBatch(json, profileId);
+      await submitJobBatch(json);
       router.push("/batch");
     } catch (error) {
       setError(error instanceof Error ? error.message : "Jobs were not saved. Retry the import.");
@@ -92,11 +68,11 @@ export default function AutomationGateway() {
         </div>
         <p>
           For Muse AI, ChatGPT and other browser assistants. Add 1–{MAX_IMPORT_JOBS} jobs with a
-          full JD, an application link and an explicitly chosen profile.
+          full JD and an application link. Your template and master context are used automatically.
         </p>
         <p className="text-sm text-gray-600">
-          Jobs stay in this browser. Use the same browser as your templates, and keep the website
-          open while the queue runs. Adding new jobs starts the queue automatically.
+          Your queue is shared across browsers. Keep a website tab open while the queue runs. Adding
+          new jobs starts processing automatically.
         </p>
       </header>
       <details className="rounded-xl border p-4">
@@ -118,36 +94,6 @@ export default function AutomationGateway() {
       </details>
       <form onSubmit={submit} className="space-y-4 rounded-xl border p-5">
         <div className="space-y-1">
-          <label htmlFor="batch-profile" className="block font-medium">
-            Batch profile
-          </label>
-          <select
-            id="batch-profile"
-            value={profileId}
-            disabled={loading || adding}
-            onChange={(event) => {
-              setProfileId(event.target.value);
-              setError("");
-            }}
-            className="w-full rounded-lg border p-2"
-          >
-            <option value="">Select a profile, or specify one in every job</option>
-            {profiles.map((profile) => (
-              <option key={profile.id} value={profile.id}>
-                {profile.name}
-              </option>
-            ))}
-          </select>
-          <p className="text-sm text-gray-600">
-            Per-job profileId or profileName takes priority. No profile is chosen automatically.
-          </p>
-          {!loading && !profiles.length && (
-            <p role="alert">
-              Create a profile in Templates &amp; background before importing jobs.
-            </p>
-          )}
-        </div>
-        <div className="space-y-1">
           <label htmlFor="jobs-json" className="block font-medium">
             Jobs JSON
           </label>
@@ -165,7 +111,7 @@ export default function AutomationGateway() {
               setError("");
             }}
             placeholder={
-              '{"jobs":[{"companyName":"Company","positionTitle":"Role","jobDescription":"Full job posting text","applicationUrl":"https://example.com/apply/role","profileName":"Your profile"}]}'
+              '{"jobs":[{"companyName":"Company","positionTitle":"Role","jobDescription":"Full job posting text","applicationUrl":"https://example.com/apply/role"}]}'
             }
             className="w-full rounded-lg border p-3 font-mono text-sm"
           />
@@ -188,28 +134,6 @@ export default function AutomationGateway() {
                   <h3 className="font-medium">
                     {index + 1}. {job.companyName} — {job.positionTitle}
                   </h3>
-                  <select
-                    aria-label={`Profile for job ${index + 1}`}
-                    value={job.profileId}
-                    disabled={adding}
-                    onChange={(event) => {
-                      const jobs = preview.jobs.map(({ companyUrl, ...job }, i) => ({
-                        ...job,
-                        applicationUrl: companyUrl,
-                        profileId: i === index ? event.target.value : job.profileId,
-                        profileName: undefined,
-                      }));
-                      setJson(JSON.stringify({ jobs }, null, 2));
-                      setError("");
-                    }}
-                    className="rounded-lg border p-1.5 text-sm"
-                  >
-                    {profiles.map((profile) => (
-                      <option key={profile.id} value={profile.id}>
-                        {profile.name}
-                      </option>
-                    ))}
-                  </select>
                 </div>
                 <a
                   href={job.companyUrl}
@@ -230,11 +154,7 @@ export default function AutomationGateway() {
             ))}
           </section>
         )}
-        <Button
-          type="submit"
-          disabled={adding || loading || !preview.jobs.length}
-          variant="primary"
-        >
+        <Button type="submit" disabled={adding || !preview.jobs.length} variant="primary">
           {adding ? "Saving jobs…" : "Add jobs to queue"}
         </Button>
       </form>

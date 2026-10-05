@@ -22,6 +22,22 @@ const send = async (
   await new Promise((resolve) => setTimeout(resolve, 5));
 };
 describe("website extension handoff", () => {
+  it("forwards extension additions to the shared server, not browser storage", async () => {
+    let sent = "";
+    globalThis.fetch = (async (url: string) => {
+      sent = url;
+      return Response.json({ success: true });
+    }) as typeof fetch;
+    await send({
+      type: "fd-extension-request",
+      id: "remote",
+      path: "/api/queue",
+      method: "POST",
+      body: job(),
+    });
+    expect(sent).toBe("/api/queue");
+    expect(await getQueue()).toEqual([]);
+  });
   it("saves and acknowledges a submission without any network storage", async () => {
     const reply = spyOn(window, "postMessage").mockImplementation(() => {});
     try {

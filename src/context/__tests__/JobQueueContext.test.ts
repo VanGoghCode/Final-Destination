@@ -1,10 +1,11 @@
+import { localRequest } from "@/lib/local-api";
 import { beforeEach, afterEach, describe, it, expect } from "bun:test";
 import { act, createElement, useEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { openBrowser } from "@/lib/__tests__/browser";
 import { job } from "@/lib/__tests__/job";
 import { JobQueueProvider, useJobQueue } from "../JobQueueContext";
-import { saveResumeTemplates } from "@/lib/storage";
+import { saveResumeTemplates } from "@/lib/__tests__/legacy-settings";
 import { getQueue, setQueue } from "@/lib/browser-queue";
 
 let root: Root, close: () => void, context: ReturnType<typeof useJobQueue>;
@@ -68,7 +69,8 @@ describe("browser queue controls", () => {
       { id: "resume", name: "Resume", content: "latex", createdAt: 1, updatedAt: 1 },
     ]);
     let requests = 0;
-    globalThis.fetch = (async () => {
+    globalThis.fetch = (async (url: string, init?: RequestInit) => {
+      if (url.startsWith("/api/queue")) return (await localRequest(url, init))!;
       requests++;
       return Response.json({ tailoredResume: "tailored" });
     }) as unknown as typeof fetch;

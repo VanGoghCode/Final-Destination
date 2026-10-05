@@ -4,23 +4,16 @@ import {
   isQueuePaused,
   setQueuePaused,
   updateJobInQueue,
-  type QueuedJob,
-} from "./browser-queue";
-import {
-  getProfiles,
-  getResumeTemplates,
-  getCoverLetterTemplates,
-  getDefaultResumeId,
-  getDefaultCoverLetterId,
-  getMasterContext,
-} from "./storage";
+} from "./shared-queue";
+import type { QueuedJob } from "./browser-queue";
+import { resumeTemplate, coverTemplate, masterContext } from "./personal-workspace";
 import { apiJSON, APIError } from "./client-api";
 
 export async function processLocalQueue(signal?: AbortSignal) {
   if (!navigator.locks) throw new Error("Queue requires Web Locks on HTTPS or localhost.");
   return navigator.locks.request("fd-queue-worker", { ifAvailable: true }, async (lock) => {
     if (!lock || (await isQueuePaused()) || signal?.aborted) return false;
-    const job = await claimJob(undefined, true);
+    const job = await claimJob();
     if (!job) return false;
     const controller = new AbortController();
     const abort = () => controller.abort(signal?.reason);
@@ -36,38 +29,19 @@ export async function processLocalQueue(signal?: AbortSignal) {
     };
     window.addEventListener("storage", monitor);
     window.addEventListener("fd-queue", monitor);
-    const timer = setInterval(monitor, 1000);
+    const timer = setInterval(monitor, 15000);
     const update = async (value: Partial<QueuedJob>) => {
       if (!(await updateJobInQueue(job.id, value, job.runId)))
         throw new Error("Job was cancelled, removed, or restarted");
+      Object.assign(job, value);
     };
     try {
-      const profiles = await getProfiles();
-      const profile = job.profileId
-        ? profiles.find((profile) => profile.id === job.profileId)
-        : undefined;
-      if (job.profileId && !profile)
-        throw new Error("Profile no longer exists. Edit this job to use your default templates.");
-      const template = async (cover: boolean) => {
-        const templates = await (cover ? getCoverLetterTemplates() : getResumeTemplates());
-        const profileTemplate =
-          profile && (cover ? profile.defaultCoverLetterId : profile.defaultResumeId);
-        const selected =
-          profileTemplate || (await (cover ? getDefaultCoverLetterId() : getDefaultResumeId()));
-        return (
-          templates.find((template) => template.id === selected)?.content ||
-          (!profileTemplate ? templates[0]?.content : undefined)
-        );
-      };
-      const resume = job.resumeLatex || (await template(false));
+      const resume = job.resumeLatex || resumeTemplate.content;
       const cover = job.includeCoverLetter
-        ? job.coverLetterLatex || (await template(true))
+        ? job.coverLetterLatex || coverTemplate.content
         : undefined;
-      if (!resume) throw new Error("Choose a resume template before processing this job.");
-      if (job.includeCoverLetter && !cover)
-        throw new Error("Choose a cover letter template before processing this job.");
       await update({ resumeLatex: resume, ...(cover ? { coverLetterLatex: cover } : {}) });
-      const context = (await getMasterContext()) || "";
+      const context = masterContext;
       const post = <T>(url: string, body: object) =>
         apiJSON<T>(url, {
           method: "POST",
@@ -114,7 +88,19 @@ export async function processLocalQueue(signal?: AbortSignal) {
       await update({ status: "completed", progress: 100, completedAt: Date.now() });
       return true;
     } catch (error) {
-      if (controller.signal.aborted) return false;
+      if (controller.signal.aborted) {
+        await updateJobInQueue(
+          job.id,
+          {
+            status: "pending",
+            progress: 0,
+            tailoredResume: job.tailoredResume || "",
+            tailoredCoverLetter: job.tailoredCoverLetter || "",
+          },
+          job.runId,
+        ).catch(() => null);
+        return false;
+      }
       await update({
         status: "failed",
         error: error instanceof Error ? error.message : "Processing failed",

@@ -2,7 +2,10 @@ import { localRequest } from "./local-api";
 import { getAIHeaders } from "./client-ai";
 
 export async function apiFetch(input: string, init: RequestInit = {}) {
-  if (typeof window !== "undefined") {
+  if (
+    typeof window !== "undefined" &&
+    !new URL(input, window.location.origin).pathname.startsWith("/api/queue")
+  ) {
     const local = await localRequest(input, init);
     if (local) return local;
   }

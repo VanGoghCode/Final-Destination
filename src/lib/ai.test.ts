@@ -1090,20 +1090,20 @@ describe("Prompt Templates", () => {
   describe("getCoverLetterTailoringPrompt", () => {
     it("includes personality and multidisciplinary", () => {
       const prompt = getCoverLetterTailoringPrompt("cl", "JD", "John", "Info");
-      expect(prompt).toContain("CANDIDATE VOICE");
-      expect(prompt).toContain("multidisciplinary");
+      expect(prompt).toContain("production ownership");
+      expect(prompt).toContain("judgment");
     });
 
     it("forbids AI cliches (tapestry, leverage, etc.)", () => {
       const prompt = getCoverLetterTailoringPrompt("cl", "JD", "John", "Info");
-      expect(prompt).toContain("NO AI CLICH");
-      expect(prompt).toContain("tapestry");
-      expect(prompt).toContain("leverage");
+      expect(prompt).toContain("no buzzwords");
+      expect(prompt).toContain("generic enthusiasm");
+      expect(prompt).toContain("no buzzwords");
     });
 
     it("specifies 250-350 word body range", () => {
       const prompt = getCoverLetterTailoringPrompt("cl", "JD", "John", "Info");
-      expect(prompt).toContain("250-350 words");
+      expect(prompt).toContain("200–300 words");
     });
   });
 

@@ -59,7 +59,7 @@ it("accepts 15 jobs with explicit profiles and application links", () => {
     profiles,
   );
   expect(jobs).toHaveLength(15);
-  expect(jobs[0]?.profileId).toBe("p");
+  expect(jobs[0]?.profileId).toBe("kirtan");
   expect(jobs[0]?.companyUrl).toBe(`${job.applicationUrl}/0`);
 });
 it.each([
@@ -69,8 +69,6 @@ it.each([
   [{ ...job, jobDescription: " " }],
   [{ ...job, applicationUrl: "javascript:alert(1)" }],
   [{ ...job, applicationUrl: "https://u:password@example.com/apply" }],
-  [{ ...job, profileName: "unknown" }],
-  [{ ...job, profileName: "" }],
   [{ ...job, jobDescription: undefined, jobDescriptionSummary: "summary" }],
 ])("rejects invalid batches without saving jobs", async (jobs) => {
   await expect(submitJobBatch(input(jobs))).rejects.toThrow();
@@ -85,13 +83,10 @@ it("accepts an explicitly selected batch profile and per-job overrides", () => {
     profiles,
     "p",
   );
-  expect(jobs.map((j) => j.profileId)).toEqual(["p", "q"]);
+  expect(jobs.map((j) => j.profileId)).toEqual(["kirtan", "kirtan"]);
 });
-it("rejects ambiguous profile names and conflicting profile identifiers", () => {
-  expect(() =>
-    parseJobBatch(input([job]), [...profiles, { ...profiles[0]!, id: "duplicate" }]),
-  ).toThrow("ambiguous");
-  expect(() => parseJobBatch(input([{ ...job, profileId: "q" }]), profiles)).toThrow("disagree");
+it("ignores legacy profile choices and always uses the personal setup", () => {
+  expect(parseJobBatch(input([{ ...job, profileId: "q" }]), profiles)[0]?.profileId).toBe("kirtan");
 });
 it("does not duplicate a successfully saved batch after lost acknowledgement or page reload", async () => {
   expect((await submitJobBatch(input([job]))).added).toBe(1);
@@ -101,13 +96,13 @@ it("does not duplicate a successfully saved batch after lost acknowledgement or 
 it("validates every row and chosen templates before changing the queue", async () => {
   await expect(submitJobBatch(input([job, { ...job, companyName: "" }]))).rejects.toThrow();
   localStorage.setItem("fd_resume_templates", "[]");
-  await expect(submitJobBatch(input([job]))).rejects.toThrow("resume template");
-  expect(await getQueue()).toEqual([]);
+  expect((await submitJobBatch(input([job]))).added).toBe(1);
 });
 it("automatically starts new bot jobs with Luna and a profile template", async () => {
   localStorage.setItem("fd_openai_api_key", "test-key");
   let headers: Headers | undefined;
   globalThis.fetch = (async (_url: string, init: RequestInit) => {
+    if (_url.startsWith("/api/queue")) return (await localRequest(_url, init))!;
     headers = new Headers(init.headers);
     return Response.json({ tailoredResume: "tailored resume" });
   }) as typeof fetch;
@@ -140,14 +135,10 @@ it("does not save jobs or unpause the queue when browser storage is full", async
   await expect(submitJobBatch(input([job]))).rejects.toThrow("quota exceeded");
   expect(readState()).toEqual({ jobs: [], paused: true });
 });
-it("rejects a deleted profile or missing cover template without saving any job", async () => {
+it("uses supplied templates even when legacy browser data is empty", async () => {
   localStorage.setItem("fd_profiles", "[]");
-  await expect(submitJobBatch(input([job]))).rejects.toThrow("existing profile");
-  localStorage.setItem("fd_profiles", JSON.stringify(profiles));
-  await expect(submitJobBatch(input([job, { ...job, includeCoverLetter: true }]))).rejects.toThrow(
-    "cover letter template",
-  );
-  expect(await getQueue()).toEqual([]);
+  localStorage.setItem("fd_cover_letter_templates", "[]");
+  expect((await submitJobBatch(input([{ ...job, includeCoverLetter: true }]))).added).toBe(1);
 });
 
 it("rejects invalid rows and oversized direct bulk requests atomically", async () => {

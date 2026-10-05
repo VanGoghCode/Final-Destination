@@ -1,3 +1,4 @@
+import { resumeTemplate, masterContext as defaultContext } from "@/lib/personal-workspace";
 import { aiErrorResponse } from "@/lib/api-error";
 import { withAIBudget } from "@/lib/ai-providers/http";
 import { NextResponse } from "next/server";
@@ -37,10 +38,10 @@ async function generate(request: Request) {
 
     const body = await request.json();
     const {
-      resumeLatex,
+      resumeLatex = resumeTemplate.content,
       jobDescription,
       personalDetails,
-      masterContext,
+      masterContext = defaultContext,
       manualResearch,
       companyName,
     } = body;

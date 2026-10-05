@@ -425,7 +425,7 @@ export default function BatchProcessPage() {
               {/* Templates Status - Compact */}
               <div className="border-b border-gray-100 px-4 py-3">
                 <p className="mb-2 text-[10px] text-gray-500">
-                  Default templates; assigned profile and imported templates take priority.
+                  Your single resume and cover-letter templates are applied automatically.
                 </p>
                 <div className="flex items-center gap-2 text-xs">
                   <div
@@ -448,7 +448,7 @@ export default function BatchProcessPage() {
                     onClick={() => router.push("/")}
                     className="text-primary mt-2 text-xs hover:underline"
                   >
-                    Manage default templates →
+                    View your template →
                   </button>
                 )}
               </div>
@@ -567,8 +567,8 @@ export default function BatchProcessPage() {
             <div>
               <h1 className="text-2xl font-bold">Your Queue</h1>
               <p className="text-muted mt-1 text-sm">
-                Templates, background and jobs stay in this browser. Keep the website open to
-                process jobs; closing it stops processing until you reopen it.
+                Templates and background are built in; the queue is shared across browsers. Keep a
+                website tab open to process jobs; closing it stops processing until you reopen it.
               </p>
             </div>
             {isProcessing && currentJob && (
@@ -596,9 +596,8 @@ export default function BatchProcessPage() {
                 belongs in the app&apos;s model settings.
               </li>
               <li>
-                <strong>3. Add jobs.</strong> Open a job listing, select a profile or default
-                templates, check the details and choose Add to queue. Jobs process while this
-                website is open and the queue is resumed.
+                <strong>3. Add jobs.</strong> Open a job listing, check the details and choose Add
+                to queue. Jobs process while this website is open and the queue is resumed.
               </li>
             </ol>
             <details className="mt-3 text-xs text-gray-600">
@@ -608,7 +607,7 @@ export default function BatchProcessPage() {
                 <li>Select text before opening the extension to fill the description.</li>
                 <li>Copy/Paste transfers company data between tabs.</li>
                 <li>A red dot means open or refresh the app tab and check its URL.</li>
-                <li>Local and deployed sites keep separate queues in their own browser storage.</li>
+                <li>Your deployed queue is shared through your private GitHub repository.</li>
               </ul>
             </details>
           </details>

@@ -1,4 +1,5 @@
 "use client";
+import { resumeTemplate, coverTemplate, masterContext } from "@/lib/personal-workspace";
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 
@@ -65,13 +66,13 @@ interface AppContextType extends AppState {
 }
 
 const initialState: AppState = {
-  firstName: "",
-  lastName: "",
-  resumeLatex: "",
-  coverLetterLatex: "",
+  firstName: "Kirtan",
+  lastName: "Thummar",
+  resumeLatex: resumeTemplate.content,
+  coverLetterLatex: coverTemplate.content,
   jobDescription: "",
   personalDetails: "",
-  masterContext: "",
+  masterContext,
   manualResearch: "",
   companyName: "",
   companyUrl: "",

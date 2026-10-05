@@ -14,7 +14,9 @@ import {
   saveCoverLetterTemplates,
   saveMasterContext,
   saveProfiles,
-} from "./storage";
+} from "./__tests__/legacy-settings";
+import { localRequest } from "./local-api";
+import { resumeTemplate, masterContext } from "./personal-workspace";
 import { processLocalQueue } from "./process-local-queue";
 
 let close: () => void;
@@ -36,6 +38,7 @@ function ai(
 ) {
   const calls: Array<{ url: string; body: Record<string, unknown>; headers: Headers }> = [];
   globalThis.fetch = (async (url: string, init: RequestInit) => {
+    if (url.startsWith("/api/queue")) return (await localRequest(url, init))!;
     const body = JSON.parse(String(init.body));
     calls.push({ url, body, headers: new Headers(init.headers) });
     return respond(url, body);
@@ -46,6 +49,7 @@ const hold = () => {
   let entered!: () => void;
   const started = new Promise<void>((resolve) => (entered = resolve));
   globalThis.fetch = (async (_url: string, init: RequestInit) => {
+    if (_url.startsWith("/api/queue")) return (await localRequest(_url, init))!;
     entered();
     return await new Promise<Response>((_resolve, reject) => {
       const abort = () => reject(init.signal?.reason);
@@ -56,14 +60,27 @@ const hold = () => {
   return started;
 };
 describe("browser queue processing", () => {
+  it("releases an interrupted claim with its saved resume checkpoint", async () => {
+    await setQueue([job("job", { includeCoverLetter: true, tailoredResume: "checkpoint" })]);
+    const started = hold();
+    const controller = new AbortController();
+    const processing = processLocalQueue(controller.signal);
+    await started;
+    controller.abort();
+    expect(await processing).toBe(false);
+    expect((await getQueue())[0]).toMatchObject({
+      status: "pending",
+      tailoredResume: "checkpoint",
+    });
+  });
   it("uses browser templates, background and the selected AI key", async () => {
     localStorage.setItem("fd_ai_provider", "openai");
     localStorage.setItem("fd_openai_api_key", "fixture");
     const calls = ai();
     expect(await processLocalQueue()).toBe(true);
     expect(calls).toHaveLength(1);
-    expect(calls[0]?.body.masterContext).toBe("My background");
-    expect(calls[0]?.body.resumeLatex).toBe("resume latex");
+    expect(calls[0]?.body.masterContext).toBe(masterContext);
+    expect(calls[0]?.body.resumeLatex).toBe(resumeTemplate.content);
     expect(calls[0]?.headers.get("x-openai-api-key")).toBe("fixture");
     expect((await getQueue())[0]).toMatchObject({
       status: "completed",
@@ -71,7 +88,7 @@ describe("browser queue processing", () => {
       tailoredResume: "new resume",
     });
   });
-  it("never calls AI while paused or when required templates are missing", async () => {
+  it("does not call AI while paused and uses built-in templates despite missing browser data", async () => {
     const calls = ai();
     await setQueuePaused(true);
     expect(await processLocalQueue()).toBe(false);
@@ -79,8 +96,8 @@ describe("browser queue processing", () => {
     await saveCoverLetterTemplates([]);
     await setQueue([job("job", { includeCoverLetter: true })]);
     await processLocalQueue();
-    expect(calls).toHaveLength(0);
-    expect((await getQueue())[0]?.error).toContain("cover letter template");
+    expect(calls).toHaveLength(2);
+    expect((await getQueue())[0]?.status).toBe("completed");
   });
   it("uses default templates for a profile created before templates were added", async () => {
     await saveProfiles([
@@ -131,7 +148,7 @@ describe("browser queue processing", () => {
         includeCoverLetter: true,
         status: "tailoring-cover-letter",
         runId: "old",
-        leaseExpiresAt: Date.now() + 600000,
+        leaseExpiresAt: Date.now() - 1,
         tailoredResume: "saved resume",
         resumeLatex: "saved source",
         coverLetterLatex: "saved cover",

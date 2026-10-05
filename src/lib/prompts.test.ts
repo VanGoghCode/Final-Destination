@@ -69,8 +69,8 @@ describe("Prompts", () => {
     });
 
     expect(pair.user).toContain("\\begin{document}Cover\\end{document}");
-    expect(pair.user).toContain("ORIGINAL COVER LETTER");
-    expect(pair.system).toContain("COVER LETTER");
+    expect(pair.user).toContain("COVER LETTER FORMAT");
+    expect(pair.system).toContain("cover letter");
   });
 
   it("buildExtractionPrompt should include extraction instructions", () => {

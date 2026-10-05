@@ -11,7 +11,7 @@ export default function WorkspaceControls() {
     <div className="mt-3 space-y-2 text-xs">
       <div className="flex gap-2">
         <button
-          title="Export templates, background and queue (without API keys)"
+          title="Export the shared queue without API keys"
           className="flex-1 rounded-lg border px-2 py-2 hover:bg-gray-50"
           onClick={async () => {
             try {
@@ -32,7 +32,7 @@ export default function WorkspaceControls() {
           Export backup
         </button>
         <button
-          title="Restore a browser workspace from a backup"
+          title="Restore the shared queue from a backup"
           className="flex-1 rounded-lg border px-2 py-2 hover:bg-gray-50"
           onClick={() => file.current?.click()}
         >
@@ -50,9 +50,7 @@ export default function WorkspaceControls() {
           event.target.value = "";
           if (
             !selected ||
-            !window.confirm(
-              "Replace this browser's templates, background and queue with this backup? API keys remain unchanged.",
-            )
+            !window.confirm("Replace the shared queue in every browser with this backup?")
           )
             return;
           try {

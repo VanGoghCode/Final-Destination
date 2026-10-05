@@ -1,3 +1,5 @@
+import { localRequest } from "./local-api";
+import { masterContext } from "./personal-workspace";
 import { afterEach, describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
 import { act, createElement, useEffect } from "react";
@@ -46,9 +48,8 @@ describe("questions job context", () => {
         }),
       );
       localStorage.setItem("fd_master_context", JSON.stringify("master experience"));
-      globalThis.fetch = (async () => {
-        throw new Error("Storage should stay local");
-      }) as unknown as typeof fetch;
+      globalThis.fetch = (async (url: string, init?: RequestInit) =>
+        (await localRequest(url, init))!) as unknown as typeof fetch;
       const onError = (message: string) => {
         error = message;
       };
@@ -68,7 +69,7 @@ describe("questions job context", () => {
       if (id === "selected") {
         expect(state!.tailoredResume).toBe("right");
         expect(state!.companyName).toBe("Selected");
-        expect(state!.masterContext).toBe("master experience");
+        expect(state!.masterContext).toBe(masterContext);
       } else expect(error).toContain("not found");
       await act(() => root.unmount());
     },

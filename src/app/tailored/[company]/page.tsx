@@ -8,7 +8,12 @@ import LaTeXEditor from "@/components/LaTeXEditor";
 import Sidebar from "@/components/Sidebar";
 import Button from "@/components/Button";
 
-import { readQueueResult, regenerateQueueResult, saveQueueResult } from "@/lib/queue-results";
+import {
+  readQueueResult,
+  regenerateQueueResult,
+  saveQueueResult,
+  generateQueueCoverLetter,
+} from "@/lib/queue-results";
 
 interface BatchJobData {
   completedAt?: number;
@@ -50,6 +55,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
   const [isRegeneratingCoverLetter, setIsRegeneratingCoverLetter] = useState(false);
   const [showCoverLetterPreview, setShowCoverLetterPreview] = useState(false);
 
+  const [generatingCover, setGeneratingCover] = useState(false);
   // Q&A state
   const [generalQuestion, setGeneralQuestion] = useState("");
   const [generalAnswer, setGeneralAnswer] = useState("");
@@ -296,7 +302,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
           )}
           <Button
             onClick={() => void handleSaveResults()}
-            disabled={savingResults || isRegeneratingResume || isRegeneratingCoverLetter}
+            disabled={
+              generatingCover || savingResults || isRegeneratingResume || isRegeneratingCoverLetter
+            }
             variant="secondary"
             className="w-full"
           >
@@ -381,6 +389,41 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
 
         {/* Sidebar Content */}
         <div className="flex-1 space-y-4 overflow-y-auto p-4">
+          {!tailoredCoverLetter && (
+            <Button
+              className="w-full"
+              disabled={
+                generatingCover ||
+                savingResults ||
+                isRegeneratingResume ||
+                isRegeneratingCoverLetter
+              }
+              onClick={async () => {
+                if (!jobId || !jobData || generatingCover) return;
+                setGeneratingCover(true);
+                setResultError("");
+                try {
+                  const saved = await generateQueueCoverLetter(
+                    jobId,
+                    tailoredResume,
+                    jobData.completedAt,
+                  );
+                  setJobData((current) => (current ? { ...current, ...saved } : current));
+                  setTailoredCoverLetter(saved.tailoredCoverLetter || "");
+                  setResultsSaved(true);
+                  setShowCoverLetterPreview(true);
+                } catch (error) {
+                  setResultError(
+                    error instanceof Error ? error.message : "Cover letter generation failed",
+                  );
+                } finally {
+                  setGeneratingCover(false);
+                }
+              }}
+            >
+              {generatingCover ? "Generating cover letter…" : "Generate cover letter"}
+            </Button>
+          )}
           {/* Cover Letter Section - Refined UI */}
           {tailoredCoverLetter && (
             <div className="rounded-2xl border border-green-200 bg-green-50/50 p-4 transition-all hover:shadow-sm">

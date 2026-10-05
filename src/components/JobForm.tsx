@@ -38,7 +38,6 @@ export default function JobForm({
     profileId: "",
     includeCoverLetter: false,
   },
-  profiles,
   onSubmit,
   onCancel,
   submitLabel,
@@ -49,15 +48,12 @@ export default function JobForm({
   const [positionTitle, setPositionTitle] = useState(initialValues.positionTitle);
   const [jobDescription, setJobDescription] = useState(initialValues.jobDescription);
   const [personalDetails, setPersonalDetails] = useState(initialValues.personalDetails);
-  const [selectedProfileId, setSelectedProfileId] = useState<string>(initialValues.profileId || "");
   const [includeCoverLetter, setIncludeCoverLetter] = useState(
     initialValues.includeCoverLetter || false,
   );
   const [showAdvanced, setShowAdvanced] = useState(!!initialValues.personalDetails);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
-  const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,9 +76,8 @@ export default function JobForm({
         jobDescription: jobDescription.trim(),
         personalDetails: personalDetails.trim(),
         includeCoverLetter,
-        profileId: selectedProfileId,
-        profileName: selectedProfile?.name || "",
-        profileColor: selectedProfile?.color || "",
+        profileId: "kirtan",
+        profileName: "Kirtan Thummar",
       });
       if (saved === false)
         setError(
@@ -97,51 +92,6 @@ export default function JobForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-6">
-      {/* Profile Selection */}
-      {profiles.length > 0 && (
-        <div>
-          <label className="text-muted mb-2 block text-xs font-medium">Select Profile</label>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setSelectedProfileId("")}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                !selectedProfileId
-                  ? "bg-primary text-white"
-                  : "text-muted bg-gray-100 hover:bg-gray-200"
-              }`}
-            >
-              Default templates
-            </button>
-            {profiles.map((profile) => (
-              <button
-                key={profile.id}
-                type="button"
-                onClick={() => setSelectedProfileId(profile.id)}
-                className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
-                  selectedProfileId === profile.id
-                    ? "bg-primary text-white"
-                    : "text-muted bg-gray-100 hover:bg-gray-200"
-                }`}
-              >
-                <span
-                  className={`h-4 w-4 rounded-full bg-gradient-to-br ${profile.color} flex items-center justify-center text-[8px] font-bold text-white`}
-                >
-                  {profile.avatarText || profile.firstName[0]}
-                </span>
-                {profile.name}
-              </button>
-            ))}
-          </div>
-          {selectedProfile && (
-            <p className="mt-1 text-[10px] text-green-600">
-              Using {selectedProfile.firstName} {selectedProfile.lastName}
-              &apos;s templates
-            </p>
-          )}
-        </div>
-      )}
-
       <div className="grid grid-cols-2 gap-4">
         {[
           {
@@ -162,7 +112,7 @@ export default function JobForm({
           },
           {
             name: "url",
-            label: "Job Posting URL",
+            label: "Application URL",
             value: companyUrl,
             set: setCompanyUrl,
             placeholder: "https://careers.google.com/jobs/...",

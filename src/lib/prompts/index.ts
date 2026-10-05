@@ -57,7 +57,7 @@ export function buildResumePrompt(data: ResumeTailoringData): PromptPair {
 /** Cover letter: system persona + cover letter rules + tone, user data */
 export function buildCoverLetterPrompt(data: CoverLetterData): PromptPair {
   return {
-    system: [SYSTEM_BASE_PERSONA, SYSTEM_COVER_LETTER_RULES, TONE_INSTRUCTIONS].join("\n\n"),
+    system: SYSTEM_COVER_LETTER_RULES,
     user: buildCoverLetterUserPrompt(data),
   };
 }
@@ -105,7 +105,7 @@ export function buildResumeRegenerationPrompt(data: RegenerationData): PromptPai
 /** Cover letter regeneration: system + cover letter rules + tone */
 export function buildCoverLetterRegenerationPrompt(data: RegenerationData): PromptPair {
   return {
-    system: [SYSTEM_BASE_PERSONA, SYSTEM_COVER_LETTER_RULES, TONE_INSTRUCTIONS].join("\n\n"),
+    system: SYSTEM_COVER_LETTER_RULES,
     user: buildCoverLetterRegenerationUserPrompt(data),
   };
 }

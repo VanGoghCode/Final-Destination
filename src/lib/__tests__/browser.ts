@@ -9,8 +9,10 @@ export function openBrowser() {
     HTMLElement: browser.HTMLElement,
     IS_REACT_ACT_ENVIRONMENT: true,
     navigator: { locks: { request } },
-    fetch: async () => {
-      throw new Error("Unexpected network storage request");
+    fetch: async (url: string, init?: RequestInit) => {
+      const { localRequest } = await import("../local-api");
+      if (url.startsWith("/api/queue")) return (await localRequest(url, init))!;
+      throw new Error("Unexpected network request");
     },
   };
   const saved = Object.keys(globals).map(
