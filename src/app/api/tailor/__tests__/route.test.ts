@@ -71,4 +71,13 @@ describe("POST /api/tailor", () => {
     const body = await res.json();
     expect(body.error).toContain("busy");
   });
+  it.each(["OpenAI API key not configured", "OpenAI API error (401): Invalid API key"])(
+    "returns an actionable key error: %s",
+    async (message) => {
+      aiError = new Error(message);
+      const response = await POST(makeRequest());
+      expect(response.status).toBe(401);
+      expect((await response.json()).error).toContain("API key");
+    },
+  );
 });

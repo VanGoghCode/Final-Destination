@@ -14,16 +14,11 @@
     "test": "bun test",
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
-    "benchmark:optimizations": "bun run src/scripts/benchmark-optimizations.ts",
-    "seed": "tsx src/scripts/seed-redis.ts",
-    "validate-companies": "tsx src/scripts/validate-ats-companies.ts",
     "prepare": "husky || true",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
     "prepush": "npm run check && npm run build"
   },
   "dependencies": {
-    "@upstash/redis": "^1.36.2",
-    "googleapis": "^170.1.0",
     "next": "^16.3.8",
     "react": "19.2.3",
     "react-dom": "19.2.3"

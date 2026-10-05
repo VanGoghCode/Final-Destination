@@ -17,6 +17,7 @@ import {
 } from "@/lib/storage";
 import JobForm from "@/components/JobForm";
 import ModelSelector from "@/components/ModelSelector";
+import WorkspaceControls from "@/components/WorkspaceControls";
 
 interface Activity {
   id: string;
@@ -141,7 +142,6 @@ export default function BatchProcessPage() {
     pendingCount,
     cancelledCount,
     totalCount,
-    setPollingEnabled,
     processingPaused,
     activeCount,
     cancelJob,
@@ -171,12 +171,6 @@ export default function BatchProcessPage() {
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
   }, []);
-
-  // Enable queue polling only on this page
-  useEffect(() => {
-    setPollingEnabled(true);
-    return () => setPollingEnabled(false);
-  }, [setPollingEnabled]);
 
   useEffect(() => {
     let active = true;
@@ -313,7 +307,7 @@ export default function BatchProcessPage() {
                 </svg>
               </div>
               <div>
-                <span className="text-sm font-bold">Batch Mode</span>
+                <span className="text-sm font-bold">Queue</span>
                 <p className="text-muted text-[10px]">
                   {loading
                     ? "Connecting"
@@ -357,7 +351,7 @@ export default function BatchProcessPage() {
               <button
                 onClick={() => router.push("/")}
                 className="text-muted flex h-10 w-10 items-center justify-center rounded-lg hover:bg-gray-100"
-                title="Back to Single Mode"
+                title="Templates & background"
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -401,6 +395,7 @@ export default function BatchProcessPage() {
             <>
               <div className="border-b border-gray-100 p-3">
                 <ModelSelector />
+                <WorkspaceControls />
               </div>
               {/* Navigation */}
               <div className="border-b border-gray-100 p-3">
@@ -411,7 +406,7 @@ export default function BatchProcessPage() {
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                   </svg>
-                  Single Mode
+                  Templates &amp; background
                 </button>
               </div>
 
@@ -570,9 +565,10 @@ export default function BatchProcessPage() {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Batch Processing</h1>
+              <h1 className="text-2xl font-bold">Your Queue</h1>
               <p className="text-muted mt-1 text-sm">
-                Jobs process automatically while this page is open. Pausing keeps new jobs waiting.
+                Templates, background and jobs stay in this browser. Keep the website open to
+                process jobs; closing it stops processing until you reopen it.
               </p>
             </div>
             {isProcessing && currentJob && (
@@ -586,7 +582,7 @@ export default function BatchProcessPage() {
 
           <details className="rounded-xl border border-blue-200 bg-blue-50 p-4">
             <summary className="cursor-pointer text-sm font-bold text-blue-800">
-              Use the Chrome Extension for faster batch processing
+              Add jobs using the Chrome or Edge extension
             </summary>
             <ol className="mt-3 space-y-3 text-xs text-gray-700">
               <li>
@@ -595,14 +591,14 @@ export default function BatchProcessPage() {
                 folder.
               </li>
               <li>
-                <strong>2. Connect your app.</strong> Enter this app&apos;s server URL in the
-                extension. The green dot confirms the connection. Your AI key belongs in the
-                app&apos;s model settings.
+                <strong>2. Connect your app.</strong> Keep this website open in the same browser and
+                enter its URL in the extension. The green dot confirms the connection. Your AI key
+                belongs in the app&apos;s model settings.
               </li>
               <li>
                 <strong>3. Add jobs.</strong> Open a job listing, select a profile or default
-                templates, check the details and choose Add to queue. Jobs process here while the
-                queue is resumed.
+                templates, check the details and choose Add to queue. Jobs process while this
+                website is open and the queue is resumed.
               </li>
             </ol>
             <details className="mt-3 text-xs text-gray-600">
@@ -611,8 +607,8 @@ export default function BatchProcessPage() {
                 <li>The extension detects company and job title from the URL.</li>
                 <li>Select text before opening the extension to fill the description.</li>
                 <li>Copy/Paste transfers company data between tabs.</li>
-                <li>A red connection dot means check the server URL and connection.</li>
-                <li>Both local and deployed servers are supported.</li>
+                <li>A red dot means open or refresh the app tab and check its URL.</li>
+                <li>Local and deployed sites keep separate queues in their own browser storage.</li>
               </ul>
             </details>
           </details>
@@ -624,7 +620,7 @@ export default function BatchProcessPage() {
             >
               {queueError}{" "}
               <button onClick={() => void retryConnection()} className="ml-2 underline">
-                Reconnect / retry
+                Retry
               </button>
             </div>
           )}

@@ -21,7 +21,30 @@ async function openPopup(
   }) as typeof browser.document.addEventListener);
   const calls: Array<{ url: string; init?: RequestInit }> = [];
   const chrome = {
-    tabs: { query: async () => [{ url, title: "Engineer at Acme" }] },
+    tabs: {
+      query: async (options: { url?: string }) =>
+        options.url
+          ? [{ id: 2, url: (saved.fd_server_url || "http://localhost:3000") + "/batch" }]
+          : [{ id: 1, url, title: "Engineer at Acme" }],
+      sendMessage: async (
+        _id: number,
+        message: { path: string; method: string; body?: object },
+      ) => {
+        const init = {
+          method: message.method,
+          body: message.body ? JSON.stringify(message.body) : undefined,
+        };
+        calls.push({ url: message.path, init });
+        const response = respond
+          ? await respond(message.path, init)
+          : Response.json(
+              message.path.includes("profiles")
+                ? [{ id: "profile", name: "Me", firstName: "A" }]
+                : { success: true },
+            );
+        return { status: response.status, body: await response.json() };
+      },
+    },
     storage: {
       local: {
         get: async (keys: string | string[]) =>
@@ -47,14 +70,8 @@ async function openPopup(
     setTimeout: () => 1,
     clearTimeout: () => {},
     console,
-    fetch: async (input: string, init?: RequestInit) => {
-      calls.push({ url: input, init });
-      if (respond) return respond(input, init);
-      return Response.json(
-        input.includes("profiles")
-          ? [{ id: "profile", name: "Me", firstName: "A" }]
-          : { success: true },
-      );
+    fetch: async () => {
+      throw new Error("Extension must use the website tab, not network storage");
     },
   });
   await ready();
@@ -135,7 +152,7 @@ describe("actual extension popup", () => {
     );
     expect(browser.document.querySelector("#connectionDot")?.className).toContain("offline");
     expect(browser.document.querySelector("#profileContainer")?.textContent).toContain(
-      "Server unreachable",
+      "App tab unavailable",
     );
   });
 });

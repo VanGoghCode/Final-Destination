@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import Button from "./Button";
 import ModelSelector from "./ModelSelector";
+import WorkspaceControls from "./WorkspaceControls";
 
 interface SidebarProps {
   title: string;
@@ -94,6 +94,7 @@ export default function Sidebar({
               }`}
             >
               <ModelSelector />
+              <WorkspaceControls />
             </div>
           )}
 
@@ -111,29 +112,6 @@ export default function Sidebar({
 
             {/* Sidebar Content */}
             <div className="flex-1 overflow-y-auto">{children}</div>
-
-            {/* Data management */}
-            <div className="border-t border-gray-100 bg-gray-50/50 p-4">
-              <Link
-                href="/admin"
-                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-800"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                </svg>
-                Data Management
-              </Link>
-            </div>
           </div>
         </div>
       </div>

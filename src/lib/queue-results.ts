@@ -1,5 +1,5 @@
 import { apiJSON } from "./client-api";
-import type { QueuedJob, SavedProfile } from "./db";
+import type { QueuedJob, SavedProfile } from "./browser-queue";
 export async function readQueueResult(id: string) {
   const [jobs, context, profiles] = await Promise.all([
     apiJSON<QueuedJob[]>("/api/queue"),
@@ -40,12 +40,12 @@ export async function regenerateQueueResult(
     body: JSON.stringify(input),
   });
   if (!regeneratedContent?.trim()) throw new Error("AI returned an empty document");
-  await saveQueueResult(
+  const { job } = await saveQueueResult(
     id,
     input.type === "resume"
       ? { tailoredResume: regeneratedContent }
       : { tailoredCoverLetter: regeneratedContent },
     expectedCompletedAt,
   );
-  return regeneratedContent;
+  return { content: regeneratedContent, completedAt: job.completedAt };
 }

@@ -1,249 +1,90 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import { Window } from "happy-dom";
+import { beforeEach, afterEach, describe, it, expect } from "bun:test";
 import { act, createElement, useEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { openBrowser } from "@/lib/__tests__/browser";
+import { job } from "@/lib/__tests__/job";
 import { JobQueueProvider, useJobQueue } from "../JobQueueContext";
-import { fakeRedis, job } from "@/lib/__tests__/redis";
-import { setRedisInstance, getQueue } from "@/lib/db";
-import * as routes from "@/app/api/queue/route";
-import { POST as processQueue } from "@/app/api/process-queue/route";
-import * as keys from "@/lib/api-key";
-import * as ai from "@/lib/ai";
+import { saveResumeTemplates } from "@/lib/storage";
+import { getQueue, setQueue } from "@/lib/browser-queue";
 
-let root: Root, api: ReturnType<typeof useJobQueue>, fixture: ReturnType<typeof fakeRedis>;
-let requests: Array<{ url: string; init?: RequestInit }>, fail: boolean;
-const spies: Array<ReturnType<typeof spyOn>> = [];
-const globals = [
-  "window",
-  "document",
-  "localStorage",
-  "HTMLElement",
-  "IS_REACT_ACT_ENVIRONMENT",
-  "fetch",
-] as const;
-let original: Array<PropertyDescriptor | undefined>;
-function Probe() {
-  const context = useJobQueue();
-  useEffect(() => {
-    api = context;
-  }, [context]);
-  return null;
-}
-const flush = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 5)));
+let root: Root, close: () => void, context: ReturnType<typeof useJobQueue>;
 beforeEach(async () => {
-  fixture = fakeRedis();
-  fixture.store.set("data:queue:paused", true);
-  fixture.store.set("data:queue", [
-    job("done", {
-      status: "completed",
-      retryCount: 2,
-      resumeLatex: "old",
-      tailoredResume: "old",
-      startedAt: 1,
-      completedAt: 2,
-    }),
-  ]);
-  original = globals.map((key) => Object.getOwnPropertyDescriptor(globalThis, key));
-  const browser = new Window({ url: "http://localhost:3000" });
-  Object.assign(globalThis, {
-    window: browser,
-    document: browser.document,
-    localStorage: browser.localStorage,
-    HTMLElement: browser.HTMLElement,
-    IS_REACT_ACT_ENVIRONMENT: true,
-  });
-  requests = [];
-  fail = false;
-  spies.push(
-    spyOn(keys, "getApiKey").mockResolvedValue("fixture"),
-    spyOn(keys, "getAISelection").mockResolvedValue({ provider: "openai", modelId: "gpt-6-luna" }),
-    spyOn(ai, "tailorResume").mockResolvedValue("tailored"),
-    spyOn(ai, "extractJobLocationInfo").mockResolvedValue({ country: "US", workMode: "Remote" }),
-  );
-  globalThis.fetch = (async (input: string, init?: RequestInit) => {
-    requests.push({ url: input, init });
-    if (fail) return Response.json({ error: "Unavailable" }, { status: 503 });
-    const request = new Request("http://localhost" + input, init);
-    if (input.includes("process-queue")) return processQueue(request);
-    switch (init?.method) {
-      case "POST":
-        return routes.POST(request);
-      case "PUT":
-        return routes.PUT(request);
-      case "PATCH":
-        return routes.PATCH(request);
-      case "DELETE":
-        return routes.DELETE(request);
-      default:
-        return routes.GET(request);
-    }
-  }) as typeof fetch;
+  close = openBrowser().close;
   root = createRoot(document.createElement("div"));
-  await act(() => root.render(createElement(JobQueueProvider, null, createElement(Probe))));
-  await act(() => api.setPollingEnabled(true));
-  await flush();
-  requests = [];
+  function Probe() {
+    const value = useJobQueue();
+    useEffect(() => {
+      context = value;
+    }, [value]);
+    return null;
+  }
+  await act(async () => root.render(createElement(JobQueueProvider, null, createElement(Probe))));
 });
 afterEach(async () => {
   await act(() => root.unmount());
-  spies.splice(0).forEach((spy) => spy.mockRestore());
-  setRedisInstance(null);
-  globals.forEach((key, i) => {
-    if (original[i]) Object.defineProperty(globalThis, key, original[i]!);
-    else Reflect.deleteProperty(globalThis, key);
-  });
+  close();
 });
-describe("queue UI connected to real queue routes", () => {
-  it.each([false, true])(
-    "retries an unacknowledged submission without duplicates (batch=%s)",
-    async (batch) => {
-      const fetch = globalThis.fetch;
-      let loseResponse = true;
-      globalThis.fetch = (async (input: string, init?: RequestInit) => {
-        const response = await fetch(input, init);
-        if (loseResponse && init?.method === (batch ? "PUT" : "POST")) {
-          loseResponse = false;
-          throw new Error("Response lost after save");
-        }
-        return response;
-      }) as typeof fetch;
-      await act(async () => {
-        if (batch) {
-          await api.addJobs([job("new")]);
-          await api.addJobs([job("new")]);
-        } else {
-          await api.addJob(job("new"));
-          await api.addJob(job("new"));
-        }
-      });
-      expect((await getQueue()).filter((job) => job.status === "pending")).toHaveLength(1);
-    },
-  );
-  it("reads and mutates the queue without an app key", async () => {
-    await act(async () => {
-      await api.removeJob("done");
-    });
-    expect(requests.every((r) => new Headers(r.init?.headers).get("x-api-key") === null)).toBe(
-      true,
-    );
-  });
-  it("shows only additions that the server accepted", async () => {
+describe("browser queue controls", () => {
+  it("adds, edits, retries, cancels and removes jobs while paused", async () => {
     let id: string | null = null;
     await act(async () => {
-      id = await api.addJob(job("new"));
+      id = await context.addJob(job());
     });
-    expect(api.queue.some((j) => j.id === id)).toBe(true);
-    expect(api.pendingCount).toBe(1);
-    expect(api.processingPaused).toBe(true);
+    expect(context.queue).toHaveLength(1);
+    expect(context.processingPaused).toBe(true);
+    await act(async () => {
+      expect(await context.updateJob(id!, { companyName: "Edited" })).toBe(true);
+    });
+    expect(context.queue[0]?.companyName).toBe("Edited");
+    await act(async () => {
+      await context.cancelJob(id!);
+    });
+    expect(context.cancelledCount).toBe(1);
+    await act(async () => {
+      await context.retryJob(id!);
+    });
+    expect(context.pendingCount).toBe(1);
+    expect(context.queue[0]?.retryCount).toBe(1);
+    await act(async () => {
+      await context.removeJob(id!);
+    });
+    expect(context.queue).toHaveLength(0);
+    expect(context.busyIds).toEqual([]);
   });
-  it("keeps jobs and exposes an error when removal fails", async () => {
-    fail = true;
+  it("keeps completed results when clearing only completed jobs", async () => {
     await act(async () => {
-      expect(await api.removeJob("done")).toBe(false);
+      await setQueue([job("done", { status: "completed" }), job("waiting")]);
+      await context.refreshQueue();
+      await context.clearCompleted();
     });
-    expect(api.queue).toHaveLength(1);
-    expect(api.queueError).toBe("Unavailable");
+    expect(context.queue.map((job) => job.id)).toEqual(["waiting"]);
+    await act(async () => {
+      await context.clearQueue();
+    });
+    expect(context.totalCount).toBe(0);
   });
-  it("does not report failed additions or resets as saved", async () => {
-    fail = true;
+  it("runs from any website page, then persists completion", async () => {
+    await saveResumeTemplates([
+      { id: "resume", name: "Resume", content: "latex", createdAt: 1, updatedAt: 1 },
+    ]);
+    let requests = 0;
+    globalThis.fetch = (async () => {
+      requests++;
+      return Response.json({ tailoredResume: "tailored" });
+    }) as unknown as typeof fetch;
     await act(async () => {
-      expect(await api.addJob(job("new"))).toBeNull();
-      expect(await api.updateJob("done", { companyName: "new" })).toBe(false);
+      await context.addJob(job());
+      await context.startProcessing();
     });
-    expect(api.queue[0]?.companyName).toBe("Acme");
-    expect(api.totalCount).toBe(1);
-  });
-  it("serializes retries and uses server retry counts", async () => {
     await act(async () => {
-      await Promise.all([api.retryJob("done"), api.retryJob("done")]);
+      await new Promise((resolve) => setTimeout(resolve, 25));
     });
-    expect(api.queue[0]?.retryCount).toBe(4);
-    expect(api.queue[0]?.startedAt).toBeUndefined();
-    expect(api.queue[0]?.tailoredResume).toBeUndefined();
-  });
-  it("resets edited results, clears a removed profile, and preserves imported templates", async () => {
-    await act(async () => {
-      await api.updateJob("done", { jobDescription: "Changed" });
-    });
-    expect(api.queue[0]).toMatchObject({
-      status: "pending",
-      resumeLatex: "old",
-      jobDescription: "Changed",
-    });
-    expect(api.queue[0]?.tailoredResume).toBeUndefined();
-    await act(async () => {
-      await api.updateJob("done", { profileId: "new" });
-    });
-    expect(api.queue[0]?.resumeLatex).toBeUndefined();
-    await act(async () => {
-      await api.updateJob("done", { profileId: "", profileName: "" });
-    });
-    expect(api.queue[0]?.profileId).toBe("");
-  });
-  it("cancels, removes and clears jobs using saved state", async () => {
-    await act(async () => {
-      await api.cancelJob("done");
-    });
-    expect(api.cancelledCount).toBe(1);
-    await act(async () => {
-      await api.clearCompleted();
-    });
-    expect(api.totalCount).toBe(1);
-    await act(async () => {
-      await api.clearQueue();
-    });
-    expect(api.totalCount).toBe(0);
-  });
-  it("keeps a paused queue paused when extension jobs arrive", async () => {
-    await routes.POST(
-      new Request("http://localhost/api/queue", {
-        method: "POST",
-        body: JSON.stringify(job("extension", { resumeLatex: "assigned" })),
-      }),
-    );
-    await act(async () => {
-      await api.refreshQueue();
-    });
-    expect(api.pendingCount).toBe(1);
-    expect(api.processingPaused).toBe(true);
-    expect(requests.some((r) => r.url.includes("process-queue"))).toBe(false);
-  });
-  it("processes extension jobs on the server without loading default templates", async () => {
-    fixture.store.set("data:queue", [job("extension", { resumeLatex: "assigned" })]);
-    fixture.store.set("data:queue:paused", false);
-    await act(() => api.setPollingEnabled(false));
-    await act(() => api.setPollingEnabled(true));
-    await flush();
+    expect(requests).toBe(1);
     expect((await getQueue())[0]?.status).toBe("completed");
-    expect(requests.find((r) => r.url.includes("process-queue"))?.init?.body).toBe(
-      JSON.stringify({ id: "extension" }),
-    );
-  });
-  it("does not let stale polling resurrect a removed job", async () => {
-    const fetch = globalThis.fetch;
-    let release = () => {},
-      captured = false;
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    globalThis.fetch = (async (input: string, init?: RequestInit) => {
-      const response = await fetch(input, init);
-      if (!init?.method && !captured) {
-        captured = true;
-        await gate;
-      }
-      return response;
-    }) as typeof fetch;
-    let refresh: Promise<void>;
+    expect(context.completedCount).toBe(1);
     await act(async () => {
-      refresh = api.refreshQueue();
-      await new Promise((resolve) => setTimeout(resolve, 1));
-      await api.removeJob("done");
+      await context.stopProcessing();
     });
-    await act(async () => {
-      release();
-      await refresh!;
-    });
-    expect(api.queue).toHaveLength(0);
+    expect(context.processingPaused).toBe(true);
   });
 });

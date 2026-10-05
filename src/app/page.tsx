@@ -215,7 +215,7 @@ export default function Home() {
     jobDescription,
     personalDetails,
   };
-  useAutoSave(
+  const { error: draftSaveError } = useAutoSave(
     "fd_draft_application",
     draftData,
     2000, // Save after 2 seconds of inactivity
@@ -251,7 +251,7 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load data from cloud storage on mount
+  // Load templates and background from this browser
   useEffect(() => {
     const loadData = async () => {
       // Load profiles first
@@ -337,7 +337,9 @@ export default function Home() {
       }
     };
 
-    loadData();
+    void loadData().catch((error) =>
+      setError(error instanceof Error ? error.message : "Browser storage unavailable"),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -794,32 +796,11 @@ export default function Home() {
               </svg>
               Templates
             </Button>
-            <Button
-              onClick={() => window.open("/jobs", "_blank")}
-              variant="secondary"
-              className="flex-1 py-2 text-xs"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M20 7h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM10 4h4v3h-4V4z" />
-              </svg>
-              Companies
-            </Button>
           </div>
           <button
             onClick={() => router.push("/batch")}
             className="relative flex w-full items-center justify-center gap-2 rounded-xl bg-linear-to-r from-black to-gray-800 px-3 py-3 text-xs font-medium text-white shadow-md transition-all hover:from-gray-800 hover:to-black hover:shadow-lg"
           >
-            {/* NEW badge */}
-            <span className="absolute -top-1.5 -right-1.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] leading-none font-bold text-white">
-              NEW
-            </span>
             <svg
               width="16"
               height="16"
@@ -833,7 +814,7 @@ export default function Home() {
               <rect x="3" y="14" width="7" height="7" rx="1" />
               <rect x="14" y="14" width="7" height="7" rx="1" />
             </svg>
-            Batch Mode
+            Queue
           </button>
         </div>
 
@@ -1197,7 +1178,7 @@ export default function Home() {
               />
             </div>
 
-            {/* Custom Instructions and Company Info - Side by Side */}
+            {/* Custom Instructions and Additional background - Side by Side */}
             <div className="grid gap-3 lg:grid-cols-2 lg:gap-5">
               <div className="glass-card fade-in p-3 lg:p-5">
                 <div className="mb-2 flex items-center gap-2 lg:mb-3">
@@ -1241,12 +1222,14 @@ export default function Home() {
                     <path d="M12 16v-4" />
                     <path d="M12 8h.01" />
                   </svg>
-                  <label className="section-label mb-0 text-sm lg:text-base">Company Info</label>
-                  <span className="text-muted text-xs">(auto-filled by research)</span>
+                  <label className="section-label mb-0 text-sm lg:text-base">
+                    Additional background
+                  </label>
+                  <span className="text-muted text-xs">(optional)</span>
                 </div>
                 <textarea
                   className="input-field h-24 resize-none overflow-y-auto text-sm lg:h-28"
-                  placeholder="Will be auto-filled when you click Generate..."
+                  placeholder="Add relevant company or role background..."
                   value={manualResearch}
                   onChange={(e) => setManualResearch(e.target.value)}
                 />
@@ -1254,7 +1237,7 @@ export default function Home() {
             </div>
 
             {/* Error */}
-            {error && (
+            {(error || draftSaveError) && (
               <div className="fade-in rounded-xl border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/30">
                 <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
                   <svg
@@ -1269,7 +1252,7 @@ export default function Home() {
                     <line x1="12" y1="8" x2="12" y2="12" />
                     <line x1="12" y1="16" x2="12.01" y2="16" />
                   </svg>
-                  <p className="text-sm font-medium">{error}</p>
+                  <p className="text-sm font-medium">{error || draftSaveError}</p>
                 </div>
               </div>
             )}

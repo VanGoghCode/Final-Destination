@@ -9,9 +9,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const jobDescriptionInput = document.getElementById("jobDescription");
   const profileIdInput = document.getElementById("profileId");
   const serverUrlInput = document.getElementById("serverUrl");
-  const requestHeaders = () => ({
-    "Content-Type": "application/json",
-  });
   const connectionDot = document.getElementById("connectionDot");
   const openBatchBtn = document.getElementById("openBatchBtn");
   const copyBtn = document.getElementById("copyBtn");
@@ -37,6 +34,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (custom) return custom;
     // Default: try localhost (most common for extension dev)
     return "http://localhost:3000";
+  }
+
+  async function appRequest(path, method = "GET", body) {
+    const base = new URL(getBaseUrl());
+    const tabs = await chrome.tabs.query({ url: `${base.origin}/*` });
+    const app = tabs.find((tab) => tab.url?.startsWith(base.origin + "/"));
+    if (!app?.id) throw new Error("Open your app in this browser first, then retry.");
+    const result = await chrome.tabs.sendMessage(app.id, {
+      type: "fd-app-request",
+      path,
+      method,
+      body,
+    });
+    if (!result || !Number.isInteger(result.status))
+      throw new Error("Reload the extension and refresh your app tab.");
+    return {
+      ok: result.status >= 200 && result.status < 300,
+      status: result.status,
+      json: async () => result.body,
+    };
   }
 
   // Load saved server URL
@@ -276,16 +293,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   let profileRequest = 0;
 
   const loadProfiles = async () => {
-    const base = getBaseUrl();
     const version = ++profileRequest;
     profiles = [];
     container.innerHTML = '<span style="font-size:11px;color:#999;">Loading profiles...</span>';
 
     try {
-      const res = await fetch(`${base}/api/profiles`, {
-        headers: requestHeaders(),
-        signal: AbortSignal.timeout(10_000),
-      });
+      const res = await appRequest("/api/profiles");
       if (version !== profileRequest) return;
       if (res.ok) {
         profiles = await res.json();
@@ -346,14 +359,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         connectionDot.className = "dot offline";
         profiles = [];
         profileIdInput.value = "";
-        container.textContent = "Server unreachable";
+        container.textContent = "App tab unavailable";
       }
     } catch {
       if (version !== profileRequest) return;
       profiles = [];
       connectionDot.className = "dot offline";
       container.innerHTML =
-        '<span style="font-size:11px;color:#999;">Offline — check server URL</span>';
+        '<span style="font-size:11px;color:#999;">Open the app in this browser</span>';
     }
   };
 
@@ -537,8 +550,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     addBtn.textContent = "Adding...";
     statusEl.textContent = "";
 
-    const base = getBaseUrl();
-
     try {
       const fingerprint = JSON.stringify(job);
       if (!submission || submission.fingerprint !== fingerprint)
@@ -556,12 +567,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             submission,
           },
         });
-      const response = await fetch(`${base}/api/queue`, {
-        method: "POST",
-        headers: requestHeaders(),
-        body: JSON.stringify({ ...job, id: submission.id }),
-        signal: AbortSignal.timeout(15_000),
-      });
+      const response = await appRequest("/api/queue", "POST", { ...job, id: submission.id });
 
       if (response.ok) {
         if (hasStorage) {

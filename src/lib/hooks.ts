@@ -42,147 +42,46 @@ export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
   return debouncedCallback;
 }
 
-/**
- * Hook for auto-saving data to localStorage
- */
-export function useAutoSave<T>(
-  key: string,
-  data: T,
-  delay: number = 1000,
-): { isSaving: boolean; lastSaved: Date | null } {
+/** Saves browser drafts after edits and flushes pending data on navigation. */
+export function useAutoSave<T>(key: string, data: T, delay = 1000) {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isFirstRender = useRef(true);
-
+  const [error, setError] = useState("");
+  const first = useRef(true);
+  const pending = useRef<{ key: string; value: string } | null>(null);
+  const value = JSON.stringify(data);
+  const flush = useCallback((notify = true) => {
+    if (!pending.current) return;
+    try {
+      localStorage.setItem(pending.current.key, pending.current.value);
+      pending.current = null;
+      if (notify) {
+        setLastSaved(new Date());
+        setError("");
+      }
+    } catch {
+      if (notify) setError("Draft could not be saved. Browser storage is unavailable or full.");
+    } finally {
+      if (notify) setIsSaving(false);
+    }
+  }, []);
   useEffect(() => {
-    // Skip first render to avoid saving initial state
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      // Try to load existing data on first render
+    const save = () => flush(false);
+    window.addEventListener("beforeunload", save);
+    return () => {
+      window.removeEventListener("beforeunload", save);
+      flush(false);
+    };
+  }, [flush]);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
       return;
     }
-
-    // Clear existing timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
+    pending.current = { key, value };
     Promise.resolve().then(() => setIsSaving(true));
-
-    // Debounced save
-    timeoutRef.current = setTimeout(() => {
-      try {
-        localStorage.setItem(key, JSON.stringify(data));
-        setLastSaved(new Date());
-      } catch (error) {
-        console.error("Auto-save failed:", error);
-      }
-      setIsSaving(false);
-    }, delay);
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [key, data, delay]);
-
-  return { isSaving, lastSaved };
-}
-
-/**
- * Hook to load data from localStorage on mount
- */
-export function useLocalStorageLoad<T>(key: string, defaultValue: T): [T | null, boolean] {
-  const [data] = useState<T | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem(key);
-        return stored ? JSON.parse(stored) : defaultValue;
-      } catch (error) {
-        console.error("Failed to load from localStorage:", error);
-        return defaultValue;
-      }
-    }
-    return null;
-  });
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    Promise.resolve().then(() => setIsLoaded(true));
-  }, []);
-
-  return [data, isLoaded];
-}
-
-/**
- * Hook for managing a field that clears related data on change
- */
-export function useFieldWithSideEffect<T>(
-  value: T,
-  setValue: (value: T) => void,
-  onChangeSideEffect: () => void,
-  debounceMs: number = 500,
-): (newValue: T) => void {
-  const debouncedSideEffect = useDebouncedCallback(onChangeSideEffect, debounceMs);
-  const previousValueRef = useRef(value);
-
-  const handleChange = useCallback(
-    (newValue: T) => {
-      setValue(newValue);
-
-      // Only trigger side effect if value actually changed
-      if (previousValueRef.current !== newValue) {
-        previousValueRef.current = newValue;
-        debouncedSideEffect();
-      }
-    },
-    [setValue, debouncedSideEffect],
-  );
-
-  return handleChange;
-}
-
-/**
- * Hook for retry logic with exponential backoff
- */
-export function useRetryWithBackoff() {
-  const [attempt, setAttempt] = useState(0);
-  const [isRetrying, setIsRetrying] = useState(false);
-
-  const executeWithRetry = useCallback(
-    async <T>(
-      fn: () => Promise<T>,
-      maxRetries: number = 3,
-      baseDelay: number = 1000,
-    ): Promise<T> => {
-      let lastError: Error | null = null;
-
-      for (let i = 0; i <= maxRetries; i++) {
-        try {
-          setAttempt(i);
-          if (i > 0) setIsRetrying(true);
-
-          const result = await fn();
-          setIsRetrying(false);
-          return result;
-        } catch (error) {
-          lastError = error instanceof Error ? error : new Error(String(error));
-
-          if (i < maxRetries) {
-            // Exponential backoff: 1s, 2s, 4s, 8s...
-            const delay = baseDelay * Math.pow(2, i);
-            await new Promise((resolve) => setTimeout(resolve, delay));
-          }
-        }
-      }
-
-      setIsRetrying(false);
-      throw lastError;
-    },
-    [],
-  );
-
-  return { executeWithRetry, attempt, isRetrying };
+    const timer = setTimeout(flush, delay);
+    return () => clearTimeout(timer);
+  }, [key, value, delay, flush]);
+  return { isSaving, lastSaved, error };
 }

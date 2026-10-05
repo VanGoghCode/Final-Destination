@@ -1,4 +1,4 @@
-import type { QueuedJob } from "./db";
+import type { QueuedJob } from "./browser-queue";
 export const isActiveJob = (job: QueuedJob) =>
   ["researching", "tailoring-resume", "tailoring-cover-letter"].includes(job.status);
 

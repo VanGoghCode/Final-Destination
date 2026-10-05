@@ -1,86 +1,40 @@
-import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import { NextRequest } from "next/server";
 import { proxy } from "./proxy";
 import * as limits from "@/lib/rate-limit";
 
-const saved = { admin: process.env.ADMIN_API_KEY, cron: process.env.CRON_SECRET };
-afterEach(() => {
-  for (const [key, value] of [
-    ["ADMIN_API_KEY", saved.admin],
-    ["CRON_SECRET", saved.cron],
-  ]) {
-    if (value === undefined) delete process.env[key!];
-    else process.env[key!] = value;
-  }
-});
-const request = (path: string, method = "GET", headers = {}) =>
-  new NextRequest(`http://localhost/api/${path}`, { method, headers });
-describe("API access without an app key", () => {
-  it.each(["storage", "profiles", "queue", "master-context", "admin/users", "process-queue"])(
-    "allows %s reads without an app key",
-    async (path) => {
-      process.env.ADMIN_API_KEY = "owner";
-      expect((await proxy(request(path))).status).toBe(200);
-    },
-  );
+const request = (path: string, method = "POST") =>
+  new NextRequest(`http://localhost/api/${path}`, { method });
+describe("stateless AI API", () => {
   it.each([
-    "data",
-    "sheets",
-    "queue",
-    "jobs",
     "tailor",
+    "tailor-cover-letter",
     "answers",
     "regenerate",
     "ask",
     "emails",
     "extract-job",
-  ])("allows %s writes without an app key", async (path) => {
-    process.env.ADMIN_API_KEY = "owner";
+  ])("allows %s with temporary controls and no app key", async (path) => {
     const limiter = spyOn(limits, "checkRateLimitAsync").mockResolvedValue({
       success: true,
       remaining: 1,
       resetTime: 1,
     });
     try {
-      expect(
-        (
-          await proxy(
-            request(path, "POST", { "x-ai-provider": "openai", "x-openai-api-key": "fixture" }),
-          )
-        ).status,
-      ).toBe(200);
+      expect((await proxy(request(path))).status).toBe(200);
     } finally {
       limiter.mockRestore();
     }
   });
-  it("works when no app key is configured", async () => {
-    delete process.env.ADMIN_API_KEY;
-    expect((await proxy(request("storage"))).status).toBe(200);
+  it("keeps health checks available", async () => {
+    expect((await proxy(request("health", "GET"))).status).toBe(200);
   });
-  it("ignores obsolete app keys and permits health checks", async () => {
-    process.env.ADMIN_API_KEY = "owner";
-    expect((await proxy(request("storage", "GET", { "x-api-key": "owner" }))).status).toBe(200);
-    expect((await proxy(request("health"))).status).toBe(200);
-  });
-  it("scopes cron credentials to the cron route", async () => {
-    delete process.env.CRON_SECRET;
-    expect((await proxy(request("cron/process-queue"))).status).toBe(200);
-    process.env.CRON_SECRET = "cron";
-    expect((await proxy(request("cron/process-queue"))).status).toBe(401);
-    expect(
-      (await proxy(request("cron/process-queue", "GET", { authorization: "Bearer cron" }))).status,
-    ).toBe(200);
-    expect((await proxy(request("storage", "GET", { authorization: "Bearer cron" }))).status).toBe(
-      200,
-    );
-  });
-  it("allows extension preflight headers", async () => {
-    const response = await proxy(request("queue", "OPTIONS"));
+  it("allows preflight AI headers", async () => {
+    const response = await proxy(request("tailor", "OPTIONS"));
     expect(response.status).toBe(204);
     expect(response.headers.get("Access-Control-Allow-Headers")).toContain("x-openai-api-key");
   });
-  it("blocks paid requests when shared usage is exhausted or unavailable", async () => {
-    process.env.ADMIN_API_KEY = "owner";
+  it("blocks paid requests when the temporary limit is exhausted", async () => {
     const limiter = spyOn(limits, "checkRateLimitAsync").mockResolvedValue({
       success: false,
       remaining: 0,
@@ -88,9 +42,9 @@ describe("API access without an app key", () => {
       retryAfter: 60,
     });
     try {
-      expect((await proxy(request("process-queue", "POST"))).status).toBe(429);
-      limiter.mockRejectedValue(new Error("Redis unavailable"));
-      expect((await proxy(request("process-queue", "POST"))).status).toBe(503);
+      const response = await proxy(request("tailor"));
+      expect(response.status).toBe(429);
+      expect(response.headers.get("Retry-After")).toBe("60");
     } finally {
       limiter.mockRestore();
     }
