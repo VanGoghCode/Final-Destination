@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/Button";
+import ModelSelector from "@/components/ModelSelector";
 import { getProfiles, type Profile } from "@/lib/storage";
 import {
   gatewayInstructions,
@@ -86,6 +87,9 @@ export default function AutomationGateway() {
       </nav>
       <header className="space-y-2">
         <h1 className="text-2xl font-bold">Automation gateway</h1>
+        <div className="max-w-xs">
+          <ModelSelector />
+        </div>
         <p>
           For Muse AI, ChatGPT and other browser assistants. Add 1–{MAX_IMPORT_JOBS} jobs with a
           full JD, an application link and an explicitly chosen profile.

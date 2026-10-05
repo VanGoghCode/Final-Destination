@@ -60,14 +60,15 @@ describe("AI selection and credentials", () => {
   for (const provider of ["deepseek", "openai"] as const) {
     const env = provider === "openai" ? "OPENAI_API_KEY" : "DEEPSEEK_API_KEY";
     const cookie = provider === "openai" ? "fd_openai_api_key" : "fd_api_key";
-    it(`${provider}: environment key takes precedence`, async () => {
+    it(`${provider}: explicitly supplied browser key overrides a server fallback`, async () => {
       process.env[env] = "server";
       expect(
         await getApiKey(
           provider,
           request({ [`x-${provider}-api-key`]: "header", cookie: `${cookie}=browser` }),
         ),
-      ).toBe("server");
+      ).toBe("header");
+      expect(await getApiKey(provider, request())).toBe("server");
     });
     it(`${provider}: header key takes precedence over cookie`, async () => {
       expect(

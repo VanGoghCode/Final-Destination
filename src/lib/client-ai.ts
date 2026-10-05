@@ -16,8 +16,6 @@ export function saveAISettings(
   modelId = PROVIDER_MODELS[provider].default as string,
 ) {
   const settings = PROVIDER_SETTINGS[provider];
-  localStorage.setItem("fd_ai_provider", provider);
-  setAICookie("fd_ai_provider", provider);
   if (key.trim()) {
     localStorage.setItem(settings.storageKey, key.trim());
     setAICookie(settings.cookie, key.trim());
@@ -26,6 +24,8 @@ export function saveAISettings(
     localStorage.setItem("fd_openai_model", modelId.trim() || PROVIDER_MODELS.openai.default);
     setAICookie("fd_openai_model", localStorage.getItem("fd_openai_model")!);
   }
+  localStorage.setItem("fd_ai_provider", provider);
+  setAICookie("fd_ai_provider", provider);
   window.dispatchEvent(new window.Event("fd-ai-settings"));
 }
 
@@ -33,6 +33,7 @@ export function removeAIKey(provider: AIProvider) {
   const settings = PROVIDER_SETTINGS[provider];
   localStorage.removeItem(settings.storageKey);
   setAICookie(settings.cookie, "", true);
+  window.dispatchEvent(new window.Event("fd-ai-settings"));
 }
 
 export function getAIHeaders(): Record<string, string> {

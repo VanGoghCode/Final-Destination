@@ -24,28 +24,42 @@ export default function ModelSelector() {
   const [hasKey, setHasKey] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [inputKey, setInputKey] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const id = setTimeout(() => {
-      const selected = localStorage.getItem("fd_ai_provider");
-      const current = isAIProvider(selected) ? selected : defaults.provider;
-      setProvider(current);
-      setHasKey(!!localStorage.getItem(PROVIDER_SETTINGS[current].storageKey));
-      // Restore cookies cleared since the last visit without overwriting server defaults.
-      for (const name of ["deepseek", "openai"] as const) {
-        const key = localStorage.getItem(PROVIDER_SETTINGS[name].storageKey);
-        if (key) setAICookie(PROVIDER_SETTINGS[name].cookie, key);
+    const load = () => {
+      try {
+        const selected = localStorage.getItem("fd_ai_provider");
+        const current = isAIProvider(selected) ? selected : defaults.provider;
+        setProvider(current);
+        setHasKey(!!localStorage.getItem(PROVIDER_SETTINGS[current].storageKey));
+        // Restore cookies cleared since the last visit without overwriting server defaults.
+        for (const name of ["deepseek", "openai"] as const) {
+          const key = localStorage.getItem(PROVIDER_SETTINGS[name].storageKey);
+          if (key) setAICookie(PROVIDER_SETTINGS[name].cookie, key);
+        }
+        if (isAIProvider(selected)) {
+          setAICookie("fd_ai_provider", selected);
+          const storedModel = localStorage.getItem("fd_openai_model");
+          if (storedModel) setAICookie("fd_openai_model", storedModel);
+        }
+        setError("");
+      } catch {
+        setError("Browser storage is unavailable. Allow site storage to save your API key.");
       }
-      if (isAIProvider(selected)) {
-        setAICookie("fd_ai_provider", selected);
-        const storedModel = localStorage.getItem("fd_openai_model");
-        if (storedModel) setAICookie("fd_openai_model", storedModel);
-      }
-    }, 0);
-    return () => clearTimeout(id);
+    };
+    const id = setTimeout(load, 0);
+    for (const event of ["storage", "focus", "fd-ai-settings"])
+      window.addEventListener(event, load);
+    return () => {
+      clearTimeout(id);
+      for (const event of ["storage", "focus", "fd-ai-settings"])
+        window.removeEventListener(event, load);
+    };
   }, [defaults.provider]);
 
   const selectDraft = (next: AIProvider) => {
+    setError("");
     setDraftProvider(next);
     setInputKey(localStorage.getItem(PROVIDER_SETTINGS[next].storageKey) || "");
     setModel(
@@ -56,11 +70,17 @@ export default function ModelSelector() {
     );
   };
   const save = () => {
-    saveAISettings(draftProvider, inputKey, model);
-    setProvider(draftProvider);
-    setHasKey(!!localStorage.getItem(PROVIDER_SETTINGS[draftProvider].storageKey));
-    setInputKey("");
-    setShowModal(false);
+    try {
+      saveAISettings(draftProvider, inputKey, model);
+      setProvider(draftProvider);
+      setHasKey(!!localStorage.getItem(PROVIDER_SETTINGS[draftProvider].storageKey));
+      setInputKey("");
+      setShowModal(false);
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "API key could not be saved in this browser.",
+      );
+    }
   };
   const configured = hasKey || defaults.configured[provider];
   const draftHasKey =
@@ -96,6 +116,11 @@ export default function ModelSelector() {
           </span>
         </button>
       </div>
+      {!showModal && error && (
+        <p role="alert" className="text-xs text-red-600">
+          {error}
+        </p>
+      )}
       {showModal &&
         createPortal(
           <div
@@ -150,7 +175,8 @@ export default function ModelSelector() {
                   {draftProvider === "openai" ? "OpenAI" : "DeepSeek"}
                 </a>
                 . Your browser key is stored locally and sent to this app’s server to call the AI
-                provider. Leave it blank to use a configured server key.
+                provider. It stays saved across reloads in this browser. Use Remove to clear a saved
+                key; bots must use the same browser to process jobs with it.
               </p>
               <input
                 aria-label="API key"
@@ -158,10 +184,15 @@ export default function ModelSelector() {
                 className={`${inputClass} font-mono`}
                 placeholder="sk-your-api-key"
                 value={inputKey}
-                onChange={(event) => setInputKey(event.target.value)}
+                onInput={(event) => setInputKey(event.currentTarget.value)}
                 autoFocus
                 onKeyDown={(event) => event.key === "Enter" && save()}
               />
+              {error && (
+                <p role="alert" className="mt-2 text-xs text-red-600">
+                  {error}
+                </p>
+              )}
               <div className="mt-4 flex justify-end gap-2">
                 {draftHasKey && (
                   <button
