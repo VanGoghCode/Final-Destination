@@ -26,13 +26,13 @@ export function githubQueueFile(): QueueFile<State> {
       "Configure GITHUB_QUEUE_REPO and GITHUB_QUEUE_TOKEN on Vercel to enable the shared queue.",
     );
   const url = `https://api.github.com/repos/${repo}/contents/queue.json`;
-  const request = async (init?: RequestInit) => {
-    const result = await fetch(url, {
+  const request = async (init?: RequestInit, target = url) => {
+    const result = await fetch(target, {
       ...init,
       cache: "no-store",
       headers: {
         Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
+        Accept: "application/vnd.github.object+json",
         "X-GitHub-Api-Version": "2022-11-28",
         "Content-Type": "application/json",
       },
@@ -48,18 +48,24 @@ export function githubQueueFile(): QueueFile<State> {
     read: async () => {
       const result = await request();
       const data = await result.json();
-      if (!data.sha || data.encoding !== "base64" || !data.content)
-        throw new Error(
-          "Shared queue file is missing or too large. Export completed jobs before continuing.",
-        );
+      if (typeof data.sha !== "string" || !/^[a-f0-9]{40,64}$/.test(data.sha))
+        throw new Error("Shared queue file is invalid. Restore a valid backup.");
+      const blob =
+        data.encoding === "none"
+          ? await (
+              await request(undefined, `https://api.github.com/repos/${repo}/git/blobs/${data.sha}`)
+            ).json()
+          : data;
+      if (blob.sha !== data.sha || blob.encoding !== "base64" || !blob.content)
+        throw new Error("Shared queue content is invalid. Restore a valid backup.");
       return {
-        state: parseQueueState(Buffer.from(data.content, "base64").toString("utf8")),
+        state: parseQueueState(Buffer.from(blob.content, "base64").toString("utf8")),
         sha: data.sha,
       };
     },
     write: async (state, sha) => {
       const content = Buffer.from(JSON.stringify(state)).toString("base64");
-      if (content.length > 1_200_000)
+      if (content.length > 13_000_000)
         throw new Error(
           "Shared queue is full. Export and remove completed jobs before adding more.",
         );
