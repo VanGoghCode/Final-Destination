@@ -6,6 +6,16 @@ import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DeepSeekProvider } from "./ai-providers/deepseek";
 import * as ai from "./ai";
 
+let selectedProvider: string | undefined;
+beforeEach(() => {
+  selectedProvider = process.env.AI_PROVIDER;
+  process.env.AI_PROVIDER = "deepseek";
+});
+afterEach(() => {
+  if (selectedProvider === undefined) delete process.env.AI_PROVIDER;
+  else process.env.AI_PROVIDER = selectedProvider;
+});
+
 // ========================================
 // TEST DATA
 // ========================================

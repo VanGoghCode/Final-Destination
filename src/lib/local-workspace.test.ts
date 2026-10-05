@@ -58,11 +58,14 @@ describe("browser-only workspace", () => {
     );
     expect(await send<unknown[]>("GET")).toHaveLength(1);
   });
-  it("reports partial bulk imports and keeps duplicate IDs unique", async () => {
-    const result = await send("PUT", { jobs: [input(), input(), {}, input("two")] });
+  it("rejects incomplete bulk imports and keeps duplicate IDs unique", async () => {
+    await expect(send("PUT", { jobs: [input(), input(), {}, input("two")] })).rejects.toThrow(
+      "Every job must be valid",
+    );
+    expect(await send<unknown[]>("GET")).toHaveLength(0);
+    const result = await send("PUT", { jobs: [input(), input(), input("two")] });
     expect(result.added).toBe(2);
     expect(result.duplicates).toBe(1);
-    expect(result.errors).toHaveLength(1);
   });
   it("rejects malformed requests and unsafe delete filters", async () => {
     await send("POST", input());

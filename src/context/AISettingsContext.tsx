@@ -9,8 +9,8 @@ export interface AISettings {
   configured: Record<AIProvider, boolean>;
 }
 const Context = createContext<AISettings>({
-  provider: "deepseek",
-  modelId: "deepseek-v4-flash",
+  provider: "openai",
+  modelId: "gpt-6-luna",
   configured: { deepseek: false, openai: false },
 });
 export const useAISettings = () => useContext(Context);

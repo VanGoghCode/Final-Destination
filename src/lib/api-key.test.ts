@@ -17,10 +17,10 @@ const request = (headers: Record<string, string> = {}) =>
   new Request("http://localhost", { headers });
 
 describe("AI selection and credentials", () => {
-  it("preserves DeepSeek as the unconfigured default", async () => {
+  it("defaults to Luna when no provider is configured", async () => {
     expect(await getAISelection(request())).toEqual({
-      provider: "deepseek",
-      modelId: "deepseek-v4-flash",
+      provider: "openai",
+      modelId: "gpt-6-luna",
     });
   });
   it("automatically selects Luna for an OpenAI-only installation", async () => {
@@ -55,21 +55,20 @@ describe("AI selection and credentials", () => {
     ).toEqual({ provider: "openai", modelId: "gpt-6-luna" });
   });
   it("ignores invalid provider values", async () => {
-    expect((await getAISelection(request({ "x-ai-provider": "invalid" }))).provider).toBe(
-      "deepseek",
-    );
+    expect((await getAISelection(request({ "x-ai-provider": "invalid" }))).provider).toBe("openai");
   });
   for (const provider of ["deepseek", "openai"] as const) {
     const env = provider === "openai" ? "OPENAI_API_KEY" : "DEEPSEEK_API_KEY";
     const cookie = provider === "openai" ? "fd_openai_api_key" : "fd_api_key";
-    it(`${provider}: environment key takes precedence`, async () => {
+    it(`${provider}: explicitly supplied browser key overrides a server fallback`, async () => {
       process.env[env] = "server";
       expect(
         await getApiKey(
           provider,
           request({ [`x-${provider}-api-key`]: "header", cookie: `${cookie}=browser` }),
         ),
-      ).toBe("server");
+      ).toBe("header");
+      expect(await getApiKey(provider, request())).toBe("server");
     });
     it(`${provider}: header key takes precedence over cookie`, async () => {
       expect(

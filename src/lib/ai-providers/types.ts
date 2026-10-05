@@ -43,5 +43,5 @@ export function isAIProvider(value: unknown): value is AIProvider {
 
 export function getConfiguredProvider(): AIProvider {
   if (isAIProvider(process.env.AI_PROVIDER)) return process.env.AI_PROVIDER;
-  return process.env.OPENAI_API_KEY && !process.env.DEEPSEEK_API_KEY ? "openai" : "deepseek";
+  return "openai";
 }

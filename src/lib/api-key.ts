@@ -38,7 +38,8 @@ export async function getApiKey(
 ): Promise<string | undefined> {
   const settings = PROVIDER_SETTINGS[provider];
   return (
-    process.env[settings.envKey] || requestValue(`x-${provider}-api-key`, settings.cookie, request)
+    (await requestValue(`x-${provider}-api-key`, settings.cookie, request)) ||
+    process.env[settings.envKey]
   );
 }
 

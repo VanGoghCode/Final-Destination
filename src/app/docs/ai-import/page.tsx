@@ -1,20 +1,5 @@
 import Link from "next/link";
-
-const example = JSON.stringify(
-  {
-    jobs: [
-      {
-        companyName: "Example",
-        positionTitle: "Software Engineer",
-        companyUrl: "https://example.com/careers/engineer",
-        jobDescription: "Build and maintain software services.",
-        includeCoverLetter: false,
-      },
-    ],
-  },
-  null,
-  2,
-);
+import { gatewayInstructions } from "@/lib/job-import";
 
 export default function ImportGuide() {
   return (
@@ -22,20 +7,23 @@ export default function ImportGuide() {
       <Link href="/batch" className="text-sm underline">
         Back to queue
       </Link>
-      <h1 className="text-2xl font-bold">Import jobs into your queue</h1>
+      <h1 className="text-2xl font-bold">Add jobs with your AI assistant</h1>
       <p>
-        Paste JSON into the import screen, review each entry, select templates, and add the jobs.
-        Entries need a company name, role, posting URL, and description. A detailed
-        jobDescriptionSummary is also accepted instead of jobDescription.
+        Tell Muse AI, ChatGPT or another browser assistant to open the gateway in the browser where
+        your templates and profiles are saved. Choose matching profiles from the live form. Add up
+        to 15 jobs at once; each needs its full JD and a direct application-page URL.
       </p>
-      <pre className="overflow-auto rounded-xl bg-gray-100 p-4 text-sm">{example}</pre>
+      <pre className="overflow-auto rounded-xl bg-gray-100 p-4 text-sm whitespace-pre-wrap">
+        {gatewayInstructions([], "https://final-destination-rose.vercel.app")}
+      </pre>
       <Link href="/batch/import" className="inline-block rounded-lg bg-black px-4 py-2 text-white">
-        Open import
+        Open automation gateway
       </Link>
       <p className="text-sm text-gray-600">
-        Jobs and results stay in this browser. Resume the queue and keep the website open while
-        processing. There is no server queue, database, external scheduler, or remote import
-        endpoint. Use the Chrome or Edge extension to send jobs to the open website tab.
+        The form validates the entire batch before saving. Repeating the same submission does not
+        create duplicate jobs. Adding new jobs starts the queue automatically; you can pause it from
+        the queue. Keep the site open to process jobs. Browser assistants can use the labeled form
+        directly; bots without access to your browser can provide JSON for you to paste.
       </p>
     </main>
   );

@@ -4,6 +4,8 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import ModelSelector from "../ModelSelector";
 import { AISettingsProvider, type AISettings } from "@/context/AISettingsContext";
+import { fireEvent } from "@testing-library/react";
+import { saveAISettings, removeAIKey } from "@/lib/client-ai";
 
 const globalNames = [
   "window",
@@ -59,6 +61,55 @@ const click = async (label: string) => {
 };
 
 describe("AI model selector", () => {
+  it("shows Luna by default in a new browser", async () => {
+    await act(() => root.render(<ModelSelector />));
+    await act(() => new Promise<void>((resolve) => setTimeout(resolve, 5)));
+    expect(document.body.textContent).toContain("OpenAI Luna");
+  });
+  it("saves a pasted key and restores it after remount without revealing it", async () => {
+    await render({ ...defaults, provider: "openai", modelId: "gpt-6-luna" });
+    await click("OpenAI Luna");
+    await act(() =>
+      fireEvent.input(document.querySelector('[aria-label="API key"]')!, {
+        target: { value: "test-luna-key" },
+      }),
+    );
+    await click("Save");
+    expect(localStorage.getItem("fd_openai_api_key")).toBe("test-luna-key");
+    await act(() => root.render(null));
+    await render();
+    expect(document.body.textContent).toContain("Key configured");
+    expect(document.body.textContent).not.toContain("test-luna-key");
+  });
+  it("refreshes settings when another tab saves or removes a key", async () => {
+    await render();
+    await act(() => saveAISettings("openai", "fixture"));
+    expect(document.body.textContent).toContain("OpenAI Luna");
+    expect(document.body.textContent).toContain("Key configured");
+    await act(() => removeAIKey("openai"));
+    expect(document.body.textContent).toContain("No API key");
+    localStorage.setItem("fd_openai_api_key", "other-tab");
+    await act(() => window.dispatchEvent(new window.Event("storage")));
+    expect(document.body.textContent).toContain("Key configured");
+  });
+  it("shows a storage failure and keeps settings open instead of claiming the key was saved", async () => {
+    await render();
+    await click("DeepSeek V4 Flash");
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: () => null,
+        setItem: () => {
+          throw Error("Browser storage is full");
+        },
+      },
+    });
+    await click("Save");
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+      "Browser storage is full",
+    );
+  });
   it("shows the configured server provider without exposing its key", async () => {
     await render({
       provider: "openai",
