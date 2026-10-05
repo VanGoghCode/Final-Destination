@@ -144,7 +144,8 @@ describe("DeepSeekProvider", () => {
       };
       const provider = createProvider();
       await provider.generateContent("test");
-      expect(capturedBody.thinking).toEqual({ type: "enabled", reasoning_effort: "high" });
+      expect(capturedBody.thinking).toEqual({ type: "enabled" });
+      expect(capturedBody.reasoning_effort).toBe("high");
     });
 
     it("uses correct model name", async () => {
@@ -1060,34 +1061,19 @@ describe("Prompt Templates", () => {
   });
 
   describe("getResumeTailoringPrompt", () => {
-    it("includes all 4 data blocks", () => {
-      const prompt = getResumeTailoringPrompt(SAMPLE_LATEX, "JD text", "John Doe", "Company info");
+    it("uses resume facts and preferences without treating company research as evidence", () => {
+      const prompt = getResumeTailoringPrompt(
+        SAMPLE_LATEX,
+        "JD text",
+        "style preference",
+        "Company research",
+      );
       expect(prompt).toContain(SAMPLE_LATEX);
       expect(prompt).toContain("JD text");
-      expect(prompt).toContain("John Doe");
-      expect(prompt).toContain("Company info");
-    });
-
-    it("includes critical rules", () => {
-      const prompt = getResumeTailoringPrompt(SAMPLE_LATEX, "JD", "John", "Info");
-      expect(prompt).toContain("STRUCTURE RULES");
-      expect(prompt).toContain("COVERAGE REQUIREMENTS");
-      expect(prompt).toContain("REWRITE RULES");
-      expect(prompt).toContain("TRUTHFULNESS");
-      expect(prompt).toContain("ONE-PAGE CONSTRAINT");
-      expect(prompt).toContain("exactly one page");
-    });
-
-    it("includes velocity signal verbs", () => {
-      const prompt = getResumeTailoringPrompt(SAMPLE_LATEX, "JD", "John", "Info");
-      expect(prompt).toContain("Migrated");
-      expect(prompt).toContain("Architected");
-      expect(prompt).toContain("Scaled");
-    });
-
-    it("forbids ** double asterisks for bold", () => {
-      const prompt = getResumeTailoringPrompt(SAMPLE_LATEX, "JD", "John", "Info");
-      expect(prompt).toContain("Do not use **double asterisks**");
+      expect(prompt).toContain("style preference");
+      expect(prompt).not.toContain("Company research");
+      expect(prompt).toContain("Never invent");
+      expect(prompt).toContain("without markdown");
     });
   });
 
@@ -1131,9 +1117,9 @@ describe("Prompt Templates", () => {
 
     it("includes apply feedback and clean output rules", () => {
       const prompt = getResumeRegenerationPrompt("fix", "curr", "orig", "JD", "P", "I");
-      expect(prompt).toContain("Apply the user");
-      expect(prompt).toContain("USER'S FEEDBACK");
-      expect(prompt).toContain("CURRENT TAILORED RESUME");
+      expect(prompt).toContain("FEEDBACK (apply within factual limits)");
+      expect(prompt).toContain("CURRENT DRAFT (not a factual source)");
+      expect(prompt).toContain("Return only complete LaTeX");
     });
   });
 

@@ -1,5 +1,5 @@
 import { isValidInput } from "./sanitize";
-import { getLatexCharBudget } from "./latex-count";
+import { cleanLatex } from "./latex";
 import { getSelectedAIProvider } from "./ai-providers";
 import {
   buildResumePrompt,
@@ -24,15 +24,6 @@ async function generate(prompt: string, systemPrompt?: string, callTag?: string)
   // Retries live inside the provider, which bounds all attempts + backoff to a
   // single time budget so the route answers before Vercel's function deadline.
   return provider.generateContent(prompt, systemPrompt);
-}
-
-// Clean LaTeX response
-function cleanLatex(result: string): string {
-  return result
-    .replace(/^```latex\n?|^```\n?/i, "")
-    .replace(/\n?```$/i, "")
-    .replace(/\*\*/g, "")
-    .trim();
 }
 
 export async function extractJobLocationInfo(
@@ -72,16 +63,12 @@ export async function tailorResume(
   masterContext: string,
   manualResearch?: string,
 ): Promise<string> {
-  // Compute character budget from the original template
-  const contentCharBudget = getLatexCharBudget(resumeLatex);
-
   const pair = buildResumePrompt({
     masterContext,
     resumeLatex,
     jobDescription,
     personalDetails,
     manualResearch,
-    contentCharBudget,
   });
 
   const result = await generate(pair.user, pair.system, "resume");

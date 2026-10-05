@@ -43,7 +43,12 @@ export class DeepSeekProvider extends HTTPProvider {
       temperature: this.config.temperature ?? 0.7,
       max_tokens: this.config.maxTokens ?? 16384,
       stream: false,
-      ...(this.config.thinking && { thinking: this.config.thinking }),
+      ...(this.config.thinking && {
+        thinking: { type: this.config.thinking.type },
+        ...(this.config.thinking.type === "enabled" && {
+          reasoning_effort: this.config.thinking.reasoning_effort ?? "high",
+        }),
+      }),
       ...(this.config.responseFormat && { response_format: this.config.responseFormat }),
     };
   }

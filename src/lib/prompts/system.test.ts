@@ -18,13 +18,13 @@ describe("System Prompts", () => {
   });
 
   it("SYSTEM_RESUME_RULES should include critical instructions", () => {
-    expect(SYSTEM_RESUME_RULES).toContain("ANALYZE THE JD");
-    expect(SYSTEM_RESUME_RULES).toContain("REWRITE RULES");
-    expect(SYSTEM_RESUME_RULES).toContain("COVERAGE REQUIREMENTS");
+    expect(SYSTEM_RESUME_RULES).toContain("minimal edits");
+    expect(SYSTEM_RESUME_RULES).toContain("Never invent");
+    expect(SYSTEM_RESUME_RULES).toContain("Preserve identity");
   });
 
   it("SYSTEM_RESUME_RULES should forbid markdown bold syntax", () => {
-    expect(SYSTEM_RESUME_RULES).toContain("Do not use **double asterisks**");
+    expect(SYSTEM_RESUME_RULES).toContain("without markdown");
   });
 
   it("SYSTEM_COVER_LETTER_RULES should forbid AI clichés", () => {
