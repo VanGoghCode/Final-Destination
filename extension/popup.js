@@ -31,13 +31,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function getBaseUrl() {
     const custom = serverUrlInput?.value?.trim().replace(/\/+$/, "");
-    if (custom) return custom;
-    // Default: try localhost (most common for extension dev)
-    return "http://localhost:3000";
+    const url = new URL(custom || "http://localhost:3000");
+    if (!["http:", "https:"].includes(url.protocol))
+      throw new Error("Enter an http:// or https:// app URL.");
+    return url.origin;
   }
 
   async function appRequest(path, method = "GET", body) {
     const base = new URL(getBaseUrl());
+    if (hasStorage) await chrome.storage.local.set({ [SERVER_URL_KEY]: base.origin });
     const tabs = await chrome.tabs.query({ url: `${base.origin}/*` });
     const app = tabs.find((tab) => tab.url?.startsWith(base.origin + "/"));
     if (!app?.id) throw new Error("Open your app in this browser first, then retry.");

@@ -79,6 +79,12 @@ async function openPopup(
   return { browser, saved, calls };
 }
 describe("actual extension popup", () => {
+  it("normalizes an app page URL and saves it before contacting the app tab", async () => {
+    const saved = { fd_server_url: "https://example.test/batch?view=all" };
+    const { calls } = await openPopup("https://example.com/job", saved);
+    expect(saved.fd_server_url).toBe("https://example.test");
+    expect(calls[0]?.url).toBe("/api/profiles");
+  });
   it("keeps drafts separate for jobs sharing a URL prefix", async () => {
     const saved = {};
     for (const id of ["123", "456"]) {
