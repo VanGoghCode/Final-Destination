@@ -1,3 +1,4 @@
+import { coverTemplate, masterContext as defaultContext } from "@/lib/personal-workspace";
 import { aiErrorResponse } from "@/lib/api-error";
 import { withAIBudget } from "@/lib/ai-providers/http";
 import { NextResponse } from "next/server";
@@ -37,10 +38,10 @@ async function generate(request: Request) {
 
     const body = await request.json();
     const {
-      coverLetterLatex,
+      coverLetterLatex = coverTemplate.content,
       jobDescription,
       personalDetails,
-      masterContext,
+      masterContext = defaultContext,
       manualResearch,
       tailoredResume,
     } = body;
@@ -51,7 +52,15 @@ async function generate(request: Request) {
 
     const tailoredCoverLetter = await tailorCoverLetter(
       sanitizeLatex(coverLetterLatex),
-      sanitizeJobDescription(jobDescription),
+      sanitizeJobDescription(
+        [
+          body.companyName && `Company: ${body.companyName}`,
+          body.positionTitle && `Role: ${body.positionTitle}`,
+          jobDescription,
+        ]
+          .filter(Boolean)
+          .join("\n"),
+      ),
       sanitizePersonalDetails(personalDetails || ""),
       sanitizeForAI(masterContext || ""),
       manualResearch ? sanitizeForAI(manualResearch) : undefined,

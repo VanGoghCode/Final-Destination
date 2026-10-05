@@ -119,6 +119,9 @@ export default function TailoredPage() {
           currentContent: tailoredCoverLetter,
           comment,
           coverLetterLatex,
+          tailoredResume,
+          companyName,
+          positionTitle,
           jobDescription,
           personalDetails,
           masterContext,
@@ -134,6 +137,7 @@ export default function TailoredPage() {
     }
   };
 
+  const [generationError, setGenerationError] = useState("");
   // Generate cover letter on-demand
   const handleGenerateCoverLetter = async () => {
     if (!coverLetterLatex || !jobDescription) {
@@ -142,6 +146,7 @@ export default function TailoredPage() {
     }
 
     setIsGeneratingCoverLetter(true);
+    setGenerationError("");
     try {
       const response = await apiFetch("/api/tailor-cover-letter", {
         method: "POST",
@@ -157,7 +162,7 @@ export default function TailoredPage() {
       if (!response.ok) throw new Error(data.error);
       setTailoredCoverLetter(data.tailoredCoverLetter);
     } catch (err) {
-      console.error("Error generating cover letter:", err);
+      setGenerationError(err instanceof Error ? err.message : "Cover letter generation failed");
     } finally {
       setIsGeneratingCoverLetter(false);
     }
@@ -224,6 +229,11 @@ export default function TailoredPage() {
           <div className="flex gap-2"></div>
         </div>
 
+        {generationError && (
+          <p role="alert" className="p-4 text-sm text-red-700">
+            {generationError}
+          </p>
+        )}
         {/* Sidebar Content */}
         <div className="mb-4 flex-1 space-y-5 overflow-y-auto border-b border-gray-200 p-4 pb-4">
           {/* Generate Cover Letter */}

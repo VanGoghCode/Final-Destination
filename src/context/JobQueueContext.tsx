@@ -89,7 +89,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
   const read = useCallback(async () => {
     const next = await apiJSON<State>("/api/queue?state=1", {
       cache: "no-store",
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(120_000),
     });
     if (!Array.isArray(next.jobs) || typeof next.paused !== "boolean")
       throw new Error("Invalid queue response");
@@ -120,7 +120,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
         .catch(() => undefined)
         .then(async () => {
           try {
-            const result = await apiJSON<T>(url, { ...init, signal: AbortSignal.timeout(10_000) });
+            const result = await apiJSON<T>(url, { ...init, signal: AbortSignal.timeout(120_000) });
             blocked.current = false;
             try {
               commit(await read());
@@ -185,7 +185,7 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
       }
     };
     void tick();
-    const timer = setInterval(() => void tick(), 3000);
+    const timer = setInterval(() => void tick(), 15000);
     const retry = () => {
       blocked.current = false;
       void tick();

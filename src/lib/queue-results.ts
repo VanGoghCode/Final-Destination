@@ -1,5 +1,6 @@
 import { apiJSON } from "./client-api";
 import type { QueuedJob, SavedProfile } from "./browser-queue";
+import { coverTemplate, masterContext, personalProfile } from "./personal-workspace";
 export async function readQueueResult(id: string) {
   const [jobs, context, profiles] = await Promise.all([
     apiJSON<QueuedJob[]>("/api/queue"),
@@ -14,9 +15,49 @@ export async function readQueueResult(id: string) {
   return {
     ...job,
     masterContext: context.content || "",
-    profileFirstName: profile?.firstName || "",
-    profileLastName: profile?.lastName || "",
+    profileFirstName: profile?.firstName || personalProfile.firstName,
+    profileLastName: profile?.lastName || personalProfile.lastName,
   };
+}
+export async function generateQueueCoverLetter(
+  id: string,
+  tailoredResume: string,
+  expectedCompletedAt?: number,
+) {
+  const job = await readQueueResult(id);
+  if (job.completedAt !== expectedCompletedAt)
+    throw new Error("Results changed. Refresh before generating a cover letter.");
+  const { tailoredCoverLetter } = await apiJSON<{ tailoredCoverLetter: string }>(
+    "/api/tailor-cover-letter",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        coverLetterLatex: coverTemplate.content,
+        masterContext,
+        jobDescription: job.jobDescription,
+        companyName: job.companyName,
+        positionTitle: job.positionTitle,
+        personalDetails: job.personalDetails,
+        tailoredResume,
+      }),
+      signal: AbortSignal.timeout(300_000),
+    },
+  );
+  if (!tailoredCoverLetter?.trim())
+    throw new Error("AI returned an empty cover letter. Try again.");
+  return (
+    await saveQueueResult(
+      id,
+      {
+        tailoredResume,
+        tailoredCoverLetter,
+        coverLetterLatex: coverTemplate.content,
+        includeCoverLetter: true,
+      },
+      expectedCompletedAt,
+    )
+  ).job;
 }
 export async function saveQueueResult(
   id: string,

@@ -1,4 +1,4 @@
-import { localRequest } from "./local-api";
+import { apiFetch } from "./client-api";
 
 export function installExtensionBridge() {
   const receive = async (event: MessageEvent) => {
@@ -18,13 +18,13 @@ export function installExtensionBridge() {
     )
       return;
     try {
-      const response = await localRequest(data.path, {
+      const response = await apiFetch(data.path, {
         method: data.method,
         body: data.method === "POST" ? JSON.stringify(data.body) : undefined,
       });
       if (response) reply({ status: response.status, body: await response.json() });
     } catch {
-      reply({ status: 503, body: { error: "Browser queue is unavailable" } });
+      reply({ status: 503, body: { error: "Shared queue is unavailable. Retry the submission." } });
     }
   };
   window.addEventListener("message", receive);

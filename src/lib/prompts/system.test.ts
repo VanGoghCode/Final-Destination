@@ -28,8 +28,8 @@ describe("System Prompts", () => {
   });
 
   it("SYSTEM_COVER_LETTER_RULES should forbid AI clichés", () => {
-    expect(SYSTEM_COVER_LETTER_RULES).toContain("NO AI CLICHÉS");
-    expect(SYSTEM_COVER_LETTER_RULES).toContain("tapestry");
+    expect(SYSTEM_COVER_LETTER_RULES).toContain("no buzzwords");
+    expect(SYSTEM_COVER_LETTER_RULES).toContain("generic enthusiasm");
   });
 
   it("SYSTEM_ANSWERS_RULES should specify writing tone", () => {

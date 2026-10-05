@@ -1,15 +1,12 @@
+import { resumeTemplate, masterContext } from "./personal-workspace";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { openBrowser } from "./__tests__/browser";
 import { apiJSON } from "./client-api";
 import { claimJob, setQueue, setQueuePaused, updateJobInQueue, getQueue } from "./browser-queue";
 import { job } from "./__tests__/job";
-import {
-  getResumeTemplates,
-  saveResumeTemplates,
-  saveMasterContext,
-  getMasterContext,
-} from "./storage";
+import { getResumeTemplates, getMasterContext } from "./storage";
 
+import { saveResumeTemplates, saveMasterContext } from "./__tests__/legacy-settings";
 let close: () => void;
 const input = (id = "one") => ({
   id,
@@ -36,8 +33,8 @@ describe("browser-only workspace", () => {
     ];
     await saveResumeTemplates(templates);
     await saveMasterContext("My background");
-    expect(await getResumeTemplates()).toEqual(templates);
-    expect(await getMasterContext()).toBe("My background");
+    expect(await getResumeTemplates()).toEqual([resumeTemplate]);
+    expect(await getMasterContext()).toBe(masterContext);
   });
   it("starts with an empty paused queue", async () => {
     expect(await send<{ jobs: unknown[]; paused: boolean }>("GET", undefined, "?state=1")).toEqual({

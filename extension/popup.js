@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function getBaseUrl() {
     const custom = serverUrlInput?.value?.trim().replace(/\/+$/, "");
-    const url = new URL(custom || "http://localhost:3000");
+    const url = new URL(custom || "https://final-destination-rose.vercel.app");
     if (!["http:", "https:"].includes(url.protocol))
       throw new Error("Enter an http:// or https:// app URL.");
     return url.origin;
@@ -307,56 +307,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (!Array.isArray(profiles)) throw new Error("Invalid profiles response");
         connectionDot.className = "dot online";
         container.innerHTML = "";
-        if (profileIdInput.value && !profiles.some((p) => p.id === profileIdInput.value)) {
-          profileIdInput.value = "";
-          statusEl.textContent =
-            "Saved profile is unavailable. Choose a profile or use default templates.";
-          saveFormData();
-        }
-        const defaultItem = document.createElement("button");
-        defaultItem.type = "button";
-        defaultItem.className = "profile" + (!profileIdInput.value ? " selected" : "");
-        defaultItem.dataset.id = "";
-        defaultItem.textContent = "Default templates";
-        defaultItem.onclick = () => updateSelection("");
-        container.appendChild(defaultItem);
-
-        if (profiles.length > 0) {
-          const savedProfileId = profileIdInput.value;
-
-          profiles.forEach((p) => {
-            const item = document.createElement("button");
-            item.type = "button";
-            const isSelected = savedProfileId === p.id;
-            item.className = "profile" + (isSelected ? " selected" : "");
-            item.dataset.id = p.id;
-            item.onclick = () => updateSelection(p.id);
-
-            let bg = "#3b82f6";
-            if (p.color) {
-              if (p.color.includes("red")) bg = "#ef4444";
-              else if (p.color.includes("orange")) bg = "#f97316";
-              else if (p.color.includes("green")) bg = "#10b981";
-              else if (p.color.includes("teal")) bg = "#14b8a6";
-              else if (p.color.includes("blue")) bg = "#3b82f6";
-              else if (p.color.includes("indigo")) bg = "#6366f1";
-              else if (p.color.includes("purple")) bg = "#8b5cf6";
-              else if (p.color.includes("pink")) bg = "#ec4899";
-            }
-
-            const dot = document.createElement("div");
-            dot.className = "dot";
-            dot.style.background = bg;
-            dot.textContent = p.avatarText || (p.firstName ? p.firstName[0] : "?");
-
-            const name = document.createElement("span");
-            name.textContent = p.name;
-
-            item.appendChild(dot);
-            item.appendChild(name);
-            container.appendChild(item);
-          });
-        }
+        profileIdInput.value = "kirtan";
+        container.textContent = "Kirtan Thummar · automatic template";
       } else {
         connectionDot.className = "dot offline";
         profiles = [];
@@ -370,16 +322,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       container.innerHTML =
         '<span style="font-size:11px;color:#999;">Open the app in this browser</span>';
     }
-  };
-
-  const updateSelection = (id) => {
-    profileIdInput.value = id;
-    document.querySelectorAll(".profile").forEach((item) => {
-      if (item.dataset.id === id) item.classList.add("selected");
-      else item.classList.remove("selected");
-    });
-    container.style.borderColor = "";
-    saveFormData();
   };
 
   await loadProfiles();
@@ -488,8 +430,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   addBtn.addEventListener("click", async () => {
     if (submitting) return;
-    const selectedProfileId = profileIdInput.value;
-    const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
+    const selectedProfileId = "kirtan";
+    const selectedProfile = { name: "Kirtan Thummar", color: "from-blue-500 to-blue-600" };
 
     const job = {
       companyName: companyNameInput.value.trim(),
@@ -514,14 +456,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     jobDescriptionInput.style.borderColor = "#E5E5E5";
     container.style.border = "";
 
-    if (selectedProfileId && !selectedProfile) {
-      container.style.border = "2px solid #ef4444";
-      container.style.borderRadius = "8px";
-      statusEl.textContent =
-        "This profile is unavailable. Reload profiles or choose default templates.";
-      statusEl.className = "error";
-      hasErrors = true;
-    }
     if (!job.companyName) {
       companyNameInput.style.borderColor = "#ef4444";
       hasErrors = true;

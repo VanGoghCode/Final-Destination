@@ -105,7 +105,7 @@ describe("actual extension popup", () => {
         "x-api-key",
       ),
     ).toBeNull();
-    (browser.document.querySelector(".profile") as Element).click();
+    expect(browser.document.querySelector(".profile")).toBeNull();
     for (const id of ["companyName", "positionTitle", "jobDescription"])
       (browser.document.querySelector("#" + id) as Input).value = "filled";
     (browser.document.querySelector("#addBtn") as Element).click();
@@ -150,7 +150,7 @@ describe("actual extension popup", () => {
     await new Promise((resolve) => setTimeout(resolve, 5));
     const submissions = calls.filter((r) => r.url.includes("queue"));
     expect(submissions).toHaveLength(1);
-    expect(JSON.parse(String(submissions[0]?.init?.body)).profileId).toBeUndefined();
+    expect(JSON.parse(String(submissions[0]?.init?.body)).profileId).toBe("kirtan");
   });
   it("shows server failures without asking for an app key", async () => {
     const { browser } = await openPopup("https://example.com/job", {}, () =>
