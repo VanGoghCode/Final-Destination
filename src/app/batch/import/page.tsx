@@ -92,7 +92,7 @@ export default function AutomationGateway() {
         </p>
         <p className="text-sm text-gray-600">
           Jobs stay in this browser. Use the same browser as your templates, and keep the website
-          open while the queue runs.
+          open while the queue runs. Adding new jobs starts the queue automatically.
         </p>
       </header>
       <details className="rounded-xl border p-4">

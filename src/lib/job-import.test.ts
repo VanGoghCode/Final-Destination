@@ -1,7 +1,8 @@
 import { beforeEach, afterEach, expect, it } from "bun:test";
 import { parseJobBatch, submitJobBatch } from "./job-import";
 import { openBrowser } from "./__tests__/browser";
-import { getQueue } from "./browser-queue";
+import { getQueue, readState, setQueuePaused } from "./browser-queue";
+import { processLocalQueue } from "./process-local-queue";
 import type { Profile } from "./storage";
 import { localRequest } from "./local-api";
 const profiles: Profile[] = [
@@ -103,10 +104,36 @@ it("validates every row and chosen templates before changing the queue", async (
   await expect(submitJobBatch(input([job]))).rejects.toThrow("resume template");
   expect(await getQueue()).toEqual([]);
 });
-it("preserves pause state and supports a profile template without a global default", async () => {
+it("automatically starts new bot jobs with Luna and a profile template", async () => {
+  localStorage.setItem("fd_openai_api_key", "test-key");
+  let headers: Headers | undefined;
+  globalThis.fetch = (async (_url: string, init: RequestInit) => {
+    headers = new Headers(init.headers);
+    return Response.json({ tailoredResume: "tailored resume" });
+  }) as typeof fetch;
   await submitJobBatch(input([job]));
   expect(await getQueue()).toHaveLength(1);
-  expect(JSON.parse(localStorage.getItem("fd_queue_state")!).paused).toBe(true);
+  expect(readState().paused).toBe(false);
+  expect(await processLocalQueue()).toBe(true);
+  expect(headers?.get("x-ai-provider")).toBe("openai");
+  expect(headers?.get("x-ai-model")).toBe("gpt-6-luna");
+  expect(headers?.get("x-openai-api-key")).toBe("test-key");
+  expect((await getQueue())[0]?.status).toBe("completed");
+});
+it("does not undo a manual pause when a bot replays only existing jobs", async () => {
+  await submitJobBatch(input([job]));
+  await setQueuePaused(true);
+  await submitJobBatch(input([job]));
+  expect(readState().paused).toBe(true);
+});
+it("does not save jobs or unpause the queue when browser storage is full", async () => {
+  const saved = localStorage.setItem.bind(localStorage);
+  localStorage.setItem = (key, value) => {
+    if (key === "fd_queue_state") throw Error("Storage quota exceeded");
+    saved(key, value);
+  };
+  await expect(submitJobBatch(input([job]))).rejects.toThrow("quota exceeded");
+  expect(readState()).toEqual({ jobs: [], paused: true });
 });
 it("rejects a deleted profile or missing cover template without saving any job", async () => {
   localStorage.setItem("fd_profiles", "[]");

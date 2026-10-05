@@ -168,7 +168,10 @@ export async function addJobToQueue(job: QueuedJob): Promise<boolean> {
   });
 }
 
-export async function addJobsToQueue(jobs: QueuedJob[]): Promise<{
+export async function addJobsToQueue(
+  jobs: QueuedJob[],
+  startQueue = false,
+): Promise<{
   success: boolean;
   added: number;
   duplicates: number;
@@ -194,7 +197,7 @@ export async function addJobsToQueue(jobs: QueuedJob[]): Promise<{
       added++;
     }
 
-    const ok = await setQueue(queue);
+    const ok = await saveState({ jobs: queue, ...(startQueue && added ? { paused: false } : {}) });
     return { success: ok, added, duplicates, jobs: addedJobs };
   });
 }

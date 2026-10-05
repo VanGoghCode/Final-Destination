@@ -21,8 +21,8 @@ export default function ImportGuide() {
       </Link>
       <p className="text-sm text-gray-600">
         The form validates the entire batch before saving. Repeating the same submission does not
-        create duplicate jobs. New jobs follow your queue&apos;s current pause setting. Resume the
-        queue and keep the site open to process them. Browser assistants can use the labeled form
+        create duplicate jobs. Adding new jobs starts the queue automatically; you can pause it from
+        the queue. Keep the site open to process jobs. Browser assistants can use the labeled form
         directly; bots without access to your browser can provide JSON for you to paste.
       </p>
     </main>

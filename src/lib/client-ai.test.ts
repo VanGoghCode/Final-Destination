@@ -45,9 +45,9 @@ describe("browser AI settings", () => {
     expect(localStorage.getItem("fd_deepseek_api_key")).toBe("one");
     expect(document.cookie).not.toContain("fd_openai_api_key=");
   });
-  it("preserves legacy DeepSeek header behavior without forcing a provider", () => {
+  it("defaults to Luna without forwarding a different provider's key", () => {
     localStorage.setItem("fd_deepseek_api_key", "legacy");
-    expect(getAIHeaders()).toEqual({ "x-deepseek-api-key": "legacy" });
+    expect(getAIHeaders()).toEqual({ "x-ai-provider": "openai", "x-ai-model": "gpt-6-luna" });
   });
   it("uses Secure cookies on HTTPS", () => {
     const browser = new Window({ url: "https://example.com" });

@@ -38,9 +38,8 @@ export function removeAIKey(provider: AIProvider) {
 export function getAIHeaders(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const selected = localStorage.getItem("fd_ai_provider");
-  const provider = isAIProvider(selected) ? selected : "deepseek";
-  const headers: Record<string, string> = {};
-  if (isAIProvider(selected)) headers["x-ai-provider"] = provider;
+  const provider = isAIProvider(selected) ? selected : "openai";
+  const headers: Record<string, string> = { "x-ai-provider": provider };
   if (provider === "openai")
     headers["x-ai-model"] =
       localStorage.getItem("fd_openai_model") || PROVIDER_MODELS.openai.default;

@@ -112,8 +112,13 @@ const POST = (request: Request) =>
   });
 const PUT = (request: Request) =>
   handle(async () => {
-    const { jobs: input } = await request.json();
-    if (!Array.isArray(input) || !input.length || input.length > 15)
+    const { jobs: input, startQueue } = await request.json();
+    if (
+      !Array.isArray(input) ||
+      !input.length ||
+      input.length > 15 ||
+      (startQueue !== undefined && typeof startQueue !== "boolean")
+    )
       return response({ error: "Expected 1–15 jobs" }, 400);
     const jobs: QueuedJob[] = [],
       errors: Array<{ index: number; error: string }> = [];
@@ -127,7 +132,7 @@ const PUT = (request: Request) =>
         { error: "Every job must be valid. No jobs were saved.", details: errors },
         400,
       );
-    return response(await addJobsToQueue(jobs));
+    return response(await addJobsToQueue(jobs, startQueue === true));
   });
 const PATCH = (request: Request) =>
   handle(async () => {

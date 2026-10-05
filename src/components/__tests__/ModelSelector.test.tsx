@@ -59,6 +59,11 @@ const click = async (label: string) => {
 };
 
 describe("AI model selector", () => {
+  it("shows Luna by default in a new browser", async () => {
+    await act(() => root.render(<ModelSelector />));
+    await act(() => new Promise<void>((resolve) => setTimeout(resolve, 5)));
+    expect(document.body.textContent).toContain("OpenAI Luna");
+  });
   it("shows the configured server provider without exposing its key", async () => {
     await render({
       provider: "openai",

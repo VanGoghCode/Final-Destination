@@ -136,7 +136,7 @@ export async function submitJobBatch(input: string, fallbackProfileId = "") {
   }>("/api/queue", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jobs: submitted }),
+    body: JSON.stringify({ jobs: submitted, startQueue: true }),
   });
   if (!result.success || result.errors?.length)
     throw Error("Batch was not saved completely. Check the queue before retrying.");
@@ -144,5 +144,5 @@ export async function submitJobBatch(input: string, fallbackProfileId = "") {
 }
 
 export function gatewayInstructions(profiles: Profile[], origin: string) {
-  return `Add 1–15 real jobs at ${origin}/batch/import. Read the available profiles and choose the best match for each job. Paste JSON in "Jobs JSON", select "Batch profile" if a job omits its profile, then click "Add jobs to queue". Verify the queue confirmation. Do not invent or summarize the JD: include the full posting text and a direct application-page link, not the company homepage. Keep the site open to process jobs.\n\nAvailable profiles:\n${profiles.map((profile) => `${profile.name}: ${profile.id}`).join("\n") || "Create a profile on the website first."}\n\nJSON format:\n{"jobs":[{"companyName":"Company","positionTitle":"Role","jobDescription":"Full JD copied from the job posting","applicationUrl":"https://example.com/apply/role","profileName":"Choose an available profile","includeCoverLetter":false}]}`;
+  return `Add 1–15 real jobs at ${origin}/batch/import. Read the available profiles and choose the best match for each job. Paste JSON in "Jobs JSON", select "Batch profile" if a job omits its profile, then click "Add jobs to queue". Verify the queue confirmation. Do not invent or summarize the JD: include the full posting text and a direct application-page link, not the company homepage. Adding new jobs starts the queue automatically. Keep the site open to process jobs.\n\nAvailable profiles:\n${profiles.map((profile) => `${profile.name}: ${profile.id}`).join("\n") || "Create a profile on the website first."}\n\nJSON format:\n{"jobs":[{"companyName":"Company","positionTitle":"Role","jobDescription":"Full JD copied from the job posting","applicationUrl":"https://example.com/apply/role","profileName":"Choose an available profile","includeCoverLetter":false}]}`;
 }
