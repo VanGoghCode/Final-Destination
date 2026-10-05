@@ -22,6 +22,7 @@ describe("Prompts", () => {
     expect(pair.system).toContain("ONLY the original resume and master context");
     expect(pair.system).toContain("Never invent");
     expect(pair.system).toContain("unchanged");
+    expect(pair.system).toContain("one page with similar word count and density");
     expect(pair.user).not.toContain("Floor:");
     expect(pair.user).not.toContain("INSTRUCTIONS:");
   });

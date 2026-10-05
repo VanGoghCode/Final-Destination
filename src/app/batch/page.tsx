@@ -467,7 +467,7 @@ export default function BatchProcessPage() {
                   href="/batch/import"
                   className="text-muted hover:text-foreground flex w-full items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm transition-colors hover:bg-gray-50"
                 >
-                  Import from AI
+                  Automation gateway
                 </a>
 
                 <Button
