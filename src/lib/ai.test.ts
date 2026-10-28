@@ -1088,10 +1088,12 @@ describe("Prompt Templates", () => {
   });
 
   describe("getCoverLetterTailoringPrompt", () => {
-    it("includes personality and multidisciplinary", () => {
+    it("uses a direct introduction and concrete evidence without broad opening claims", () => {
       const prompt = getCoverLetterTailoringPrompt("cl", "JD", "John", "Info");
-      expect(prompt).toContain("production ownership");
-      expect(prompt).toContain("judgment");
+      expect(prompt).toContain("WRITE-KIRTAN-COVER-LETTER");
+      expect(prompt).toContain("JD");
+      expect(prompt).toContain("John");
+      expect(prompt).toContain("Info");
     });
 
     it("forbids AI cliches (tapestry, leverage, etc.)", () => {
@@ -1101,9 +1103,10 @@ describe("Prompt Templates", () => {
       expect(prompt).toContain("no buzzwords");
     });
 
-    it("specifies 250-350 word body range", () => {
+    it("uses the current one-page contract instead of the old short-answer prompt", () => {
       const prompt = getCoverLetterTailoringPrompt("cl", "JD", "John", "Info");
-      expect(prompt).toContain("200–300 words");
+      expect(prompt).toContain("one-page cover letter");
+      expect(prompt).not.toContain("180–250 body words");
     });
   });
 

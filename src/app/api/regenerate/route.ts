@@ -1,3 +1,5 @@
+import { withJobGenerationCost } from "@/lib/job-generation-cost";
+import { withAIBudget } from "@/lib/ai-providers/http";
 import { NextResponse } from "next/server";
 import {
   regenerateResume,
@@ -6,6 +8,7 @@ import {
   regenerateEmail,
 } from "@/lib/ai";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
+import { masterContext as defaultContext } from "@/lib/personal-workspace";
 
 export type RegenerateType = "resume" | "coverLetter" | "answers" | "coldEmail" | "referenceEmail";
 
@@ -21,12 +24,13 @@ interface RegenerateRequest {
   jobDescription?: string;
   personalDetails?: string;
   masterContext?: string;
+  manualResearch?: string;
   companyName?: string;
   positionTitle?: string;
   questions?: string;
 }
 
-export async function POST(request: Request) {
+async function generate(request: Request) {
   const clientId = getClientIdentifier(request);
   const rl = checkRateLimit(`regenerate_${clientId}`, RATE_LIMITS.AI_GENERATION);
   if (!rl.success) {
@@ -92,9 +96,17 @@ export async function POST(request: Request) {
           currentContent,
           comment,
           coverLetterLatex,
-          jobDescription,
+          [
+            companyName && `Company: ${companyName}`,
+            positionTitle && `Role: ${positionTitle}`,
+            jobDescription,
+          ]
+            .filter(Boolean)
+            .join("\n"),
           personalDetails || "",
-          masterContext || "",
+          masterContext?.trim() || defaultContext,
+          tailoredResume,
+          body.manualResearch,
         );
         break;
 
@@ -151,4 +163,10 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+}
+
+export function POST(request: Request) {
+  return withJobGenerationCost(request, () =>
+    withAIBudget(285_000, () => generate(request), request.signal),
+  );
 }

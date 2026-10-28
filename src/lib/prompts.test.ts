@@ -17,17 +17,26 @@ describe("Prompts", () => {
 
     expect(pair.user).toContain("\\documentclass{article}");
     expect(pair.user).toContain("ORIGINAL RESUME");
-    expect(pair.system.split(/\s+/).length).toBeLessThan(200);
     expect(pair.system).toContain("recruiter for this JD");
     expect(pair.system).toContain("ONLY the original resume and master context");
     expect(pair.system).toContain("Never invent");
     expect(pair.system).toContain("Rewrite and reorder skills and bullets within entries");
     expect(pair.system).toContain("one page with similar word count and density");
-    expect(pair.system).toContain("Make meaningful edits where fit is unclear");
+    expect(pair.system).toContain("Aim to cover every supported keyword within the rewrite budget");
+    expect(pair.system).toContain("35% as the hard ceiling");
+    expect(pair.system).toContain("Preserve at least 65% of the original wording");
+    expect(pair.system).toContain("Measure the budget against the original resume");
+    expect(pair.system).not.toContain("Substantial sentence rewrites");
+    expect(pair.system).toContain("Reassess every skills row and every experience/project bullet");
+    expect(pair.system).toContain("Target 95-100%");
+    expect(pair.system).toContain("never exceed 105%");
+    expect(pair.system).toContain("original line footprint");
+    expect(pair.system).toContain("Unsupported JD requirements stay unclaimed");
+    expect(pair.system).toContain("silently audit supported keyword coverage");
     expect(pair.system).not.toMatch(/minimal edits|prefer small wording changes/);
   });
 
-  it("regeneration uses the same short rules and does not trust previous generated claims", () => {
+  it("regeneration uses the same comprehensive rules and does not trust previous generated claims", () => {
     const pair = buildResumeRegenerationPrompt({
       masterContext: "facts",
       originalLatex: "original",

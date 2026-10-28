@@ -1,6 +1,7 @@
 import { isValidInput } from "./sanitize";
-import { cleanLatex } from "./latex";
+import { cleanLatex, cleanCoverLetterLatex } from "./latex";
 import { getSelectedAIProvider } from "./ai-providers";
+import { buildCoverLetterEditorPrompt } from "./prompts/cover-letter-editor";
 import {
   buildResumePrompt,
   buildCoverLetterPrompt,
@@ -12,6 +13,7 @@ import {
   buildCoverLetterRegenerationPrompt,
   buildQuestionPrompt,
   buildInternetQuestionPrompt,
+  SYSTEM_QUESTION_RULES,
 } from "./prompts/index";
 
 async function generate(prompt: string, systemPrompt?: string, callTag?: string): Promise<string> {
@@ -24,6 +26,13 @@ async function generate(prompt: string, systemPrompt?: string, callTag?: string)
   // Retries live inside the provider, which bounds all attempts + backoff to a
   // single time budget so the route answers before Vercel's function deadline.
   return provider.generateContent(prompt, systemPrompt);
+}
+
+async function editCoverLetter(originalRequest: string, draft: string): Promise<string> {
+  const pair = buildCoverLetterEditorPrompt(originalRequest, draft);
+  // Same selected model, no second search. Both calls share the route's AI budget.
+  // Surface failures rather than silently presenting an unreviewed first draft.
+  return cleanCoverLetterLatex(await generate(pair.user, pair.system, "cover-letter-edit"));
 }
 
 export async function extractJobLocationInfo(
@@ -93,7 +102,7 @@ export async function tailorCoverLetter(
   });
 
   const result = await generate(pair.user, pair.system, "cover-letter");
-  return cleanLatex(result);
+  return editCoverLetter(pair.user, result);
 }
 
 export async function generateAnswers(
@@ -182,6 +191,8 @@ export async function regenerateCoverLetter(
   jobDescription: string,
   personalDetails: string,
   masterContext: string,
+  tailoredResume?: string,
+  manualResearch?: string,
 ): Promise<string> {
   const pair = buildCoverLetterRegenerationPrompt({
     userComment,
@@ -190,10 +201,12 @@ export async function regenerateCoverLetter(
     jobDescription,
     personalDetails,
     masterContext,
+    tailoredResume,
+    manualResearch,
   });
 
   const result = await generate(pair.user, pair.system, "regenerate-cover-letter");
-  return cleanLatex(result);
+  return editCoverLetter(pair.user, result);
 }
 
 export async function regenerateAnswers(
@@ -270,6 +283,16 @@ Apply the feedback. Return the regenerated email.`;
   return generate(userPrompt, systemPrompt, "regenerate-email");
 }
 
+// Remove legacy model wrappers before displaying or copying a quick answer.
+function cleanQuestionAnswer(answer: string) {
+  return answer
+    .trim()
+    .replace(/^```(?:text|markdown)?\s*\n([\s\S]*?)\n```$/i, "$1")
+    .replace(/^(?:\*\*)?Question\s*:(?:\*\*)?[\s\S]*?\n\s*(?:\*\*)?Answer\s*:(?:\*\*)?\s*/i, "")
+    .replace(/^(?:\*\*)?Answer\s*:(?:\*\*)?\s*/i, "")
+    .trim();
+}
+
 export async function answerGeneralQuestion(
   question: string,
   tailoredResume: string,
@@ -293,7 +316,7 @@ export async function answerGeneralQuestion(
     limitValue,
   });
 
-  return generate(pair.user, pair.system, "question");
+  return cleanQuestionAnswer(await generate(pair.user, pair.system, "question"));
 }
 
 export async function answerWithInternet(
@@ -319,7 +342,7 @@ export async function answerWithInternet(
     limitValue,
   });
 
-  return generate(pair.user, pair.system, "question-internet");
+  return cleanQuestionAnswer(await generate(pair.user, pair.system, "question-internet"));
 }
 
 export async function answerInternetOnly(
@@ -329,8 +352,7 @@ export async function answerInternetOnly(
   limitType?: "words" | "characters",
   limitValue?: number,
 ): Promise<string> {
-  const systemPrompt =
-    "You are a helpful research assistant. Provide accurate information from your training knowledge.";
+  const systemPrompt = `${SYSTEM_QUESTION_RULES}\n\nNo candidate background was supplied. Answer factual questions without inventing personal experience. Do not claim to have searched the web or verified current facts; state uncertainty where needed.`;
   const limitInstruction =
     limitType && limitValue ? `\nIMPORTANT: Answer MUST be within ${limitValue} ${limitType}.` : "";
   const contextHint =
@@ -344,5 +366,5 @@ ${contextHint}
 ## INSTRUCTIONS:
 Provide a clear, accurate answer based on your training knowledge. Use natural tone. Do NOT use ** or em dashes.${limitInstruction}`;
 
-  return generate(userPrompt, systemPrompt, "question-internet-only");
+  return cleanQuestionAnswer(await generate(userPrompt, systemPrompt, "question-internet-only"));
 }

@@ -1,4 +1,33 @@
 // Runs only in the configured app tab. Queue data stays in that website's browser storage.
+window.addEventListener("message", (event) => {
+  if (
+    event.source !== window ||
+    event.origin !== location.origin ||
+    event.data?.type !== "fd-pdf-request" ||
+    typeof event.data.id !== "string" ||
+    !["ping", "save"].includes(event.data.action)
+  )
+    return;
+  const { id, action, fileName, pdfBase64 } = event.data;
+  chrome.runtime
+    .sendMessage({ type: "fd-pdf-download", action, fileName, pdfBase64 })
+    .then((result) => {
+      window.postMessage({ type: "fd-pdf-response", id, ...result }, location.origin);
+    })
+    .catch(() => {
+      window.postMessage(
+        {
+          type: "fd-pdf-response",
+          id,
+          ok: false,
+          error:
+            "Reload the updated Final Destination extension and allow its download permission.",
+        },
+        location.origin,
+      );
+    });
+});
+
 chrome.runtime.onMessage.addListener((message, _sender, reply) => {
   if (message?.type !== "fd-app-request") return;
   (async () => {

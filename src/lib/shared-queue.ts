@@ -1,13 +1,15 @@
 import { apiJSON, APIError } from "./client-api";
 import type { QueuedJob } from "./browser-queue";
-export const getQueue = () => apiJSON<QueuedJob[]>("/api/queue");
+const queueSignal = () => AbortSignal.timeout(120_000);
+export const getQueue = () => apiJSON<QueuedJob[]>("/api/queue", { signal: queueSignal() });
 export const isQueuePaused = async () =>
-  (await apiJSON<{ paused: boolean }>("/api/queue?state")).paused;
+  (await apiJSON<{ paused: boolean }>("/api/queue?state", { signal: queueSignal() })).paused;
 const patch = <T>(body: object) =>
   apiJSON<T>("/api/queue", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal: queueSignal(),
   });
 export const setQueuePaused = (paused: boolean) => patch({ action: paused ? "pause" : "resume" });
 export async function claimJob() {

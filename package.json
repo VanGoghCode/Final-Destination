@@ -4,7 +4,11 @@
   "private": false,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/sync-cover-letter-skill.mjs --check",
     "build": "next build",
+    "cover-letter:sync": "node scripts/sync-cover-letter-skill.mjs",
+    "cover-letter:check": "node scripts/sync-cover-letter-skill.mjs --check",
+    "cover-letter:eval": "bun scripts/evaluate-cover-letter.ts",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",

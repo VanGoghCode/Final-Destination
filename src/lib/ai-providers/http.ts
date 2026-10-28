@@ -1,3 +1,4 @@
+import { recordGenerationResponse } from "../generation-cost";
 import { getApiKey } from "../api-key";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { isValidInput } from "../sanitize";
@@ -78,7 +79,9 @@ export abstract class HTTPProvider implements AIProviderInterface {
             `${this.label} API error (${response.status}): ${await response.text()}`,
             response.status,
           );
-        return this.readText(await response.json());
+        const data = await response.json();
+        recordGenerationResponse(this.provider, JSON.parse(body).model, data);
+        return this.readText(data);
       } catch (error) {
         budgets.getStore()?.signal?.throwIfAborted();
         lastError = error instanceof Error ? error : new Error(String(error));

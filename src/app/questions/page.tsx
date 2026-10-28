@@ -10,6 +10,11 @@ import Sidebar from "@/components/Sidebar";
 import CopyButton from "@/components/CopyButton";
 import Button from "@/components/Button";
 
+function jobHeaders() {
+  const id = new URLSearchParams(window.location.search).get("jobId");
+  return { "Content-Type": "application/json", ...(id ? { "x-job-id": id } : {}) };
+}
+
 interface QuestionField {
   id: number;
   question: string;
@@ -112,7 +117,7 @@ export default function QuestionsPage() {
     try {
       const response = await apiFetch("/api/answers", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jobHeaders(),
         body: JSON.stringify({
           questions: filledQuestions.map((q) => ({
             question: q.question,
@@ -151,7 +156,7 @@ export default function QuestionsPage() {
     try {
       const response = await apiFetch("/api/emails", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jobHeaders(),
         body: JSON.stringify({
           type,
           tailoredResume,
@@ -188,7 +193,7 @@ export default function QuestionsPage() {
     try {
       const response = await apiFetch("/api/regenerate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jobHeaders(),
         body: JSON.stringify({
           type: "answers",
           currentContent: generatedAnswers,

@@ -12,6 +12,7 @@ data/backup*.json
 # Local user storage dumps
 storage-dump*.json
 user-data*.json
+/output/cover-letter-review/
 
 # PII patterns — catch accidental commits
 *resume*.tex

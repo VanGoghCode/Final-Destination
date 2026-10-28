@@ -64,12 +64,10 @@ export default function TailoredPage() {
       .trim();
 
   // Use firstName and lastName from context, fallback to defaults
-  const fullName = `${firstName || "First"}_${lastName || "Last"}`;
+  const fullName = `${formatName(firstName || "First")}_${formatName(lastName || "Last")}`;
 
-  // Detailed filenames (with company and role) — used for download
-  const resumeFileName = `${fullName}_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_Resume`;
-  const simpleResumeFileName = `${firstName || "First"}_${lastName || "Last"}_Resume`;
-  const coverLetterFileName = `${fullName}_${formatName(companyName || "Company")}_${formatName(positionTitle || "Position")}_CoverLetter`;
+  const resumeFileName = `${fullName}_resume`;
+  const coverLetterFileName = `${fullName}_cover_letter`;
 
   const copyToClipboard = async (text: string, type: "resume" | "coverLetter") => {
     await navigator.clipboard.writeText(text);
@@ -153,6 +151,9 @@ export default function TailoredPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           coverLetterLatex,
+          tailoredResume,
+          companyName,
+          positionTitle,
           jobDescription,
           personalDetails,
           masterContext,
@@ -537,14 +538,13 @@ export default function TailoredPage() {
           showPreview={true}
           fullHeight={true}
           downloadFileName={resumeFileName}
-          simpleDownloadFileName={simpleResumeFileName}
         />
       </main>
 
       {/* Cover Letter Preview Modal */}
       {showCoverLetterPreview && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 sm:p-8">
-          <div className="relative flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-2 sm:p-3">
+          <div className="relative flex h-full w-full max-w-none flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
             <button
               onClick={() => setShowCoverLetterPreview(false)}
               className="absolute top-4 right-4 z-[70] rounded-full border border-gray-100 bg-white/80 p-2 text-gray-500 shadow-md transition-all hover:bg-white hover:text-gray-800"

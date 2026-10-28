@@ -22,7 +22,13 @@
       "Read(//d/Code/Final-Destination/**)",
       "Bash(ls .husky/)",
       "Bash(cat .husky/pre-commit)",
-      "Bash(cat .husky/pre-push)"
+      "Bash(cat .husky/pre-push)",
+      "Bash(git -C /d/Code/Final-Destination branch --show-current)",
+      "Bash(git -C /d/Code/Final-Destination log --oneline -8)",
+      "Bash(git -C /d/Code/Final-Destination status --short)",
+      "PowerShell(vercel env *)",
+      "WebSearch",
+      "PowerShell(vercel *)"
     ]
   }
 }

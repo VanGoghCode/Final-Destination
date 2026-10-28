@@ -1,3 +1,4 @@
+import { withJobGenerationCost } from "@/lib/job-generation-cost";
 import { resumeTemplate, masterContext as defaultContext } from "@/lib/personal-workspace";
 import { aiErrorResponse } from "@/lib/api-error";
 import { withAIBudget } from "@/lib/ai-providers/http";
@@ -13,7 +14,9 @@ import {
 
 export const maxDuration = 300;
 export function POST(request: Request) {
-  return withAIBudget(285_000, () => generate(request), request.signal);
+  return withJobGenerationCost(request, () =>
+    withAIBudget(285_000, () => generate(request), request.signal),
+  );
 }
 async function generate(request: Request) {
   try {
@@ -56,7 +59,7 @@ async function generate(request: Request) {
     const sanitizedMasterContext = sanitizeForAI(masterContext || "");
     const sanitizedManualResearch = manualResearch ? sanitizeForAI(manualResearch) : undefined;
 
-    const [tailoredResume, locationInfo] = await Promise.all([
+    const [resumeResult, locationResult] = await Promise.allSettled([
       tailorResume(
         sanitizedResume,
         sanitizedJobDescription,
@@ -66,6 +69,12 @@ async function generate(request: Request) {
       ),
       extractJobLocationInfo(sanitizedJobDescription, companyName || ""),
     ]);
+
+    // Wait for both paid calls, including failures, before usage is persisted.
+    if (resumeResult.status === "rejected") throw resumeResult.reason;
+    if (locationResult.status === "rejected") throw locationResult.reason;
+    const tailoredResume = resumeResult.value;
+    const locationInfo = locationResult.value;
 
     return NextResponse.json({
       tailoredResume,

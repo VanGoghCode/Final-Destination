@@ -1,3 +1,4 @@
+import { withJobGenerationCost } from "@/lib/job-generation-cost";
 import { NextResponse } from "next/server";
 import { generateAnswers } from "@/lib/ai";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
@@ -9,7 +10,7 @@ interface QuestionInput {
   limitValue?: number;
 }
 
-export async function POST(request: Request) {
+async function generate(request: Request) {
   try {
     const clientId = getClientIdentifier(request);
     const rateLimitResult = checkRateLimit(`answers_${clientId}`, RATE_LIMITS.AI_GENERATION);
@@ -65,4 +66,8 @@ export async function POST(request: Request) {
     console.error("Error generating answers:", error);
     return NextResponse.json({ error: "Failed to generate answers." }, { status: 500 });
   }
+}
+
+export function POST(request: Request) {
+  return withJobGenerationCost(request, () => generate(request));
 }

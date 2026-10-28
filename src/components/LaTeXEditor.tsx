@@ -2,6 +2,7 @@
 
 import { apiFetch } from "@/lib/client-api";
 import { extractApiError } from "@/lib/api-error";
+import { savePdf } from "@/lib/pdf-download";
 
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import CopyButton from "./CopyButton";
@@ -19,9 +20,8 @@ interface LaTeXEditorProps {
   showPreview?: boolean;
   fullHeight?: boolean;
   downloadFileName?: string;
-  simpleDownloadFileName?: string;
   jobUrl?: string;
-  onApply?: () => void; // Callback after download to redirect
+  jobId?: string;
 }
 
 export default function LaTeXEditor({
@@ -33,15 +33,17 @@ export default function LaTeXEditor({
   showPreview = true,
   fullHeight = false,
   downloadFileName,
-  simpleDownloadFileName,
   jobUrl,
-  onApply,
+  jobId,
 }: LaTeXEditorProps) {
   const [editableCode, setEditableCode] = useState(code);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfBase64, setPdfBase64] = useState<string | null>(null); // Store base64 for Edge compatibility
   const [isCompiling, setIsCompiling] = useState(false);
   const [compileError, setCompileError] = useState<string | null>(null);
+  const [isSavingPdf, setIsSavingPdf] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+  const [saveError, setSaveError] = useState("");
   const [showFeedback, setShowFeedback] = useState(false);
   const [comment, setComment] = useState("");
   const [viewMode, setViewMode] = useState<"split" | "code" | "preview">("split");
@@ -75,74 +77,79 @@ export default function LaTeXEditor({
   }, [code, isEditing]);
 
   // Compile LaTeX to PDF
-  const compileLatex = useCallback(async (latexCode: string) => {
-    compileRequestRef.current?.abort();
-    const controller = new AbortController();
-    compileRequestRef.current = controller;
-    if (!latexCode.trim()) {
-      if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
-      pdfUrlRef.current = null;
-      setPdfUrl(null);
-      setPdfBase64(null);
-      setIsCompiling(false);
+  const compileLatex = useCallback(
+    async (latexCode: string) => {
+      compileRequestRef.current?.abort();
+      const controller = new AbortController();
+      compileRequestRef.current = controller;
+      if (!latexCode.trim()) {
+        if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
+        pdfUrlRef.current = null;
+        setPdfUrl(null);
+        setPdfBase64(null);
+        setIsCompiling(false);
+        setCompileError(null);
+        return;
+      }
+
+      setIsCompiling(true);
       setCompileError(null);
-      return;
-    }
-
-    setIsCompiling(true);
-    setCompileError(null);
-    if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
-    pdfUrlRef.current = null;
-    setPdfUrl(null);
-    setPdfBase64(null);
-
-    try {
-      const response = await apiFetch("/api/latex-preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ latex: latexCode }),
-        signal: controller.signal,
-      });
-      if (!response.ok)
-        throw new Error(await extractApiError(response, "Preview unavailable. Retry compilation."));
-      const data = await response.json();
-      if (controller.signal.aborted) return;
-      if (typeof data.pdf !== "string" || !atob(data.pdf).startsWith("%PDF-"))
-        throw new Error("The compiler returned an invalid PDF. Retry compilation.");
-      const compiledSource: string = typeof data.latex === "string" ? data.latex : latexCode;
-      compiledSourceRef.current = compiledSource;
-      if (compiledSource !== latexCode) {
-        setEditableCode(compiledSource);
-        onCodeChangeRef.current?.(compiledSource);
-      }
-
-      // Store base64 for Edge compatibility (data URL approach)
-      setPdfBase64(data.pdf);
-
-      // Create blob URL from base64 PDF (for Chrome/Firefox)
-      const binaryString = atob(data.pdf);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-
-      // Revoke old URL to prevent memory leak
-      if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
-      pdfUrlRef.current = url;
-      setPdfUrl(url);
-    } catch (err) {
-      if (controller.signal.aborted) return;
-      setCompileError(err instanceof Error ? err.message : "Compilation failed");
       if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
       pdfUrlRef.current = null;
       setPdfUrl(null);
       setPdfBase64(null);
-    } finally {
-      if (compileRequestRef.current === controller) setIsCompiling(false);
-    }
-  }, []);
+
+      try {
+        const response = await apiFetch("/api/latex-preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...(jobId ? { "x-job-id": jobId } : {}) },
+          body: JSON.stringify({ latex: latexCode }),
+          signal: controller.signal,
+        });
+        if (!response.ok)
+          throw new Error(
+            await extractApiError(response, "Preview unavailable. Retry compilation."),
+          );
+        const data = await response.json();
+        if (controller.signal.aborted) return;
+        if (typeof data.pdf !== "string" || !atob(data.pdf).startsWith("%PDF-"))
+          throw new Error("The compiler returned an invalid PDF. Retry compilation.");
+        const compiledSource: string = typeof data.latex === "string" ? data.latex : latexCode;
+        compiledSourceRef.current = compiledSource;
+        if (compiledSource !== latexCode) {
+          setEditableCode(compiledSource);
+          onCodeChangeRef.current?.(compiledSource);
+        }
+
+        // Store base64 for Edge compatibility (data URL approach)
+        setPdfBase64(data.pdf);
+
+        // Create blob URL from base64 PDF (for Chrome/Firefox)
+        const binaryString = atob(data.pdf);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+
+        // Revoke old URL to prevent memory leak
+        if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
+        pdfUrlRef.current = url;
+        setPdfUrl(url);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        setCompileError(err instanceof Error ? err.message : "Compilation failed");
+        if (pdfUrlRef.current) URL.revokeObjectURL(pdfUrlRef.current);
+        pdfUrlRef.current = null;
+        setPdfUrl(null);
+        setPdfBase64(null);
+      } finally {
+        if (compileRequestRef.current === controller) setIsCompiling(false);
+      }
+    },
+    [jobId],
+  );
 
   // Debounced compilation on code change (only when auto-compile is enabled)
   const handleCodeChange = useCallback(
@@ -383,39 +390,35 @@ export default function LaTeXEditor({
     setShowFeedback(false);
   };
 
-  // Download PDF — once with detailed name, plus simple name if provided
-  const handleDownloadPdf = () => {
-    if (pdfUrl) {
-      // First download with detailed filename
-      const link = document.createElement("a");
-      link.href = pdfUrl;
-      link.download = downloadFileName
-        ? `${downloadFileName}.pdf`
-        : `${title.replace(/\s+/g, "_")}.pdf`;
-      link.click();
-
-      // Second download with firstname_lastname_resume if provided
-      if (simpleDownloadFileName) {
-        setTimeout(() => {
-          const simpleLink = document.createElement("a");
-          simpleLink.href = pdfUrl;
-          simpleLink.download = `${simpleDownloadFileName}.pdf`;
-          simpleLink.click();
-        }, 500);
-      }
+  const handleDownloadPdf = async () => {
+    if (!pdfUrl || !pdfBase64 || isSavingPdf) return false;
+    setIsSavingPdf(true);
+    setSaveError("");
+    setSaveMessage("");
+    const fileName = `${downloadFileName || title.replace(/\s+/g, "_")}.pdf`;
+    try {
+      await savePdf(fileName, pdfBase64);
+      setSaveMessage(`Saved ${fileName} in Downloads\\apply.`);
+      return true;
+    } catch (error) {
+      setSaveError(
+        error instanceof Error ? error.message : "Could not save PDF in Downloads\\apply.",
+      );
+      return false;
+    } finally {
+      setIsSavingPdf(false);
     }
   };
 
-  // Handle Apply - download PDF and redirect to job URL
-  const handleApply = () => {
-    // First download the PDF
-    handleDownloadPdf();
-    // Then call the onApply callback to redirect
-    if (onApply) {
-      // Small delay to ensure download starts
-      setTimeout(() => {
-        onApply();
-      }, 300);
+  const handleApply = async () => {
+    if (!jobUrl || isSavingPdf) return;
+    const applicationTab = window.open("about:blank", "_blank");
+    if (applicationTab) applicationTab.opener = null;
+    if (await handleDownloadPdf()) {
+      if (applicationTab) applicationTab.location.replace(jobUrl);
+      else setSaveMessage("PDF saved. Use the application link above to open the job.");
+    } else {
+      applicationTab?.close();
     }
   };
 
@@ -624,6 +627,7 @@ export default function LaTeXEditor({
           {showPreview && pdfUrl && (
             <Button
               onClick={handleDownloadPdf}
+              disabled={isSavingPdf}
               variant="ghost"
               className="copy-btn"
               title="Download PDF"
@@ -705,9 +709,10 @@ export default function LaTeXEditor({
           )}
 
           {/* Apply Button - Download and Redirect */}
-          {onApply && pdfUrl && (
+          {jobUrl && pdfUrl && (
             <Button
               onClick={handleApply}
+              disabled={isSavingPdf}
               variant="success"
               className="text-xs font-medium"
               title="Download resume and apply"
@@ -730,6 +735,15 @@ export default function LaTeXEditor({
           )}
         </div>
       </div>
+
+      {(saveMessage || saveError) && (
+        <p
+          role={saveError ? "alert" : "status"}
+          className={`px-4 py-2 text-xs ${saveError ? "text-red-600" : "text-muted"}`}
+        >
+          {saveError || saveMessage}
+        </p>
+      )}
 
       {/* Content Area */}
       <div className="flex min-h-0 flex-1 overflow-hidden">

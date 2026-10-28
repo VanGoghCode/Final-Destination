@@ -11,10 +11,12 @@ import {
   SYSTEM_RESUME_RULES,
   SYSTEM_COVER_LETTER_RULES,
   SYSTEM_ANSWERS_RULES,
+  SYSTEM_QUESTION_RULES,
   SYSTEM_EMAIL_RULES,
   SYSTEM_EXTRACTION,
 } from "./system";
 import { TONE_INSTRUCTIONS } from "./tone";
+import { buildKirtanApplicationVoiceContext } from "./kirtan-voice";
 import {
   buildResumeUserPrompt,
   buildCoverLetterUserPrompt,
@@ -110,19 +112,19 @@ export function buildCoverLetterRegenerationPrompt(data: RegenerationData): Prom
   };
 }
 
-/** General question (context only): system answer rules + tone */
+/** Quick question: paste-ready answer in the candidate's casual voice. */
 export function buildQuestionPrompt(data: QuestionData): PromptPair {
   return {
-    system: [SYSTEM_ANSWERS_RULES, TONE_INSTRUCTIONS].join("\n\n"),
-    user: buildGeneralQuestionUserPrompt(data),
+    system: SYSTEM_QUESTION_RULES,
+    user: `${buildGeneralQuestionUserPrompt(data)}\n\n${buildKirtanApplicationVoiceContext()}`,
   };
 }
 
-/** Internet question (context + web): system answer rules + tone */
+/** Quick question with external context: same paste-ready output. */
 export function buildInternetQuestionPrompt(data: QuestionData): PromptPair {
   return {
-    system: [SYSTEM_ANSWERS_RULES, TONE_INSTRUCTIONS].join("\n\n"),
-    user: buildInternetQuestionUserPrompt(data),
+    system: SYSTEM_QUESTION_RULES,
+    user: `${buildInternetQuestionUserPrompt(data)}\n\n${buildKirtanApplicationVoiceContext()}`,
   };
 }
 

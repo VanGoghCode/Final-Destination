@@ -1,10 +1,11 @@
+import { withJobGenerationCost } from "@/lib/job-generation-cost";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
 import { compileLatex, LatexError } from "@/lib/latex";
 import { aiErrorResponse } from "@/lib/api-error";
 import { withAIBudget } from "@/lib/ai-providers/http";
 
 export const maxDuration = 300;
-export function POST(request: Request) {
+function generate(request: Request) {
   return withAIBudget(
     275_000,
     async () => {
@@ -30,4 +31,8 @@ export function POST(request: Request) {
     },
     request.signal,
   );
+}
+
+export function POST(request: Request) {
+  return withJobGenerationCost(request, () => generate(request));
 }
