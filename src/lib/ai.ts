@@ -1,3 +1,4 @@
+import { buildResumeEditorPrompt } from "./prompts/kirtan-resume";
 import { isValidInput } from "./sanitize";
 import { cleanLatex, cleanCoverLetterLatex } from "./latex";
 import { getSelectedAIProvider } from "./ai-providers";
@@ -26,6 +27,12 @@ async function generate(prompt: string, systemPrompt?: string, callTag?: string)
   // Retries live inside the provider, which bounds all attempts + backoff to a
   // single time budget so the route answers before Vercel's function deadline.
   return provider.generateContent(prompt, systemPrompt);
+}
+
+async function editResume(originalRequest: string, draft: string): Promise<string> {
+  const pair = buildResumeEditorPrompt(originalRequest, draft);
+  // Uses the selected model and the route's shared deadline/cost accounting.
+  return cleanLatex(await generate(pair.user, pair.system, "resume-edit"));
 }
 
 async function editCoverLetter(originalRequest: string, draft: string): Promise<string> {
@@ -81,7 +88,7 @@ export async function tailorResume(
   });
 
   const result = await generate(pair.user, pair.system, "resume");
-  return cleanLatex(result);
+  return editResume(pair.user, result);
 }
 
 export async function tailorCoverLetter(
@@ -170,6 +177,7 @@ export async function regenerateResume(
   jobDescription: string,
   personalDetails: string,
   masterContext: string,
+  manualResearch?: string,
 ): Promise<string> {
   const pair = buildResumeRegenerationPrompt({
     userComment,
@@ -178,10 +186,11 @@ export async function regenerateResume(
     jobDescription,
     personalDetails,
     masterContext,
+    manualResearch,
   });
 
   const result = await generate(pair.user, pair.system, "regenerate-resume");
-  return cleanLatex(result);
+  return editResume(pair.user, result);
 }
 
 export async function regenerateCoverLetter(

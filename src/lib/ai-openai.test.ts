@@ -108,7 +108,9 @@ describe("OpenAI generation workflows", () => {
       );
       try {
         expect(await run()).toBe("output");
-        expect(spy).toHaveBeenCalledTimes(name.includes("cover letter") ? 2 : 1);
+        expect(spy).toHaveBeenCalledTimes(
+          name.includes("cover letter") || name.includes("resume") ? 2 : 1,
+        );
         expect(spy.mock.calls[0]![0]).toBeTruthy();
         expect(spy.mock.calls[0]![1]).toBeTruthy();
         if (quickQuestion) {

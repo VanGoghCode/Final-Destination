@@ -1081,7 +1081,8 @@ describe("Prompt Templates", () => {
       expect(prompt).toContain(SAMPLE_LATEX);
       expect(prompt).toContain("JD text");
       expect(prompt).toContain("style preference");
-      expect(prompt).not.toContain("Company research");
+      expect(prompt).toContain("Company research");
+      expect(prompt).toContain("EMPLOYER RESEARCH (relevance only; not candidate evidence)");
       expect(prompt).toContain("Never invent");
       expect(prompt).toContain("without markdown");
     });
@@ -1132,7 +1133,7 @@ describe("Prompt Templates", () => {
       const prompt = getResumeRegenerationPrompt("fix", "curr", "orig", "JD", "P", "I");
       expect(prompt).toContain("FEEDBACK (apply within factual limits)");
       expect(prompt).toContain("CURRENT DRAFT (not a factual source)");
-      expect(prompt).toContain("Return only complete LaTeX");
+      expect(prompt).toContain("Return only the complete LaTeX document");
     });
   });
 
@@ -1332,8 +1333,10 @@ describe("Integration — end-to-end flow", () => {
 
   it("handles concurrent requests independently", async () => {
     let count = 0;
-    mockGenerateContentDynamic(() => {
+    mockGenerateContentDynamic((prompt) => {
       count++;
+      if (prompt.includes("GENERATED DRAFT TO REVIEW"))
+        return "reviewed " + prompt.match(/response \d+/)![0];
       return "response " + count;
     });
 
@@ -1343,10 +1346,10 @@ describe("Integration — end-to-end flow", () => {
       ai.tailorResume("c", "JD", "John", "mc"),
     ]);
 
-    expect(r1).toBe("response 1");
-    expect(r2).toBe("response 2");
-    expect(r3).toBe("response 3");
-    expect(count).toBe(3);
+    expect(r1).toBe("reviewed response 1");
+    expect(r2).toBe("reviewed response 2");
+    expect(r3).toBe("reviewed response 3");
+    expect(count).toBe(6);
     expect(new Set([r1, r2, r3]).size).toBe(3);
   });
 

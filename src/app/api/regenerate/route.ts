@@ -82,6 +82,7 @@ async function generate(request: Request) {
           jobDescription,
           personalDetails || "",
           masterContext || "",
+          body.manualResearch,
         );
         break;
 

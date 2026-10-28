@@ -10,6 +10,7 @@
 // --------------------------------------------------
 // Resume Tailoring
 // --------------------------------------------------
+import { buildResumeSpaceGuidance } from "./resume-space";
 
 export interface ResumeTailoringData {
   masterContext: string;
@@ -30,7 +31,13 @@ ${data.resumeLatex}
 ${data.jobDescription}
 
 ## PREFERENCES (style only):
-${data.personalDetails}`;
+${data.personalDetails}
+
+## EMPLOYER RESEARCH (relevance only; not candidate evidence):
+${data.manualResearch || "Not supplied; use the JD for relevance."}
+
+## SPACE GUIDANCE FROM THE ORIGINAL TEMPLATE (approximate, not a page-count guarantee):
+${buildResumeSpaceGuidance(data.resumeLatex)}`;
 }
 
 // --------------------------------------------------

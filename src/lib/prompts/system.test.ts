@@ -18,11 +18,9 @@ describe("System Prompts", () => {
   });
 
   it("SYSTEM_RESUME_RULES should include critical instructions", () => {
+    expect(SYSTEM_RESUME_RULES).toContain("Rank the 3-5 main hiring priorities");
     expect(SYSTEM_RESUME_RULES).toContain(
-      "Rank the role's requirements and map them to candidate evidence",
-    );
-    expect(SYSTEM_RESUME_RULES).toContain(
-      "Preserve identity, links, entries, chronology, bullet counts",
+      "Preserve identity, contact links, employment entries, chronology",
     );
     expect(SYSTEM_RESUME_RULES).toContain("Never invent or exaggerate");
   });
