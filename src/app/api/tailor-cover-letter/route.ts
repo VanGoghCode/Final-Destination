@@ -1,3 +1,4 @@
+import { withJobGenerationCost } from "@/lib/job-generation-cost";
 import { coverTemplate, masterContext as defaultContext } from "@/lib/personal-workspace";
 import { aiErrorResponse } from "@/lib/api-error";
 import { withAIBudget } from "@/lib/ai-providers/http";
@@ -13,7 +14,9 @@ import {
 
 export const maxDuration = 300;
 export function POST(request: Request) {
-  return withAIBudget(285_000, () => generate(request), request.signal);
+  return withJobGenerationCost(request, () =>
+    withAIBudget(285_000, () => generate(request), request.signal),
+  );
 }
 async function generate(request: Request) {
   try {
@@ -62,7 +65,7 @@ async function generate(request: Request) {
           .join("\n"),
       ),
       sanitizePersonalDetails(personalDetails || ""),
-      sanitizeForAI(masterContext || ""),
+      sanitizeForAI(masterContext?.trim() || defaultContext),
       manualResearch ? sanitizeForAI(manualResearch) : undefined,
       tailoredResume ? sanitizeLatex(tailoredResume) : undefined,
     );

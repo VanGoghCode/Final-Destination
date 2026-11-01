@@ -163,6 +163,27 @@ export default function BatchProcessPage() {
     "all" | "pending" | "processing" | "completed" | "failed" | "cancelled"
   >("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deletingSelected, setDeletingSelected] = useState(false);
+  const selectedJobs = queue.filter((job) => selectedIds.includes(job.id));
+
+  const handleDeleteSelected = async () => {
+    if (deletingSelected || !selectedJobs.length) return;
+    if (
+      selectedJobs.some(isActiveJob) &&
+      !window.confirm("Cancel processing and delete the selected jobs and their results?")
+    )
+      return;
+    setDeletingSelected(true);
+    try {
+      for (const job of selectedJobs) {
+        if (await removeJob(job.id)) setSelectedIds((ids) => ids.filter((id) => id !== job.id));
+        else break;
+      }
+    } finally {
+      setDeletingSelected(false);
+    }
+  };
 
   useEffect(() => {
     const close = (event: KeyboardEvent) => {
@@ -691,6 +712,54 @@ export default function BatchProcessPage() {
               />
             )}
 
+            {queue.length > 0 && (
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-gray-900"
+                    checked={
+                      filteredQueue.length > 0 &&
+                      filteredQueue.every((job) => selectedIds.includes(job.id))
+                    }
+                    disabled={
+                      deletingSelected || loading || busyIds.length > 0 || !filteredQueue.length
+                    }
+                    onChange={(event) => {
+                      const visibleIds = filteredQueue.map((job) => job.id);
+                      setSelectedIds((ids) =>
+                        event.target.checked
+                          ? [...new Set([...ids, ...visibleIds])]
+                          : ids.filter((id) => !visibleIds.includes(id)),
+                      );
+                    }}
+                  />
+                  Select all shown
+                </label>
+                <span aria-live="polite">{selectedJobs.length} selected</span>
+                {selectedJobs.length > 0 && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={deletingSelected || busyIds.length > 0}
+                      onClick={() => void handleDeleteSelected()}
+                      className="rounded-md border border-red-200 px-3 py-2 text-red-700 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {deletingSelected ? "Deleting…" : `Delete selected (${selectedJobs.length})`}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={deletingSelected}
+                      onClick={() => setSelectedIds([])}
+                      className="underline disabled:opacity-50"
+                    >
+                      Clear selection
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
             {loading ? (
               <p role="status">Loading queue...</p>
             ) : queue.length === 0 ? (
@@ -733,6 +802,14 @@ export default function BatchProcessPage() {
                   <JobQueueCard
                     key={job.id}
                     job={job}
+                    selected={selectedIds.includes(job.id)}
+                    onSelect={(selected) =>
+                      setSelectedIds((ids) =>
+                        selected
+                          ? [...new Set([...ids, job.id])]
+                          : ids.filter((id) => id !== job.id),
+                      )
+                    }
                     onRemove={() => {
                       if (
                         !isActiveJob(job) ||
@@ -760,7 +837,7 @@ export default function BatchProcessPage() {
                         : undefined
                     }
                     onCancel={() => cancelJob(job.id)}
-                    busy={busyIds.includes(job.id) || busyIds.includes("queue")}
+                    busy={deletingSelected || busyIds.includes(job.id) || busyIds.includes("queue")}
                     isCurrentJob={currentJob?.id === job.id}
                   />
                 ))}

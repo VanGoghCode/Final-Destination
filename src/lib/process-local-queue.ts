@@ -45,7 +45,7 @@ export async function processLocalQueue(signal?: AbortSignal) {
       const post = <T>(url: string, body: object) =>
         apiJSON<T>(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-job-id": job.id },
           body: JSON.stringify(body),
           signal: AbortSignal.any([controller.signal, AbortSignal.timeout(300_000)]),
         });
@@ -77,6 +77,8 @@ export async function processLocalQueue(signal?: AbortSignal) {
         const result = await post<{ tailoredCoverLetter: string }>("/api/tailor-cover-letter", {
           coverLetterLatex: cover,
           jobDescription: job.jobDescription,
+          companyName: job.companyName,
+          positionTitle: job.positionTitle,
           personalDetails: job.personalDetails,
           masterContext: context,
           tailoredResume: job.tailoredResume,
@@ -101,11 +103,17 @@ export async function processLocalQueue(signal?: AbortSignal) {
         ).catch(() => null);
         return false;
       }
-      await update({
-        status: "failed",
-        error: error instanceof Error ? error.message : "Processing failed",
-        completedAt: Date.now(),
-      });
+      const failed = await updateJobInQueue(
+        job.id,
+        {
+          status: "failed",
+          error: error instanceof Error ? error.message : "Processing failed",
+          completedAt: Date.now(),
+        },
+        job.runId,
+      );
+      // An expired or replaced claim belongs to recovery, not a permanent worker error.
+      if (!failed) return false;
       if (
         error instanceof TypeError ||
         (error instanceof APIError && [401, 403, 429, 503].includes(error.status))

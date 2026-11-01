@@ -10,13 +10,19 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 // Mutable AI behavior — the route's imports are mocked once, per-test state
 // via closure.
 let aiError: Error | null = null;
+let locationWait: Promise<void> | undefined;
+let locationStarted: (() => void) | undefined;
 
 mock.module("@/lib/ai", () => ({
   tailorResume: async () => {
     if (aiError) throw aiError;
     return "\\documentclass{article}% tailored resume";
   },
-  extractJobLocationInfo: async () => ({ country: "USA", workMode: "On-site" }),
+  extractJobLocationInfo: async () => {
+    locationStarted?.();
+    await locationWait;
+    return { country: "USA", workMode: "On-site" };
+  },
 }));
 
 // Import after mocking so the route picks up the mocked module
@@ -37,6 +43,8 @@ function makeRequest() {
 describe("POST /api/tailor", () => {
   beforeEach(() => {
     aiError = null;
+    locationWait = undefined;
+    locationStarted = undefined;
   });
 
   it("returns 200 with tailored output on success", async () => {
@@ -46,6 +54,27 @@ describe("POST /api/tailor", () => {
     expect(body.tailoredResume).toContain("tailored resume");
     expect(body.jobCountry).toBe("USA");
     expect(body.jobWorkMode).toBe("On-site");
+  });
+
+  it("waits for the other paid call before returning a failure for cost accounting", async () => {
+    aiError = new Error("resume failed");
+    let finish!: () => void;
+    locationWait = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const started = new Promise<void>((resolve) => {
+      locationStarted = resolve;
+    });
+    let settled = false;
+    const pending = POST(makeRequest()).then((response) => {
+      settled = true;
+      return response;
+    });
+    await started;
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    finish();
+    expect((await pending).status).toBe(500);
   });
 
   it("returns 504 JSON when the AI call times out", async () => {

@@ -3,6 +3,7 @@ import { PROVIDER_DISPLAY_NAMES, PROVIDER_MODELS } from "./types";
 
 export interface OpenAIConfig extends HTTPConfig {
   reasoningEffort?: "none" | "low" | "medium" | "high" | "xhigh" | "max";
+  webSearch?: boolean;
 }
 
 export class OpenAIProvider extends HTTPProvider {
@@ -26,6 +27,10 @@ export class OpenAIProvider extends HTTPProvider {
       max_output_tokens: this.config.maxTokens ?? 65535,
       reasoning: { effort: this.config.reasoningEffort ?? "high" },
       store: false,
+      ...(this.config.webSearch && {
+        tools: [{ type: "web_search" }],
+        max_tool_calls: 3,
+      }),
     };
   }
   protected readText(data: Record<string, unknown>): string {

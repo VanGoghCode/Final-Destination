@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Final Destination \u2014 Job Queue",
-  "version": "2.0.0",
-  "description": "Add job descriptions to your browser-local Final Destination queue.",
-  "permissions": ["activeTab", "scripting", "storage"],
+  "version": "2.1.0",
+  "description": "Queue job applications and replace resume and cover-letter PDFs in Downloads/apply.",
+  "permissions": ["activeTab", "scripting", "storage", "downloads"],
+  "background": { "service_worker": "downloads.js" },
   "host_permissions": ["http://localhost/*", "http://127.0.0.1/*", "https://*/*"],
   "action": {
     "default_title": "Final Destination \u2014 Add Job to Queue",

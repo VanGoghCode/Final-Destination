@@ -1,7 +1,9 @@
-import { afterEach, beforeEach, expect, it } from "bun:test";
+import { afterEach, beforeEach, expect, it, spyOn } from "bun:test";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { fireEvent } from "@testing-library/react";
 import { openBrowser } from "@/lib/__tests__/browser";
+import { mockPdfExtension } from "@/lib/__tests__/pdf-extension";
 import LaTeXEditor from "../LaTeXEditor";
 
 let root: Root, container: HTMLDivElement, close: () => void;
@@ -70,4 +72,69 @@ it("shows a readable platform failure and preserves editable source", async () =
   await act(async () => root.render(<LaTeXEditor code="saved source" title="Resume" />));
   expect(container.textContent).toContain("Preview service temporarily unavailable");
   expect(container.querySelector("textarea")?.value).toBe("saved source");
+});
+
+it("waits for the extension to save the PDF before opening the job", async () => {
+  let finish!: () => void;
+  let written = "";
+  const bridge = mockPdfExtension(async (_name, base64) => {
+    written = atob(base64);
+    await new Promise<void>((resolve) => (finish = resolve));
+  });
+  globalThis.fetch = (async () => Response.json({ pdf })) as unknown as typeof fetch;
+  const navigated: string[] = [];
+  const open = spyOn(window, "open").mockReturnValue({
+    opener: null,
+    location: { replace: (url: string) => navigated.push(url) },
+  } as unknown as Window);
+  try {
+    await act(async () =>
+      root.render(<LaTeXEditor code="source" title="Resume" jobUrl="https://example.test/apply" />),
+    );
+    const apply = container.querySelector<HTMLButtonElement>(
+      '[title="Download resume and apply"]',
+    )!;
+    expect(apply.textContent).toContain("Apply");
+    expect(container.textContent).not.toContain("Choose folder");
+    await act(async () => fireEvent.click(apply));
+    expect(written).toBe(atob(pdf));
+    expect(apply.disabled).toBe(true);
+    expect(navigated).toEqual([]);
+    await act(async () => finish());
+    expect(navigated).toEqual(["https://example.test/apply"]);
+    expect(apply.disabled).toBe(false);
+  } finally {
+    bridge.mockRestore();
+    open.mockRestore();
+  }
+});
+
+it("closes the reserved application tab and shows save failures", async () => {
+  const bridge = mockPdfExtension(async () => {
+    throw new Error("Could not save PDF");
+  });
+  globalThis.fetch = (async () => Response.json({ pdf })) as unknown as typeof fetch;
+  let closed = false;
+  const navigated: string[] = [];
+  const open = spyOn(window, "open").mockReturnValue({
+    opener: null,
+    location: { replace: (url: string) => navigated.push(url) },
+    close: () => {
+      closed = true;
+    },
+  } as unknown as Window);
+  try {
+    await act(async () =>
+      root.render(<LaTeXEditor code="source" title="Resume" jobUrl="https://example.test/apply" />),
+    );
+    await act(async () =>
+      fireEvent.click(container.querySelector('[title="Download resume and apply"]')!),
+    );
+    expect(closed).toBe(true);
+    expect(navigated).toEqual([]);
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain("Could not save PDF");
+  } finally {
+    bridge.mockRestore();
+    open.mockRestore();
+  }
 });

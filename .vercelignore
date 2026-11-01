@@ -1,0 +1,7 @@
+.claude/
+.codex/
+.agents/
+.aws/
+*.tsbuildinfo
+tmp/
+output/cover-letter-review/

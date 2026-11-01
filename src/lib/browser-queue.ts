@@ -1,6 +1,8 @@
 import { resetJob, isClaimable, isActiveJob } from "./queue";
 export { resetJob } from "./queue";
 export interface QueuedJob {
+  generationCostUsd?: number;
+  generationCostIncomplete?: boolean;
   inputHash?: string;
   runId?: string;
   leaseExpiresAt?: number;
@@ -72,6 +74,12 @@ export function parseQueueState(raw: string): { jobs: QueuedJob[]; paused: boole
           !["companyName", "positionTitle", "companyUrl", "jobDescription"].every(
             (key) => typeof job[key as keyof QueuedJob] === "string",
           ) ||
+          (job.generationCostUsd !== undefined &&
+            (typeof job.generationCostUsd !== "number" ||
+              !Number.isFinite(job.generationCostUsd) ||
+              job.generationCostUsd < 0)) ||
+          (job.generationCostIncomplete !== undefined &&
+            typeof job.generationCostIncomplete !== "boolean") ||
           typeof job.includeCoverLetter !== "boolean" ||
           !Number.isFinite(job.progress) ||
           job.progress < 0 ||

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kirtan Cover Letter"
+  short_description: "Tailor truthful one-page letters in Kirtan's voice"
+  default_prompt: "Use $write-kirtan-cover-letter to tailor a one-page cover letter to this job using my verified experience."

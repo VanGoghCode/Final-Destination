@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { parseJobBatch } from "./job-import";
 import { buildCoverLetterPrompt } from "./prompts/index";
+import { KIRTAN_COVER_LETTER_INSTRUCTIONS } from "./prompts/kirtan-cover-letter";
 import { resumeTemplate, coverTemplate, masterContext } from "./personal-workspace";
 test("bot additions use the single personal setup without selecting a profile", () => {
   const jobs = parseJobBatch(
@@ -19,7 +20,11 @@ test("bot additions use the single personal setup without selecting a profile", 
   expect(jobs[0]?.profileId).toBe("kirtan");
 });
 test("supplied templates and candidate context are always available", () => {
-  expect(resumeTemplate.content).toContain("PutText");
+  expect(resumeTemplate.content).toStartWith("\\RequirePackage{fix-cm}");
+  expect(resumeTemplate.content).toContain("\\pdfgentounicode=1");
+  expect(resumeTemplate.content).toContain("\\newcommand{\\ResumeEntry}");
+  expect(resumeTemplate.content).toContain("left=25bp");
+  expect(resumeTemplate.content).toContain("surface less obvious ans unknown ethical issues");
   expect(coverTemplate.content).toContain("begin{document}");
   expect(masterContext).toContain("Critical Code Reviewer");
 });
@@ -31,7 +36,7 @@ test("cover prompt uses ownership, avoids forced enthusiasm and replaces example
     personalDetails: "",
   });
   expect(prompt.system).toContain("ownership");
-  expect(prompt.system).toContain("formatting shell");
+  expect(prompt.system).toBe(KIRTAN_COVER_LETTER_INSTRUCTIONS);
   expect(prompt.system).not.toContain("what really excites me");
   expect(prompt.user).toContain("CURRENT DATE");
 });

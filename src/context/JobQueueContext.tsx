@@ -243,9 +243,18 @@ export function JobQueueProvider({ children }: { children: ReactNode }) {
     [mutate],
   );
   const removeJob = useCallback(
-    async (id: string) =>
-      !!(await mutate(id, `/api/queue?id=${encodeURIComponent(id)}`, json("DELETE"))),
-    [mutate],
+    async (id: string) => {
+      const result = await mutate<{ success: boolean }>(
+        id,
+        `/api/queue?id=${encodeURIComponent(id)}`,
+        json("DELETE"),
+      );
+      if (!result?.success) return false;
+      // A confirmed deletion must disappear even if the follow-up read failed.
+      commit({ ...current.current, jobs: current.current.jobs.filter((job) => job.id !== id) });
+      return true;
+    },
+    [mutate, commit],
   );
   const clearQueue = useCallback(
     async () => !!(await mutate("queue", "/api/queue", json("DELETE"))),

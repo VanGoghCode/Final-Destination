@@ -17,17 +17,27 @@ describe("Prompts", () => {
 
     expect(pair.user).toContain("\\documentclass{article}");
     expect(pair.user).toContain("ORIGINAL RESUME");
-    expect(pair.system.split(/\s+/).length).toBeLessThan(200);
     expect(pair.system).toContain("recruiter for this JD");
     expect(pair.system).toContain("ONLY the original resume and master context");
     expect(pair.system).toContain("Never invent");
-    expect(pair.system).toContain("Rewrite and reorder skills and bullets within entries");
-    expect(pair.system).toContain("one page with similar word count and density");
-    expect(pair.system).toContain("Make meaningful edits where fit is unclear");
-    expect(pair.system).not.toMatch(/minimal edits|prefer small wording changes/);
+    expect(pair.system).toContain("There is no percentage limit on rewriting");
+    expect(pair.system).not.toContain("35% as the hard ceiling");
+    expect(pair.system).toContain("Reassess every skills row");
+    expect(pair.system).toContain("not per-entry caps");
+    expect(pair.system).toContain("Each experience entry must have 4-6 bullets");
+    expect(pair.system).toContain("Each retained project must have 3 bullets");
+    expect(pair.system).toContain("a slight overflow onto a second page is acceptable");
+    expect(pair.system).toContain("Prefer 5-6 distinct, substantive bullets");
+    expect(pair.system).toContain("remove the empty project heading");
+    expect(pair.system).not.toContain("do not add more bullets");
+    expect(pair.system).toContain("Unsupported JD requirements stay unclaimed");
+    expect(pair.system).toContain("SENIORITY WITHOUT INFLATION");
+    expect(pair.system).toContain("Do not copy JD phrases into Skills");
+    expect(pair.system).toContain("Do not hide an unsupported skill in an experience bullet");
+    expect(pair.system).toContain("Preserve the supplied section order");
   });
 
-  it("regeneration uses the same short rules and does not trust previous generated claims", () => {
+  it("regeneration uses the same comprehensive rules and does not trust previous generated claims", () => {
     const pair = buildResumeRegenerationPrompt({
       masterContext: "facts",
       originalLatex: "original",
@@ -49,7 +59,7 @@ describe("Prompts", () => {
     expect(pair.user).toContain("not a factual source");
   });
 
-  it("buildResumePrompt should omit budget block when not provided", () => {
+  it("uses an explicit fallback when the template has no recognized bullet lists", () => {
     const pair = buildResumePrompt({
       masterContext: "",
       resumeLatex: "\\section{test}",
@@ -57,7 +67,7 @@ describe("Prompts", () => {
       personalDetails: "",
     });
 
-    expect(pair.user).not.toContain("CHARACTER BUDGET");
+    expect(pair.user).toContain("no automatic text-length estimate");
   });
 
   it("buildCoverLetterPrompt should include cover letter data", () => {

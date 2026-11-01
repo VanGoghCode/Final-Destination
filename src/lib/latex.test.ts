@@ -8,25 +8,27 @@ const failure = () =>
   Response.json({ logs: "! Undefined control sequence.\nl.4 \\badcommand" }, { status: 400 });
 
 describe("LaTeX compilation and automatic repair", () => {
-  it("switches compiler for fontspec engine errors without rewriting the template", async () => {
+  it("keeps pdfLaTeX and reports incompatible engine packages without AI repair", async () => {
     const engines: string[] = [];
-    await compileLatex(source, {
-      fetch: async (_url, init) => {
-        engines.push(JSON.parse(String(init?.body)).compiler);
-        return engines.length === 1
-          ? Response.json(
-              { logs: "! The fontspec package requires either XeTeX or LuaTeX." },
-              { status: 400 },
-            )
-          : pdf();
-      },
-      repair: async () => {
-        throw Error("unexpected repair");
-      },
-    });
-    expect(engines).toEqual(["pdflatex", "xelatex"]);
+    await expect(
+      compileLatex(source, {
+        fetch: async (_url, init) => {
+          engines.push(JSON.parse(String(init?.body)).compiler);
+          return engines.length === 1
+            ? Response.json(
+                { logs: "! The fontspec package requires either XeTeX or LuaTeX." },
+                { status: 400 },
+              )
+            : pdf();
+        },
+        repair: async () => {
+          throw Error("unexpected repair");
+        },
+      }),
+    ).rejects.toThrow("PDF compilation uses pdfLaTeX");
+    expect(engines).toEqual(["pdflatex"]);
   });
-  it("supports explicit engine hints and rejects changes to URLs or metrics", async () => {
+  it("uses pdfLaTeX despite old engine hints and rejects changes to URLs or metrics", async () => {
     let engine = "";
     await compileLatex(`%!TEX program = lualatex\n${source}`, {
       fetch: async (_url, init) => {
@@ -34,7 +36,7 @@ describe("LaTeX compilation and automatic repair", () => {
         return pdf();
       },
     });
-    expect(engine).toBe("lualatex");
+    expect(engine).toBe("pdflatex");
     const withMetrics = source.replace(
       "Built APIs",
       String.raw`Built APIs, reduced latency 10\%. \href{https://example.com/a-b}{Portfolio}`,

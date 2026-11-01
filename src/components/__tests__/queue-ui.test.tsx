@@ -40,6 +40,29 @@ const buttons = () =>
     (b) => b.getAttribute("aria-label") || b.textContent,
   );
 describe("queue action visibility and behavior", () => {
+  it("shows only the dollar total beside the organisation on completed jobs", async () => {
+    await act(() =>
+      root.render(
+        <JobQueueCard
+          job={job("priced", { status: "completed", generationCostUsd: 0.43 })}
+          onRemove={() => {}}
+        />,
+      ),
+    );
+    const header = document.querySelector("h3")!.parentElement!;
+    expect(header.textContent).toBe(document.querySelector("h3")!.textContent + "$0.4300");
+    for (const value of [
+      { status: "pending" as const, generationCostUsd: 0.43 },
+      { status: "completed" as const },
+      { status: "completed" as const, generationCostUsd: 0.43, generationCostIncomplete: true },
+    ]) {
+      await act(() =>
+        root.render(<JobQueueCard job={job("unpriced", value)} onRemove={() => {}} />),
+      );
+      expect(document.querySelector("h3")!.parentElement!.textContent).not.toContain("$");
+    }
+  });
+
   for (const status of [
     "pending",
     "researching",

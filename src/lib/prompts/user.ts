@@ -10,6 +10,7 @@
 // --------------------------------------------------
 // Resume Tailoring
 // --------------------------------------------------
+import { buildResumeSpaceGuidance } from "./resume-space";
 
 export interface ResumeTailoringData {
   masterContext: string;
@@ -30,7 +31,13 @@ ${data.resumeLatex}
 ${data.jobDescription}
 
 ## PREFERENCES (style only):
-${data.personalDetails}`;
+${data.personalDetails}
+
+## EMPLOYER RESEARCH (relevance only; not candidate evidence):
+${data.manualResearch || "Not supplied; use the JD for relevance."}
+
+## SPACE GUIDANCE FROM THE ORIGINAL TEMPLATE (approximate, not a page-count guarantee):
+${buildResumeSpaceGuidance(data.resumeLatex)}`;
 }
 
 // --------------------------------------------------
@@ -183,6 +190,8 @@ Extract country and work mode. Country: infer from city names, currency, or comp
 // --------------------------------------------------
 
 export interface RegenerationData {
+  tailoredResume?: string;
+  manualResearch?: string;
   userComment: string;
   currentContent: string;
   originalLatex: string;
@@ -222,6 +231,12 @@ ${data.jobDescription}
 
 ## PERSONAL DETAILS:
 ${data.personalDetails}
+
+## SUPPLIED RESUME (evidence):
+${data.tailoredResume || "Not supplied"}
+
+## EMPLOYER RESEARCH NOTES (verify external claims):
+${data.manualResearch || "Not supplied; use browsing if available or the JD"}
 
 ## INSTRUCTIONS:
 Apply the user's feedback to the Current Cover Letter. Use Master Context for accurate details. Preserve LaTeX structure. Return ONLY complete LaTeX code, no markdown wrapping. Do NOT use ** or em dashes. Do not fabricate content.`;

@@ -31,7 +31,7 @@ export async function generateQueueCoverLetter(
     "/api/tailor-cover-letter",
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-job-id": id },
       body: JSON.stringify({
         coverLetterLatex: coverTemplate.content,
         masterContext,
@@ -66,7 +66,7 @@ export async function saveQueueResult(
 ) {
   return apiJSON<{ job: QueuedJob }>("/api/queue", {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-job-id": id },
     body: JSON.stringify({ id, updates, expectedCompletedAt }),
   });
 }
@@ -77,7 +77,7 @@ export async function regenerateQueueResult(
 ) {
   const { regeneratedContent } = await apiJSON<{ regeneratedContent: string }>("/api/regenerate", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-job-id": id },
     body: JSON.stringify(input),
   });
   if (!regeneratedContent?.trim()) throw new Error("AI returned an empty document");

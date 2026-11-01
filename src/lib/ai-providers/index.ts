@@ -15,7 +15,11 @@ export function getAIProvider(
   if (provider === "openai")
     return fast
       ? OpenAIProvider.createFast(callTag, modelId)
-      : new OpenAIProvider({ callTag, modelId });
+      : new OpenAIProvider({
+          callTag,
+          modelId,
+          webSearch: callTag === "cover-letter" || callTag === "regenerate-cover-letter",
+        });
   if (fast) return DeepSeekProvider.createFast(callTag);
   return new DeepSeekProvider({
     temperature: 0.7,

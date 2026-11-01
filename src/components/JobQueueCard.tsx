@@ -11,6 +11,8 @@ interface JobQueueCardProps {
   onCancel?: () => unknown;
   isCurrentJob?: boolean;
   busy?: boolean;
+  selected?: boolean;
+  onSelect?: (selected: boolean) => void;
 }
 const labels = {
   pending: "Waiting",
@@ -54,6 +56,8 @@ export default function JobQueueCard({
   onCancel,
   isCurrentJob,
   busy,
+  selected,
+  onSelect,
 }: JobQueueCardProps) {
   const active = isActiveJob(job),
     interrupted = active && isClaimable(job);
@@ -82,9 +86,36 @@ export default function JobQueueCard({
       className={`min-w-0 space-y-3 rounded-xl border bg-white p-4 ${job.status === "failed" ? "border-red-200" : isCurrentJob ? "border-purple-300" : "border-gray-200"}`}
     >
       <div>
-        <h3 className="text-sm font-semibold break-words">
-          {job.companyName || "Unknown company"}
-        </h3>
+        {onSelect && (
+          <label className="mb-2 flex w-fit cursor-pointer items-center gap-2 text-xs text-gray-600">
+            <input
+              type="checkbox"
+              checked={!!selected}
+              disabled={busy}
+              onChange={(event) => onSelect(event.target.checked)}
+              aria-label={`Select ${job.companyName}: ${job.positionTitle}`}
+              className="h-4 w-4 accent-gray-900"
+            />
+            Select job
+          </label>
+        )}
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="min-w-0 text-sm font-semibold break-words">
+            {job.companyName || "Unknown company"}
+          </h3>
+          {job.status === "completed" &&
+            job.generationCostUsd !== undefined &&
+            !job.generationCostIncomplete && (
+              <span className="shrink-0 text-sm text-gray-600 tabular-nums">
+                {job.generationCostUsd.toLocaleString("en-US", {
+                  style: "currency",
+                  currency: "USD",
+                  minimumFractionDigits: 4,
+                  maximumFractionDigits: 4,
+                })}
+              </span>
+            )}
+        </div>
         <p className="mt-1 text-xs break-words text-gray-600">{job.positionTitle}</p>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
           <span

@@ -1,8 +1,9 @@
+import { withJobGenerationCost } from "@/lib/job-generation-cost";
 import { NextResponse } from "next/server";
 import { answerGeneralQuestion, answerWithInternet, answerInternetOnly } from "@/lib/ai";
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from "@/lib/rate-limit";
 
-export async function POST(request: Request) {
+async function generate(request: Request) {
   const clientId = getClientIdentifier(request);
   const rl = checkRateLimit(`ask_${clientId}`, RATE_LIMITS.AI_GENERATION);
   if (!rl.success) {
@@ -78,4 +79,8 @@ export async function POST(request: Request) {
     console.error("Error answering question:", error);
     return NextResponse.json({ error: "Failed to answer question." }, { status: 500 });
   }
+}
+
+export function POST(request: Request) {
+  return withJobGenerationCost(request, () => generate(request));
 }

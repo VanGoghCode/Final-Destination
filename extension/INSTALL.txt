@@ -1,0 +1,16 @@
+Final Destination extension 2.1.0
+
+1. Extract final-destination-extension.zip into a permanent folder.
+2. Open chrome://extensions in Chrome or edge://extensions in Edge.
+3. Enable Developer mode, click Load unpacked, and select the extracted folder containing manifest.json.
+4. Keep the extension enabled and allow its download and Final Destination site permissions.
+5. In browser Settings > Downloads, set Location to C:\Users\kirta\Downloads.
+6. Refresh https://final-destination-rose.vercel.app and click Apply.
+
+Apply saves apply\Kirtan_Thummar_resume.pdf, overwriting the previous file,
+then opens the application. Cover letters save apply\Kirtan_Thummar_cover_letter.pdf.
+If the apply subfolder is deleted, the browser creates it again on download.
+Keep the extracted extension folder; the browser loads it from that location.
+If an older copy of Final Destination is installed, remove it to avoid running duplicate copies.
+
+The extension also includes the optional job queue popup.

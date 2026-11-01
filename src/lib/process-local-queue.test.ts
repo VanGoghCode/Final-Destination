@@ -60,6 +60,33 @@ const hold = () => {
   return started;
 };
 describe("browser queue processing", () => {
+  it("bounds a stalled queue read and releases the worker lock", async () => {
+    const timeout = AbortSignal.timeout;
+    AbortSignal.timeout = () => timeout(10);
+    globalThis.fetch = (async (_url: string, init: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init.signal?.addEventListener("abort", () => reject(init.signal?.reason), { once: true });
+      })) as typeof fetch;
+    try {
+      await expect(processLocalQueue()).rejects.toThrow();
+    } finally {
+      AbortSignal.timeout = timeout;
+    }
+    ai();
+    expect(await processLocalQueue()).toBe(true);
+  });
+  it("releases the worker after its claim expires so the next tick can recover", async () => {
+    globalThis.fetch = (async (url: string, init: RequestInit) => {
+      if (url.startsWith("/api/queue")) return (await localRequest(url, init))!;
+      const queue = await getQueue();
+      await setQueue(queue.map((saved) => ({ ...saved, leaseExpiresAt: Date.now() - 1 })));
+      throw new Error("Request timed out after the tab was suspended");
+    }) as typeof fetch;
+    expect(await processLocalQueue()).toBe(false);
+    ai();
+    expect(await processLocalQueue()).toBe(true);
+    expect((await getQueue())[0]?.status).toBe("completed");
+  });
   it("releases an interrupted claim with its saved resume checkpoint", async () => {
     await setQueue([job("job", { includeCoverLetter: true, tailoredResume: "checkpoint" })]);
     const started = hold();
@@ -82,6 +109,7 @@ describe("browser queue processing", () => {
     expect(calls[0]?.body.masterContext).toBe(masterContext);
     expect(calls[0]?.body.resumeLatex).toBe(resumeTemplate.content);
     expect(calls[0]?.headers.get("x-openai-api-key")).toBe("fixture");
+    expect(calls[0]?.headers.get("x-job-id")).toBe((await getQueue())[0]!.id);
     expect((await getQueue())[0]).toMatchObject({
       status: "completed",
       progress: 100,
@@ -158,6 +186,8 @@ describe("browser queue processing", () => {
     await processLocalQueue();
     expect(calls.map((call) => call.url)).toEqual(["/api/tailor-cover-letter"]);
     expect(calls[0]?.body.tailoredResume).toBe("saved resume");
+    expect(calls[0]?.body.companyName).toBe((await getQueue())[0]?.companyName);
+    expect(calls[0]?.body.positionTitle).toBe((await getQueue())[0]?.positionTitle);
     expect((await getQueue())[0]?.status).toBe("completed");
   });
   it("retains completed resume work when retrying a failed cover letter", async () => {

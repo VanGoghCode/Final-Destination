@@ -1,12 +1,13 @@
 "use client";
 
-import { apiFetch, apiJSON } from "@/lib/client-api";
+import { apiFetch } from "@/lib/client-api";
 
 import { useState, useEffect, use, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LaTeXEditor from "@/components/LaTeXEditor";
 import Sidebar from "@/components/Sidebar";
 import Button from "@/components/Button";
+import { useJobQueue } from "@/context/JobQueueContext";
 
 import {
   readQueueResult,
@@ -38,6 +39,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
   const router = useRouter();
   const searchParams = useSearchParams();
   const jobId = searchParams.get("jobId");
+  const { removeJob } = useJobQueue();
 
   // Job data from sessionStorage
   const [resultError, setResultError] = useState("");
@@ -122,9 +124,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
 
       setIsDeletingFromBatch(true);
       try {
-        await apiJSON(`/api/queue?id=${encodeURIComponent(jobId || "")}`, {
-          method: "DELETE",
-        });
+        if (!(await removeJob(jobId))) throw new Error("Could not delete job from queue");
         // Remove from sessionStorage too
         sessionStorage.removeItem(`batch_job_${jobId}`);
         // Redirect to batch page
@@ -136,7 +136,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
         setIsDeletingFromBatch(false);
       }
     },
-    [jobId, router],
+    [jobId, router, removeJob],
   );
 
   // Generate formatted filenames
@@ -153,15 +153,8 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
   const companyName = jobData?.companyName || resolvedParams.company || "Company";
   const positionTitle = jobData?.positionTitle || "Position";
 
-  // Detailed filenames - format: FullName_Company_Position_Resume
-  const resumeFileName = fullName
-    ? `${fullName}_${formatName(companyName)}_${formatName(positionTitle)}_Resume`
-    : `${formatName(companyName)}_${formatName(positionTitle)}_Resume`;
-  const simpleResumeFileName =
-    firstName && lastName ? `${formatName(firstName)}_${formatName(lastName)}_Resume` : "Resume";
-  const coverLetterFileName = fullName
-    ? `${fullName}_${formatName(companyName)}_${formatName(positionTitle)}_CoverLetter`
-    : `${formatName(companyName)}_${formatName(positionTitle)}_CoverLetter`;
+  const resumeFileName = fullName ? `${fullName}_resume` : "resume";
+  const coverLetterFileName = fullName ? `${fullName}_cover_letter` : "cover_letter";
 
   const copyToClipboard = async (text: string, type: "resume" | "coverLetter") => {
     await navigator.clipboard.writeText(text);
@@ -188,6 +181,9 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
           comment,
           resumeLatex: jobData?.resumeLatex,
           coverLetterLatex: jobData?.coverLetterLatex,
+          tailoredResume,
+          companyName: jobData?.companyName,
+          positionTitle: jobData?.positionTitle,
           jobDescription: jobData?.jobDescription,
           masterContext: jobData?.masterContext || "",
         },
@@ -600,7 +596,10 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
                 try {
                   const response = await apiFetch("/api/ask", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                      "Content-Type": "application/json",
+                      ...(jobId ? { "x-job-id": jobId } : {}),
+                    },
                     body: JSON.stringify({
                       question: generalQuestion,
                       tailoredResume,
@@ -666,6 +665,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
       {/* Main Content - LaTeX Editor */}
       <main className="flex flex-1 flex-col overflow-hidden">
         <LaTeXEditor
+          jobId={jobId || undefined}
           title="Tailored Resume"
           code={tailoredResume}
           onCodeChange={(value) => {
@@ -677,21 +677,14 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
           showPreview={true}
           fullHeight={true}
           downloadFileName={resumeFileName}
-          simpleDownloadFileName={simpleResumeFileName}
           jobUrl={jobData?.companyUrl}
-          onApply={() => {
-            // Redirect to the job application URL
-            if (jobData?.companyUrl) {
-              window.open(jobData.companyUrl, "_blank");
-            }
-          }}
         />
       </main>
 
       {/* Cover Letter Preview Modal */}
       {showCoverLetterPreview && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 sm:p-8">
-          <div className="relative flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-2 sm:p-3">
+          <div className="relative flex h-full w-full max-w-none flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
             <button
               onClick={() => setShowCoverLetterPreview(false)}
               className="absolute top-4 right-4 z-[70] rounded-full border border-gray-100 bg-white/80 p-2 text-gray-500 shadow-md transition-all hover:bg-white hover:text-gray-800"
@@ -711,6 +704,7 @@ export default function TailoredCompanyPage({ params }: { params: Promise<{ comp
             </button>
             <div className="min-h-0 flex-1">
               <LaTeXEditor
+                jobId={jobId || undefined}
                 title="Cover Letter Preview"
                 code={tailoredCoverLetter}
                 onCodeChange={(value) => {
