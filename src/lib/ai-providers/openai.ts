@@ -1,5 +1,6 @@
 import { HTTPProvider, type HTTPConfig } from "./http";
 import { PROVIDER_DISPLAY_NAMES, PROVIDER_MODELS } from "./types";
+import { WEB_RESEARCH_RULES } from "../prompts/web-research";
 
 export interface OpenAIConfig extends HTTPConfig {
   reasoningEffort?: "none" | "low" | "medium" | "high" | "xhigh" | "max";
@@ -23,7 +24,11 @@ export class OpenAIProvider extends HTTPProvider {
     return {
       model: this.config.modelId || process.env.OPENAI_MODEL || PROVIDER_MODELS.openai.default,
       input: prompt,
-      ...(systemPrompt && { instructions: systemPrompt }),
+      ...((systemPrompt || this.config.webSearch) && {
+        instructions: this.config.webSearch
+          ? [systemPrompt, WEB_RESEARCH_RULES].filter(Boolean).join("\n\n")
+          : systemPrompt,
+      }),
       max_output_tokens: this.config.maxTokens ?? 65535,
       reasoning: { effort: this.config.reasoningEffort ?? "high" },
       store: false,

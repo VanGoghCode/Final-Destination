@@ -33,7 +33,7 @@ for (const fixture of fixtures) {
     fixture.mode === "regenerate"
       ? buildResumeRegenerationPrompt(fixture.data)
       : buildResumePrompt(fixture.data);
-  const request = { model: "gpt-6-luna", reasoningEffort: "high", webSearch: false, ...pair };
+  const request = { model: "gpt-6-luna", reasoningEffort: "high", webSearch: true, ...pair };
   const serialized = JSON.stringify(request, null, 2);
   const dir = join(resolve(outputPath), fixture.id);
   await mkdir(dir, { recursive: true });
@@ -69,7 +69,7 @@ for (const fixture of fixtures) {
       const provider = new OpenAIProvider({
         modelId: request.model,
         reasoningEffort: "high",
-        webSearch: false,
+        webSearch: true,
         callTag: "resume",
       });
       const raw = await provider.generateContent(pair.user, pair.system);

@@ -311,5 +311,5 @@ ${data.tailoredCoverLetter || "Not provided"}
 ${data.jobDescription || "Not provided"}
 
 ## INSTRUCTIONS:
-Answer in FIRST PERSON. Use Master Context for personal details. Use your training knowledge for external facts (company info, industry trends, market data). Clearly distinguish between personal experience and external information. Follow tone rules from system instructions.${limitInstruction}`;
+Use FIRST PERSON for personal or application questions; answer factual questions directly. Use Master Context for personal details. Use web search when available to verify external facts (company info, industry trends, market data), and include concise source URLs for researched claims when the format permits. Never claim live verification without a successful search. Clearly distinguish between personal experience and external information. Follow tone rules from system instructions.${limitInstruction}`;
 }

@@ -53,7 +53,7 @@ test("resume draft and revision return the selected model's reviewed output with
     const body = JSON.parse(String(init?.body));
     calls.push(body);
     return response(
-      body.instructions === KIRTAN_RESUME_INSTRUCTIONS
+      body.tools && body.instructions?.startsWith(KIRTAN_RESUME_INSTRUCTIONS)
         ? proposed
         : body.instructions === KIRTAN_RESUME_EDITOR_INSTRUCTIONS
           ? final
@@ -71,8 +71,9 @@ test("resume draft and revision return the selected model's reviewed output with
     expect(resumeCalls).toHaveLength(4);
     for (const [i, call] of resumeCalls.entries()) {
       expect(call.model).toBe("gpt-6-luna");
-      expect(call.tools).toBeUndefined();
-      expect(call.instructions).toBe(
+      if (i % 2) expect(call.tools).toBeUndefined();
+      else expect(call.tools).toEqual([{ type: "web_search" }]);
+      expect(call.instructions).toContain(
         i % 2 ? KIRTAN_RESUME_EDITOR_INSTRUCTIONS : KIRTAN_RESUME_INSTRUCTIONS,
       );
       expect(call.input).toContain(original);
@@ -114,7 +115,7 @@ test("resume review cannot start a fresh deadline after drafting exhausts the ro
   const fetchSpy = spyOn(globalThis, "fetch").mockImplementation((async (_url, init) => {
     const body = JSON.parse(String(init?.body));
     instructions.push(body.instructions);
-    if (body.instructions === KIRTAN_RESUME_INSTRUCTIONS) now += 286_000;
+    if (body.tools && body.instructions?.startsWith(KIRTAN_RESUME_INSTRUCTIONS)) now += 286_000;
     return response(body.instructions ? proposed : '{"country":"USA","workMode":"Remote"}');
   }) as typeof fetch);
   try {

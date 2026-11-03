@@ -18,7 +18,9 @@ export function getAIProvider(
       : new OpenAIProvider({
           callTag,
           modelId,
-          webSearch: callTag === "cover-letter" || callTag === "regenerate-cover-letter",
+          // Research is available throughout writing and Q&A. Final editors
+          // work from the draft's evidence rather than starting new research.
+          webSearch: callTag !== "resume-edit" && callTag !== "cover-letter-edit",
         });
   if (fast) return DeepSeekProvider.createFast(callTag);
   return new DeepSeekProvider({
