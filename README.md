@@ -1,6 +1,6 @@
 # Final Destination
 
-Personal resume tailoring with one built-in resume, cover-letter template and master context. OpenAI Luna uses high reasoning by default. Queue inputs, edits and generated results are shared across browsers through queue.json in a private GitHub repository. No database is used.
+Personal resume tailoring with one built-in resume, cover-letter template and master context. OpenAI Luna uses high reasoning by default. Hosted web search is available when needed for resumes, cover letters, application answers, emails, and all Quick Question modes. Candidate facts still come only from supplied context. Final editorial passes and fast extraction/repair calls do not search. Queue inputs, edits and generated results are shared across browsers through queue.json in a private GitHub repository. No database is used.
 
 ## Setup
 

@@ -61,7 +61,7 @@ describe("OpenAI Responses provider", () => {
     await ai.generateContent("test");
     expect(body).toMatchObject({ model: "custom-model", max_output_tokens: 1024 });
   });
-  it("enables bounded web research for cover drafting and revision only", async () => {
+  it("enables research across writing and Q&A while keeping editors local", async () => {
     const bodies: Record<string, unknown>[] = [];
     const fetchSpy = spyOn(globalThis, "fetch").mockImplementation((async (
       _input: RequestInfo | URL,
@@ -77,7 +77,22 @@ describe("OpenAI Responses provider", () => {
       });
     }) as unknown as typeof fetch);
     try {
-      for (const callTag of ["cover-letter", "regenerate-cover-letter", "resume", "answers"]) {
+      const researchTags = [
+        undefined,
+        "cover-letter",
+        "regenerate-cover-letter",
+        "resume",
+        "regenerate-resume",
+        "answers",
+        "regenerate-answers",
+        "cold-email",
+        "reference-email",
+        "regenerate-email",
+        "question",
+        "question-internet",
+        "question-internet-only",
+      ];
+      for (const callTag of [...researchTags, "resume-edit", "cover-letter-edit"]) {
         expect(
           await getAIProvider("openai", { callTag, modelId: "gpt-6-luna" }).generateContent(
             "job",
@@ -85,14 +100,16 @@ describe("OpenAI Responses provider", () => {
           ),
         ).toBe("letter");
       }
-      for (const body of bodies.slice(0, 2)) {
+      for (const body of bodies.slice(0, researchTags.length)) {
+        expect(body.instructions).toContain("Use web search when current");
+        expect(body.instructions).toContain("only evidence of personal experience");
         expect(body).toMatchObject({
           tools: [{ type: "web_search" }],
           max_tool_calls: 3,
           model: "gpt-6-luna",
         });
       }
-      for (const body of bodies.slice(2)) expect(body.tools).toBeUndefined();
+      for (const body of bodies.slice(researchTags.length)) expect(body.tools).toBeUndefined();
     } finally {
       fetchSpy.mockRestore();
     }

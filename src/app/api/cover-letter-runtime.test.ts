@@ -72,10 +72,10 @@ test("deployed draft and revision handlers send hosted web search through Respon
       expect(call.url).toBe("https://api.openai.com/v1/responses");
       expect(call.body.model).toBe("gpt-6-luna");
       if (index % 2 === 0) {
+        expect(call.body.instructions).toContain(KIRTAN_COVER_LETTER_INSTRUCTIONS);
         expect(call.body).toMatchObject({
           tools: [{ type: "web_search" }],
           max_tool_calls: 3,
-          instructions: KIRTAN_COVER_LETTER_INSTRUCTIONS,
         });
       } else {
         expect(call.body.tools).toBeUndefined();

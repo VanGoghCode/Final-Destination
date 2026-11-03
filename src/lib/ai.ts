@@ -361,7 +361,7 @@ export async function answerInternetOnly(
   limitType?: "words" | "characters",
   limitValue?: number,
 ): Promise<string> {
-  const systemPrompt = `${SYSTEM_QUESTION_RULES}\n\nNo candidate background was supplied. Answer factual questions without inventing personal experience. Do not claim to have searched the web or verified current facts; state uncertainty where needed.`;
+  const systemPrompt = `${SYSTEM_QUESTION_RULES}\n\nNo candidate background was supplied. Answer factual questions without inventing personal experience. Use web search when available to verify current or uncertain external facts. Only claim verification when supported by an actual search; otherwise state uncertainty where needed.`;
   const limitInstruction =
     limitType && limitValue ? `\nIMPORTANT: Answer MUST be within ${limitValue} ${limitType}.` : "";
   const contextHint =
@@ -373,7 +373,7 @@ export async function answerInternetOnly(
 ${question}
 ${contextHint}
 ## INSTRUCTIONS:
-Provide a clear, accurate answer based on your training knowledge. Use natural tone. Do NOT use ** or em dashes.${limitInstruction}`;
+Provide a clear, accurate answer. Search the web when needed to verify external facts and include concise source URLs for researched claims. Use natural tone. Do NOT use ** or em dashes.${limitInstruction}`;
 
   return cleanQuestionAnswer(await generate(userPrompt, systemPrompt, "question-internet-only"));
 }
